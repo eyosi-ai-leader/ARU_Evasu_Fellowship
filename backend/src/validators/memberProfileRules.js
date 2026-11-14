@@ -3,6 +3,7 @@ const { body } = require("express-validator");
 const {
   ACADEMIC_STATUSES,
   RESIDENCE_TYPES,
+  MINISTRY_ROLES,
 } = require("../utils/memberProfileFields");
 
 const hasValue = (value) =>
@@ -16,6 +17,12 @@ const optionalText = (field, max, label) =>
     .trim()
     .isLength({ max })
     .withMessage(`${label} must not exceed ${max} characters`);
+
+const optionalRole = (field, label) =>
+  body(field)
+    .optional({ values: "falsy" })
+    .isIn(MINISTRY_ROLES)
+    .withMessage(`${label} role is not valid`);
 
 /**
  * Rules for the fellowship fields.
@@ -128,6 +135,12 @@ const profileRules = ({ partial = false } = {}) => {
       255,
       "High school ministry"
     ),
+    optionalRole("highSchoolMinistryRole", "High school ministry"),
+
+    optionalText("churchMinistry", 255, "Church ministry"),
+    optionalRole("churchMinistryRole", "Church ministry"),
+
+    optionalText("spiritualJourney", 1000, "Spiritual journey"),
 
     body("alumniContactConsent")
       .optional({ values: "falsy" })

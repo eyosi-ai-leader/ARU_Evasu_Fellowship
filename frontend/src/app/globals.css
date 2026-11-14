@@ -55,47 +55,44 @@
 
 /* --------------------------------------------------
    Base Styles
+   (inside @layer base so Tailwind classes such as
+   rounded-xl and outline-none can override them)
 -------------------------------------------------- */
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
 
-html {
-  scroll-behavior: smooth;
-}
+  body {
+    margin: 0;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
 
-body {
-  margin: 0;
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-}
+  img,
+  svg,
+  video,
+  canvas {
+    display: block;
+    max-width: 100%;
+  }
 
-img,
-svg,
-video,
-canvas {
-  display: block;
-  max-width: 100%;
-}
+  a {
+    text-decoration: none;
+  }
 
-a {
-  text-decoration: none;
-}
+  button {
+    cursor: pointer;
+  }
 
-button {
-  cursor: pointer;
-}
-
-/* Accessible focus ring, project-wide */
-:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-  border-radius: 4px;
+  /* Accessible focus ring for anything without its own focus style */
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
 }

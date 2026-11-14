@@ -16,6 +16,9 @@ const RESIDENCE_TYPES = [
   "Other",
 ];
 
+// Roles a person can have had in a ministry (same words as the form).
+const MINISTRY_ROLES = ["Member", "Leader", "Volunteer or helper", "Other"];
+
 const toText = (value, maxLength) => {
   if (value === undefined) return undefined;
 
@@ -84,7 +87,14 @@ const pickProfileFields = (body = {}) => ({
 
   newChristian: toBool(body.newChristian),
   previousChurch: toText(body.previousChurch, 150),
+
+  // Ministries: the name, and the role they had in it.
   highSchoolMinistry: toText(body.highSchoolMinistry, 255),
+  highSchoolMinistryRole: toText(body.highSchoolMinistryRole, 50),
+  churchMinistry: toText(body.churchMinistry, 255),
+  churchMinistryRole: toText(body.churchMinistryRole, 50),
+
+  spiritualJourney: toText(body.spiritualJourney, 1000),
 
   alumniContactConsent: toBool(body.alumniContactConsent),
 });
@@ -92,5 +102,6 @@ const pickProfileFields = (body = {}) => ({
 module.exports = {
   ACADEMIC_STATUSES,
   RESIDENCE_TYPES,
+  MINISTRY_ROLES,
   pickProfileFields,
 };

@@ -51,6 +51,10 @@ const MEMBER_FIELDS = `
   m.new_christian,
   m.previous_church,
   m.high_school_ministry,
+  m.high_school_ministry_role,
+  m.church_ministry,
+  m.church_ministry_role,
+  m.spiritual_journey,
   m.alumni_contact_consent,
 
   m.status,
@@ -119,6 +123,10 @@ const createMember = async ({
   newChristian,
   previousChurch,
   highSchoolMinistry,
+  highSchoolMinistryRole,
+  churchMinistry,
+  churchMinistryRole,
+  spiritualJourney,
   alumniContactConsent,
 }) => {
   const connection = await db.getConnection();
@@ -246,13 +254,18 @@ const createMember = async ({
         new_christian,
         previous_church,
         high_school_ministry,
+        high_school_ministry_role,
+        church_ministry,
+        church_ministry_role,
+        spiritual_journey,
         alumni_contact_consent,
         status
       )
       VALUES (
         ?, ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?, ?, ?
+        ?, ?, ?, ?, ?, ?, ?, ?,
+        ?, ?, ?, ?
       )
     `;
 
@@ -282,6 +295,10 @@ const createMember = async ({
           toTinyInt(newChristian),
           previousChurch ?? null,
           highSchoolMinistry ?? null,
+          highSchoolMinistryRole ?? null,
+          churchMinistry ?? null,
+          churchMinistryRole ?? null,
+          spiritualJourney ?? null,
           alumniContactConsent ? 1 : 0,
           status || "Active",
         ]
@@ -406,6 +423,10 @@ const updateMember = async (
     newChristian,
     previousChurch,
     highSchoolMinistry,
+    highSchoolMinistryRole,
+    churchMinistry,
+    churchMinistryRole,
+    spiritualJourney,
     alumniContactConsent,
   }
 ) => {
@@ -479,6 +500,10 @@ const updateMember = async (
         new_christian = ?,
         previous_church = ?,
         high_school_ministry = ?,
+        high_school_ministry_role = ?,
+        church_ministry = ?,
+        church_ministry_role = ?,
+        spiritual_journey = ?,
         alumni_contact_consent = ?,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
@@ -508,6 +533,10 @@ const updateMember = async (
           toTinyInt(newChristian),
           previousChurch ?? null,
           highSchoolMinistry ?? null,
+          highSchoolMinistryRole ?? null,
+          churchMinistry ?? null,
+          churchMinistryRole ?? null,
+          spiritualJourney ?? null,
           alumniContactConsent ? 1 : 0,
           memberId,
         ]

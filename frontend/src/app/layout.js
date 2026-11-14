@@ -3,6 +3,7 @@ import "./globals.css";
 
 import Navbar from "@/components/layout/navbar";
 import Footer from "@/components/layout/footer";
+import SiteChrome from "@/components/layout/SiteChrome";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -16,20 +17,25 @@ const fraunces = Fraunces({
 });
 
 export const metadata = {
-  title: "Church Platform",
-  description: "Welcome to our church community",
+  title: {
+    default: "Arsi University Evasu Fellowship",
+    template: "%s | Arsi University Evasu Fellowship",
+  },
+  description:
+    "Welcome to the Arsi University Evasu Fellowship. Connect, grow and serve together.",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html
       lang="en"
+      data-scroll-behavior="smooth"
       className={`${inter.variable} ${fraunces.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <Navbar />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        <SiteChrome navbar={<Navbar />} footer={<Footer />}>
+          {children}
+        </SiteChrome>
       </body>
     </html>
   );

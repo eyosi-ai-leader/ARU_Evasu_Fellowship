@@ -25,8 +25,11 @@ export default function PublicRegisterCampusInfo({
   const currentYear = new Date().getFullYear();
   const isGraduate = formData.academicStatus === "Graduate";
 
-  const years = isGraduate
-    ? Array.from({ length: 31 }, (_, index) => currentYear - index)
+    const years = isGraduate
+    ? Array.from(
+        { length: currentYear - 1999 },
+        (_, index) => currentYear - index
+      )
     : Array.from({ length: 9 }, (_, index) => currentYear + index);
 
   const needsDepartment =

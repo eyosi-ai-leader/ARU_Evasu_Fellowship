@@ -495,10 +495,25 @@ const updateMember = async (
         memberData.previousChurch,
         existingMember.previous_church
       ),
+      
+      highSchoolMinistryRole: keep(
+        memberData.highSchoolMinistryRole,
+        existingMember.high_school_ministry_role
+      ),
 
-      highSchoolMinistry: keep(
-        memberData.highSchoolMinistry,
-        existingMember.high_school_ministry
+      churchMinistry: keep(
+        memberData.churchMinistry,
+        existingMember.church_ministry
+      ),
+
+      churchMinistryRole: keep(
+        memberData.churchMinistryRole,
+        existingMember.church_ministry_role
+      ),
+
+      spiritualJourney: keep(
+        memberData.spiritualJourney,
+        existingMember.spiritual_journey
       ),
 
       alumniContactConsent:

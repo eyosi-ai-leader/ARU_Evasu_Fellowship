@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -138,9 +138,11 @@ const TEXT_FIELDS = [
   "spiritualJourney",
 ];
 
+const scrollToTop = () =>
+  window.scrollTo({ top: 0, behavior: "smooth" });
+
 export default function RegisterForm() {
   const router = useRouter();
-  const scrollRef = useRef(null);
 
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState(initialFormData);
@@ -159,12 +161,6 @@ export default function RegisterForm() {
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
 
   const meta = STEP_META[step];
-
-  // On phones the page scrolls; on desktop the full-screen panel scrolls.
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-  };
 
   /**
    * Load the campus list.
@@ -446,10 +442,8 @@ export default function RegisterForm() {
       const highSchoolMinistry = ministryValue("highSchoolMinistry");
       const churchMinistry = ministryValue("churchMinistry");
 
-      data.append("highSchoolMinistry", String(Boolean(highSchoolMinistry)));
-
       if (highSchoolMinistry) {
-        data.append("highSchoolMinistryName", highSchoolMinistry);
+        data.append("highSchoolMinistry", highSchoolMinistry);
         data.append(
           "highSchoolMinistryRole",
           formData.highSchoolMinistryRole
@@ -457,7 +451,7 @@ export default function RegisterForm() {
       }
 
       if (churchMinistry) {
-        data.append("churchMinistryName", churchMinistry);
+        data.append("churchMinistry", churchMinistry);
         data.append("churchMinistryRole", formData.churchMinistryRole);
       }
 
@@ -510,38 +504,37 @@ export default function RegisterForm() {
   };
 
   return (
-    <div
-      ref={scrollRef}
-      className="min-h-screen bg-slate-50 lg:fixed lg:inset-0 lg:z-[100] lg:grid lg:grid-cols-[400px_1fr] lg:overflow-y-auto lg:overscroll-contain xl:grid-cols-[440px_1fr]"
-    >
-      {/* Brand panel (desktop only) */}
-      <aside className="relative hidden overflow-hidden bg-slate-950 text-white lg:block">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0"
-          style={{
-            backgroundImage:
-              "linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px)",
-            backgroundSize: "56px 56px",
-            maskImage:
-              "radial-gradient(ellipse at top, black 30%, transparent 75%)",
-            WebkitMaskImage:
-              "radial-gradient(ellipse at top, black 30%, transparent 75%)",
-          }}
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_45%_at_20%_0%,rgba(99,102,241,0.40),transparent)]"
-        />
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -bottom-32 -right-24 h-96 w-96 rounded-full bg-indigo-500/15 blur-3xl"
-        />
+    <div className="min-h-screen bg-slate-50 lg:flex">
+      {/* Brand panel (desktop only): fixed height, stays while the form scrolls */}
+      <aside className="relative hidden bg-slate-950 text-white lg:sticky lg:top-0 lg:block lg:h-screen lg:w-[400px] lg:shrink-0 lg:self-start lg:overflow-y-auto xl:w-[440px]">
+        <div className="relative flex min-h-full flex-col justify-between gap-10 overflow-hidden p-10 xl:p-12">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0"
+            style={{
+              backgroundImage:
+                "linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px)",
+              backgroundSize: "56px 56px",
+              maskImage:
+                "radial-gradient(ellipse at top, black 30%, transparent 75%)",
+              WebkitMaskImage:
+                "radial-gradient(ellipse at top, black 30%, transparent 75%)",
+            }}
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_45%_at_20%_0%,rgba(99,102,241,0.40),transparent)]"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -bottom-32 -right-24 h-96 w-96 rounded-full bg-indigo-500/15 blur-3xl"
+          />
 
-        <div className="sticky top-0 flex h-screen flex-col justify-between p-10 xl:p-12">
-          <AuthBrand light />
+          <div className="relative">
+            <AuthBrand light />
+          </div>
 
-          <div>
+          <div className="relative">
             <h2 className="text-3xl font-bold leading-tight tracking-tight xl:text-4xl">
               Your campus family, all in one place.
             </h2>
@@ -613,7 +606,7 @@ export default function RegisterForm() {
             </ol>
           </div>
 
-          <figure className="border-l-2 border-white/20 pl-5">
+          <figure className="relative border-l-2 border-white/20 pl-5">
             <blockquote className="text-sm italic leading-6 text-slate-300">
               &ldquo;Behold, how good and how pleasant it is for brethren to
               dwell together in unity!&rdquo;
@@ -627,7 +620,7 @@ export default function RegisterForm() {
       </aside>
 
       {/* Form panel */}
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         {/* Top bar (small screens) */}
         <header className="border-b border-slate-200 bg-white/80 px-5 py-4 backdrop-blur-xl lg:hidden">
           <AuthBrand />
