@@ -1,5 +1,7 @@
 const { body, param } = require("express-validator");
 
+const { profileRules } = require("./memberProfileRules");
+
 /**
  * Validate member ID
  */
@@ -19,6 +21,8 @@ const memberIdValidator = [
  *
  * There is no password: the member chooses their own through
  * the invitation link that is emailed to them.
+ *
+ * The campus fellowship (fellowshipId) is required.
  */
 const createMemberValidator = [
   body("firstName")
@@ -115,6 +119,12 @@ const createMemberValidator = [
     .withMessage(
       "Status must be Active or Inactive"
     ),
+
+  /*
+   * Campus, department, graduation year, hometown, emergency contact,
+   * spiritual background and permission to contact after graduation.
+   */
+  ...profileRules(),
 ];
 
 /**
@@ -122,6 +132,9 @@ const createMemberValidator = [
  *
  * Member number is intentionally NOT included.
  * It cannot be changed after creation.
+ *
+ * Every fellowship field is optional here: only the fields that are
+ * sent are checked.
  */
 const updateMemberValidator = [
   ...memberIdValidator,
@@ -220,6 +233,8 @@ const updateMemberValidator = [
     .withMessage(
       "Status must be Active or Inactive"
     ),
+
+  ...profileRules({ partial: true }),
 ];
 
 module.exports = {

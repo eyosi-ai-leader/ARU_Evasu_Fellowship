@@ -36,6 +36,9 @@ const eventRoutes = require("./routes/eventRoutes");
 
 const publicEventRoutes = require("./routes/publicEventRoutes");
 
+// NEW: public list of campus fellowships and their departments
+const fellowshipRoutes = require("./routes/fellowshipRoutes");
+
 const app = express();
 
 // Security
@@ -72,6 +75,9 @@ app.use("/api/health", healthRoutes);
 
 app.use("/api/auth", authRoutes);
 
+// NEW: used by the registration form (no login needed)
+app.use("/api/fellowships", fellowshipRoutes);
+
 app.use("/api/members", memberRoutes);
 
 app.use("/api/dashboard", dashboardRoutes);
@@ -95,6 +101,8 @@ app.use("/api/invitations", invitationRoutes);
 app.use("/api/events", eventRoutes);
 
 app.use("/api/public/events", publicEventRoutes);
+
+
 /**
  * Global Error Handler
  *

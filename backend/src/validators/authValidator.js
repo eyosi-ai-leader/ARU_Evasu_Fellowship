@@ -5,6 +5,8 @@ const {
   isStrongPassword,
 } = require("../utils/passwordPolicy");
 
+const { profileRules } = require("./memberProfileRules");
+
 const registerValidator = [
   body("firstName")
     .trim()
@@ -52,23 +54,26 @@ const registerValidator = [
     )
     .normalizeEmail(),
 
+  /*
+   * Phone is required: leaders use it to reach members,
+   * including after they graduate.
+   */
   body("phone")
-    .optional({
-      values: "falsy",
-    })
     .trim()
+    .notEmpty()
+    .withMessage("Phone number is required")
     .isLength({
-      max: 30,
+      max: 20,
     })
     .withMessage(
-      "Phone number must not exceed 30 characters"
+      "Phone number must not exceed 20 characters"
     ),
 
   body("gender")
-    .optional({
-      values: "falsy",
-    })
     .trim()
+    .notEmpty()
+    .withMessage("Gender is required")
+    .bail()
     .isIn(["Male", "Female"])
     .withMessage(
       "Gender must be Male or Female"
@@ -94,17 +99,26 @@ const registerValidator = [
       "Baptism date must be a valid date"
     ),
 
+  /*
+   * Where the member lives now (dormitory block, area, house...).
+   */
   body("address")
     .optional({
       values: "falsy",
     })
     .trim()
     .isLength({
-      max: 500,
+      max: 255,
     })
     .withMessage(
-      "Address must not exceed 500 characters"
+      "Address must not exceed 255 characters"
     ),
+
+  /*
+   * Campus, department, graduation year, hometown, emergency contact,
+   * spiritual background and permission to contact after graduation.
+   */
+  ...profileRules(),
 
   body("password").custom((value) => {
     if (!isStrongPassword(value)) {

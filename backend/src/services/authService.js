@@ -16,10 +16,15 @@ const {
   recordLogin,
 } = require("../models/userActivityModel");
 
+const {
+  pickProfileFields,
+} = require("../utils/memberProfileFields");
+
 /**
- * Register a new public church member.
+ * Register a new public fellowship member.
  *
  * Public registration rules:
+ * - the person chooses their campus fellowship (required)
  * - roleId is ALWAYS 5 (Member)
  * - status is ALWAYS Active
  * - password is hashed inside memberService
@@ -44,6 +49,10 @@ const registerUser = async (
     baptismDate,
     address,
   } = userData;
+
+  // Campus, department, graduation year, hometown, emergency contact,
+  // spiritual background and permission to contact after graduation.
+  const profile = pickProfileFields(userData);
 
   const existingUser =
     await findUserByEmail(email);
@@ -76,6 +85,8 @@ const registerUser = async (
         dateOfBirth,
         baptismDate,
         address,
+
+        ...profile,
       },
       profileImage
     );
@@ -110,6 +121,7 @@ const registerUser = async (
       roleId: 5,
       role: "Member",
       status: "Active",
+      fellowshipId: profile.fellowshipId,
       memberId: result.memberId,
       memberNumber: result.memberNumber,
     },

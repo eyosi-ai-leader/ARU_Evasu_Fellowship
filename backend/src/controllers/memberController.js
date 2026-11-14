@@ -6,6 +6,10 @@ const { deliverInvitation } = require("../services/invitationEmailService");
 const normalizeEmail = require("../utils/normalizeEmail");
 const { TOKEN_TYPES } = require("../utils/accountToken");
 const {
+  pickProfileFields,
+  ACADEMIC_STATUSES,
+} = require("../utils/memberProfileFields");
+const {
   deleteUnusedTokensByUserAndType,
 } = require("../models/accountTokenModel");
 
@@ -17,9 +21,14 @@ const {
 /**
  * Create member
  *
+ * The admin chooses the member's campus fellowship (required).
+ *
  * The admin does not choose a password. The account is created with a
  * random one nobody knows, and (if requested) an invitation email lets
  * the member set their own. Their email counts as verified once they do.
+ *
+ * Field checks (required fields, formats, graduation year...) are done by
+ * createMemberValidator before this function runs.
  */
 const createMember = async (req, res) => {
   try {
@@ -38,61 +47,7 @@ const createMember = async (req, res) => {
       sendInvitation,
     } = req.body;
 
-    if (
-      typeof firstName !== "string" ||
-      !firstName.trim()
-    ) {
-      return errorResponse(
-        res,
-        "First name is required",
-        400
-      );
-    }
-
-    if (
-      middleName !== undefined &&
-      middleName !== null &&
-      typeof middleName !== "string"
-    ) {
-      return errorResponse(
-        res,
-        "Middle name must be a string",
-        400
-      );
-    }
-
-    if (
-      typeof lastName !== "string" ||
-      !lastName.trim()
-    ) {
-      return errorResponse(
-        res,
-        "Last name is required",
-        400
-      );
-    }
-
-    if (
-      typeof email !== "string" ||
-      !email.trim()
-    ) {
-      return errorResponse(
-        res,
-        "Email is required",
-        400
-      );
-    }
-
-    const emailPattern =
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailPattern.test(email.trim())) {
-      return errorResponse(
-        res,
-        "Please provide a valid email address",
-        400
-      );
-    }
+    const profile = pickProfileFields(req.body);
 
     if (
       roleId === undefined ||
@@ -120,30 +75,10 @@ const createMember = async (req, res) => {
       );
     }
 
-    if (
-      gender !== undefined &&
-      gender !== null &&
-      gender !== "" &&
-      gender !== "Male" &&
-      gender !== "Female"
-    ) {
+    if (!profile.fellowshipId) {
       return errorResponse(
         res,
-        "Gender must be either Male or Female",
-        400
-      );
-    }
-
-    if (
-      status !== undefined &&
-      status !== null &&
-      status !== "" &&
-      status !== "Active" &&
-      status !== "Inactive"
-    ) {
-      return errorResponse(
-        res,
-        "Status must be either Active or Inactive",
+        "Please select the member's campus fellowship",
         400
       );
     }
@@ -223,6 +158,9 @@ const createMember = async (req, res) => {
               : null,
 
           status: memberStatus,
+
+          // Campus, department, graduation, hometown, emergency contact...
+          ...profile,
         },
 
         req.file || null
@@ -327,6 +265,10 @@ const getMemberById = async (req, res) => {
  *
  * Admin can edit everyone. A Pastor can edit everyone except
  * Administrator accounts.
+ *
+ * Moving a member to another campus is not supported yet.
+ *
+ * Field checks are done by updateMemberValidator before this runs.
  */
 const updateMember = async (req, res) => {
   try {
@@ -347,125 +289,28 @@ const updateMember = async (req, res) => {
       removeProfileImage,
     } = req.body;
 
-    if (
-      roleId !== undefined &&
-      (
-        !Number.isInteger(Number(roleId)) ||
-        Number(roleId) < 1 ||
-        Number(roleId) > 5
-      )
-    ) {
-      return errorResponse(
-        res,
-        "Role ID must be between 1 and 5",
-        400
-      );
-    }
-
-    if (
-      gender !== undefined &&
-      gender !== null &&
-      gender !== "" &&
-      gender !== "Male" &&
-      gender !== "Female"
-    ) {
-      return errorResponse(
-        res,
-        "Gender must be either Male or Female",
-        400
-      );
-    }
-
-    if (
-      status !== undefined &&
-      status !== null &&
-      status !== "" &&
-      status !== "Active" &&
-      status !== "Inactive"
-    ) {
-      return errorResponse(
-        res,
-        "Status must be either Active or Inactive",
-        400
-      );
-    }
-
-    if (
-      firstName !== undefined &&
-      (
-        typeof firstName !== "string" ||
-        !firstName.trim()
-      )
-    ) {
-      return errorResponse(
-        res,
-        "First name cannot be empty",
-        400
-      );
-    }
-
-    if (
-      middleName !== undefined &&
-      middleName !== null &&
-      typeof middleName !== "string"
-    ) {
-      return errorResponse(
-        res,
-        "Middle name must be a string",
-        400
-      );
-    }
-
-    if (
-      lastName !== undefined &&
-      (
-        typeof lastName !== "string" ||
-        !lastName.trim()
-      )
-    ) {
-      return errorResponse(
-        res,
-        "Last name cannot be empty",
-        400
-      );
-    }
-
-    if (
-      email !== undefined &&
-      (
-        typeof email !== "string" ||
-        !email.trim()
-      )
-    ) {
-      return errorResponse(
-        res,
-        "Email cannot be empty",
-        400
-      );
-    }
-
-    if (
-      email !== undefined &&
-      email.trim()
-    ) {
-      const emailPattern =
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-      if (!emailPattern.test(email.trim())) {
-        return errorResponse(
-          res,
-          "Please provide a valid email address",
-          400
-        );
-      }
-    }
+    // The campus is handled separately: it cannot be changed here.
+    const { fellowshipId, ...profileFields } =
+      pickProfileFields(req.body);
 
     /*
      * Load the member as it is now. Used for the Administrator
-     * protection and to notice an email change.
+     * protection, the campus check and to notice an email change.
      */
     const existing = await memberService.getMemberById(id);
     const requesterIsAdmin = Number(req.user.roleId) === 1;
+
+    if (
+      fellowshipId !== undefined &&
+      fellowshipId !== null &&
+      Number(fellowshipId) !== Number(existing.fellowship_id)
+    ) {
+      return errorResponse(
+        res,
+        "Moving a member to another campus is not supported yet.",
+        400
+      );
+    }
 
     if (!requesterIsAdmin && Number(existing.role_id) === 1) {
       return errorResponse(
@@ -538,6 +383,9 @@ const updateMember = async (req, res) => {
         baptismDate,
         address,
         status,
+
+        // Department, graduation, hometown, emergency contact...
+        ...profileFields,
 
         removeProfileImage:
           shouldRemoveProfileImage,
@@ -628,8 +476,7 @@ const deleteMember = async (req, res) => {
  * Supports:
  * - Pagination
  * - Search
- * - Status filter
- * - Role filter
+ * - Status, role, campus, department and academic-status filters
  * - Sorting
  *
  * IMPORTANT:
@@ -660,6 +507,23 @@ const getAllMembers = async (req, res) => {
     const roleId =
       req.query.roleId !== undefined
         ? Number(req.query.roleId)
+        : "";
+
+    const fellowshipId =
+      req.query.fellowshipId !== undefined &&
+      req.query.fellowshipId !== ""
+        ? Number(req.query.fellowshipId)
+        : "";
+
+    const departmentId =
+      req.query.departmentId !== undefined &&
+      req.query.departmentId !== ""
+        ? Number(req.query.departmentId)
+        : "";
+
+    const academicStatus =
+      req.query.academicStatus !== undefined
+        ? req.query.academicStatus.trim()
         : "";
 
     const sortBy =
@@ -741,6 +605,48 @@ const getAllMembers = async (req, res) => {
     }
 
     /**
+     * Validate campus and department filters
+     */
+    if (
+      fellowshipId !== "" &&
+      (
+        !Number.isInteger(fellowshipId) ||
+        fellowshipId < 1
+      )
+    ) {
+      return errorResponse(
+        res,
+        "Fellowship ID must be a positive integer",
+        400
+      );
+    }
+
+    if (
+      departmentId !== "" &&
+      (
+        !Number.isInteger(departmentId) ||
+        departmentId < 1
+      )
+    ) {
+      return errorResponse(
+        res,
+        "Department ID must be a positive integer",
+        400
+      );
+    }
+
+    if (
+      academicStatus &&
+      !ACADEMIC_STATUSES.includes(academicStatus)
+    ) {
+      return errorResponse(
+        res,
+        "Academic status must be either Student or Graduate",
+        400
+      );
+    }
+
+    /**
      * Validate sort field
      */
     const allowedSortFields = [
@@ -749,6 +655,8 @@ const getAllMembers = async (req, res) => {
       "member_number",
       "email",
       "created_at",
+      "graduation_year",
+      "fellowship",
     ];
 
     if (
@@ -756,7 +664,7 @@ const getAllMembers = async (req, res) => {
     ) {
       return errorResponse(
         res,
-        "Invalid sort field. Allowed fields are first_name, last_name, member_number, email, and created_at",
+        `Invalid sort field. Allowed fields are ${allowedSortFields.join(", ")}`,
         400
       );
     }
@@ -775,12 +683,6 @@ const getAllMembers = async (req, res) => {
       );
     }
 
-    /**
-     * IMPORTANT FIX:
-     *
-     * memberService.getAllMembers()
-     * expects ONE object, not separate arguments.
-     */
     const result =
       await memberService.getAllMembers({
         page,
@@ -788,6 +690,9 @@ const getAllMembers = async (req, res) => {
         search,
         status,
         roleId,
+        fellowshipId,
+        departmentId,
+        academicStatus,
         sortBy,
         sortOrder,
       });

@@ -1,6 +1,7 @@
 const bcrypt = require("bcrypt");
 
 const memberModel = require("../models/memberModel");
+const fellowshipModel = require("../models/fellowshipmodel");
 
 const {
   uploadImage,
@@ -9,18 +10,89 @@ const {
 
 const SALT_ROUNDS = 10;
 
+const httpError = (message, statusCode) => {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+};
+
+/**
+ * Check the campus (and department) chosen for a NEW member.
+ *
+ * - the campus must exist, be active, and be a regular campus fellowship
+ *   (nobody is a direct member of the General Fellowship);
+ * - the department must belong to that same campus;
+ * - a student must pick a department when the campus has a department list.
+ */
+const assertCampusSelection = async ({
+  fellowshipId,
+  departmentId,
+  academicStatus,
+}) => {
+  const fellowship = fellowshipId
+    ? await fellowshipModel.getFellowshipById(fellowshipId)
+    : null;
+
+  if (!fellowship || fellowship.status !== "Active") {
+    throw httpError(
+      "Please select a valid campus fellowship.",
+      400
+    );
+  }
+
+  if (fellowship.fellowship_type !== "regular") {
+    throw httpError(
+      "Members belong to a campus fellowship, not to the General Fellowship.",
+      400
+    );
+  }
+
+  if (departmentId) {
+    const belongs =
+      await fellowshipModel.departmentBelongsToFellowship(
+        departmentId,
+        fellowship.id
+      );
+
+    if (!belongs) {
+      throw httpError(
+        "The selected department does not belong to the selected campus.",
+        400
+      );
+    }
+  } else if ((academicStatus || "Student") === "Student") {
+    const departmentCount =
+      await fellowshipModel.countActiveDepartments(
+        fellowship.id
+      );
+
+    if (departmentCount > 0) {
+      throw httpError(
+        "Please select your department.",
+        400
+      );
+    }
+  }
+};
+
 /**
  * Create member
  *
  * Creates:
  * - User account
- * - Member record
+ * - Member record (in one campus fellowship)
  * - Optional profile image
  */
 const createMember = async (
   memberData,
   profileImage = null
 ) => {
+  /**
+   * Check the campus and department BEFORE hashing the password
+   * or uploading the image, so nothing is wasted on a bad request.
+   */
+  await assertCampusSelection(memberData);
+
   let uploadedImage = null;
 
   try {
@@ -51,14 +123,14 @@ const createMember = async (
      * Profile image URL is stored
      * in the users table.
      */
-   const result =
-  await memberModel.createMember({
-    ...memberData,
-    password: hashedPassword,
-    profileImage:
-      uploadedImage?.secureUrl ||
-      null,
-  });
+    const result =
+      await memberModel.createMember({
+        ...memberData,
+        password: hashedPassword,
+        profileImage:
+          uploadedImage?.secureUrl ||
+          null,
+      });
 
     return result;
   } catch (error) {
@@ -84,14 +156,20 @@ const createMember = async (
      * Handle duplicate email/member number.
      */
     if (error.code === "ER_DUP_ENTRY") {
-      const duplicateError =
-        new Error(
-          "Email or member number already exists."
-        );
+      throw httpError(
+        "Email or member number already exists.",
+        409
+      );
+    }
 
-      duplicateError.statusCode = 409;
-
-      throw duplicateError;
+    /**
+     * Campus / department combination refused by the database.
+     */
+    if (error.code === "ER_NO_REFERENCED_ROW_2") {
+      throw httpError(
+        "The selected campus or department is not valid.",
+        400
+      );
     }
 
     throw error;
@@ -110,13 +188,7 @@ const getMemberById = async (
     );
 
   if (!member) {
-    const error = new Error(
-      "Member not found."
-    );
-
-    error.statusCode = 404;
-
-    throw error;
+    throw httpError("Member not found.", 404);
   }
 
   return member;
@@ -190,15 +262,23 @@ const getCloudinaryPublicId = (imageUrl) => {
 };
 
 /**
+ * Keep the existing value unless a new one (even null = "clear") was sent.
+ */
+const keep = (incoming, existing) =>
+  incoming !== undefined ? incoming : existing;
+
+/**
  * Update member
  *
  * Supports:
  * - Personal information
  * - Account information
- * - Church information
+ * - Fellowship information (department, graduation, hometown, ...)
  * - Profile image upload
  * - Profile image replacement
  * - Profile image removal
+ *
+ * The campus itself cannot be changed here.
  */
 const updateMember = async (
   memberId,
@@ -219,13 +299,25 @@ const updateMember = async (
     );
 
   if (!existingMember) {
-    const error = new Error(
-      "Member not found."
-    );
+    throw httpError("Member not found.", 404);
+  }
 
-    error.statusCode = 404;
+  /**
+   * A department can only be one of the member's own campus.
+   */
+  if (memberData.departmentId) {
+    const belongs =
+      await fellowshipModel.departmentBelongsToFellowship(
+        memberData.departmentId,
+        existingMember.fellowship_id
+      );
 
-    throw error;
+    if (!belongs) {
+      throw httpError(
+        "The selected department does not belong to this member's campus.",
+        400
+      );
+    }
   }
 
   /**
@@ -268,17 +360,9 @@ const updateMember = async (
      * Determine which profile image URL
      * should be stored in the database.
      *
-     * Case 1:
-     * New image uploaded
-     * → save new image URL
-     *
-     * Case 2:
-     * Remove requested
-     * → save null
-     *
-     * Case 3:
-     * Nothing changed
-     * → keep existing image URL
+     * Case 1: New image uploaded -> save new image URL
+     * Case 2: Remove requested   -> save null
+     * Case 3: Nothing changed    -> keep existing image URL
      */
     let profileImageUrl =
       oldProfileImage;
@@ -344,6 +428,82 @@ const updateMember = async (
       status:
         memberData.status ??
         existingMember.status,
+
+      /**
+       * Fellowship fields
+       */
+      departmentId: keep(
+        memberData.departmentId,
+        existingMember.department_id
+      ),
+
+      studentId: keep(
+        memberData.studentId,
+        existingMember.student_id
+      ),
+
+      academicStatus:
+        memberData.academicStatus ??
+        existingMember.academic_status,
+
+      graduationYear: keep(
+        memberData.graduationYear,
+        existingMember.graduation_year
+      ),
+
+      homeRegion: keep(
+        memberData.homeRegion,
+        existingMember.home_region
+      ),
+
+      homeTown: keep(
+        memberData.homeTown,
+        existingMember.home_town
+      ),
+
+      residenceType: keep(
+        memberData.residenceType,
+        existingMember.residence_type
+      ),
+
+      telegramUsername: keep(
+        memberData.telegramUsername,
+        existingMember.telegram_username
+      ),
+
+      emergencyContactName: keep(
+        memberData.emergencyContactName,
+        existingMember.emergency_contact_name
+      ),
+
+      emergencyContactPhone: keep(
+        memberData.emergencyContactPhone,
+        existingMember.emergency_contact_phone
+      ),
+
+      emergencyContactRelation: keep(
+        memberData.emergencyContactRelation,
+        existingMember.emergency_contact_relation
+      ),
+
+      newChristian: keep(
+        memberData.newChristian,
+        existingMember.new_christian
+      ),
+
+      previousChurch: keep(
+        memberData.previousChurch,
+        existingMember.previous_church
+      ),
+
+      highSchoolMinistry: keep(
+        memberData.highSchoolMinistry,
+        existingMember.high_school_ministry
+      ),
+
+      alumniContactConsent:
+        memberData.alumniContactConsent ??
+        Boolean(existingMember.alumni_contact_consent),
     };
 
     /**
@@ -384,9 +544,6 @@ const updateMember = async (
            * Do not fail the member update
            * just because old Cloudinary
            * cleanup failed.
-           *
-           * The database already contains
-           * the correct image.
            */
           console.error(
             "Failed to delete old profile image:",
@@ -402,8 +559,6 @@ const updateMember = async (
      * If a new image was uploaded to Cloudinary
      * but the database update failed,
      * remove the newly uploaded image.
-     *
-     * This prevents orphaned Cloudinary files.
      */
     if (uploadedImage?.publicId) {
       try {
@@ -422,14 +577,14 @@ const updateMember = async (
      * Handle duplicate email.
      */
     if (error.code === "ER_DUP_ENTRY") {
-      const duplicateError =
-        new Error(
-          "Email already exists."
-        );
+      throw httpError("Email already exists.", 409);
+    }
 
-      duplicateError.statusCode = 409;
-
-      throw duplicateError;
+    if (error.code === "ER_NO_REFERENCED_ROW_2") {
+      throw httpError(
+        "The selected department is not valid.",
+        400
+      );
     }
 
     throw error;
@@ -452,13 +607,7 @@ const deleteMember = async (
     );
 
   if (!existingMember) {
-    const error = new Error(
-      "Member not found."
-    );
-
-    error.statusCode = 404;
-
-    throw error;
+    throw httpError("Member not found.", 404);
   }
 
   return memberModel.deleteMember(
@@ -472,8 +621,7 @@ const deleteMember = async (
  * Supports:
  * - Pagination
  * - Search
- * - Status filter
- * - Role filter
+ * - Status, role, campus, department and academic-status filters
  * - Sorting
  *
  * IMPORTANT:
@@ -488,6 +636,9 @@ const getAllMembers = async (
     search = "",
     status = "",
     roleId = "",
+    fellowshipId = "",
+    departmentId = "",
+    academicStatus = "",
     sortBy = "created_at",
     sortOrder = "desc",
   } = options;
@@ -512,6 +663,9 @@ const getAllMembers = async (
       search,
       status,
       roleId,
+      fellowshipId,
+      departmentId,
+      academicStatus,
       sortBy,
       sortOrder,
     }),
@@ -520,6 +674,9 @@ const getAllMembers = async (
       search,
       status,
       roleId,
+      fellowshipId,
+      departmentId,
+      academicStatus,
     }),
   ]);
 
