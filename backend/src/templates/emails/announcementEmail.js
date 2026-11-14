@@ -20,6 +20,9 @@ const announcementEmail = ({
   settingsUrl,
   isTest = false,
 }) => {
+  // The caller still sends this as "churchName"; it is the fellowship name.
+  const fellowshipName = churchName || "Arsi University Evasu Fellowship";
+
   const safeSubject = singleLine(subject);
   const greeting = `Hello ${firstName || "friend"},`;
   const signature = `${senderName}${senderRole ? `, ${senderRole}` : ""}`;
@@ -31,10 +34,10 @@ const announcementEmail = ({
     message,
     "",
     `- ${signature}`,
-    churchName,
+    fellowshipName,
     "",
     "-----",
-    `You receive this because you are a member of ${churchName}.`,
+    `You receive this because you are a member of ${fellowshipName}.`,
     `To stop announcement emails, open Settings in your member account: ${settingsUrl}`,
   ]
     .filter((line) => line !== null)
@@ -52,11 +55,11 @@ const announcementEmail = ({
     <div style="white-space:pre-wrap;line-height:1.7">${escapeHtml(message)}</div>
     <p style="margin-top:24px;line-height:1.5">
       ${escapeHtml(signature)}<br>
-      <span style="color:#64748b">${escapeHtml(churchName)}</span>
+      <span style="color:#64748b">${escapeHtml(fellowshipName)}</span>
     </p>
     <hr style="border:none;border-top:1px solid #e2e8f0;margin:28px 0 16px">
     <p style="color:#94a3b8;font-size:12px;line-height:1.6">
-      You receive this because you are a member of ${escapeHtml(churchName)}.
+      You receive this because you are a member of ${escapeHtml(fellowshipName)}.
       To stop announcement emails, turn them off in
       <a href="${escapeHtml(settingsUrl)}" style="color:#64748b">Settings</a>.
     </p>

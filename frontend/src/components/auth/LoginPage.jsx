@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { ArrowLeft, Church, Megaphone, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowLeft, Megaphone, ShieldCheck, UserRound } from "lucide-react";
 
+import AuthBrand from "@/components/shared/Auth/AuthBrand";
 import LoginForm from "./LoginForm";
 
 const HIGHLIGHTS = [
   {
     icon: Megaphone,
-    text: "Read announcements from your church leaders",
+    text: "Read announcements from your fellowship leaders",
   },
   {
     icon: UserRound,
@@ -17,34 +18,6 @@ const HIGHLIGHTS = [
     text: "Secure sign-in with email verification",
   },
 ];
-
-function Brand({ light = false }) {
-  return (
-    <div className="flex items-center gap-3">
-      <div
-        className={`flex h-11 w-11 items-center justify-center rounded-2xl shadow-lg ${
-          light ? "bg-white text-slate-950" : "bg-slate-950 text-white"
-        }`}
-      >
-        <Church size={22} strokeWidth={1.8} aria-hidden="true" />
-      </div>
-
-      <div>
-        <p
-          className={`text-sm font-bold tracking-wide ${
-            light ? "text-white" : "text-slate-950"
-          }`}
-        >
-          FARES CHURCH
-        </p>
-
-        <p className={`text-xs ${light ? "text-slate-400" : "text-slate-400"}`}>
-          Church Management Portal
-        </p>
-      </div>
-    </div>
-  );
-}
 
 export default function LoginPage() {
   return (
@@ -61,17 +34,17 @@ export default function LoginPage() {
         />
 
         <div className="relative">
-          <Brand light />
+          <AuthBrand light />
         </div>
 
         <div className="relative max-w-md">
           <h2 className="text-4xl font-bold leading-tight tracking-tight">
-            Welcome back to your church family.
+            Welcome back to your fellowship family.
           </h2>
 
           <p className="mt-4 text-base leading-7 text-slate-300">
             Sign in to stay connected with announcements, your ministries and
-            your community.
+            your campus community.
           </p>
 
           <ul className="mt-8 space-y-4">
@@ -105,7 +78,7 @@ export default function LoginPage() {
       <section className="flex items-center justify-center bg-slate-50 px-6 py-12">
         <div className="w-full max-w-md">
           <div className="mb-8 flex justify-center lg:hidden">
-            <Brand />
+            <AuthBrand />
           </div>
 
           <div className="mb-8 text-center lg:text-left">
@@ -127,7 +100,7 @@ export default function LoginPage() {
             className="mx-auto mt-6 flex w-fit items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             <ArrowLeft size={16} aria-hidden="true" />
-            Back to the church website
+            Back to the fellowship website
           </Link>
         </div>
       </section>

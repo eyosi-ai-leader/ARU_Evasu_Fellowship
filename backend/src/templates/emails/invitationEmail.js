@@ -14,16 +14,17 @@ const invitationEmail = ({
   hours,
   reminder = false,
 }) => {
-  const churchName = process.env.CHURCH_NAME || "our church";
+  const fellowshipName =
+    process.env.CHURCH_NAME || "Arsi University Evasu Fellowship";
   const name = escapeHtml(firstName || "friend");
 
   const subject = reminder
-    ? `Reminder: finish setting up your ${churchName} account`
-    : `You're invited to ${churchName}`;
+    ? `Reminder: finish setting up your ${fellowshipName} account`
+    : `You're invited to join ${fellowshipName}`;
 
   const intro = reminder
-    ? `We noticed you haven't set up your ${churchName} member account yet. Use the button below to choose your password and sign in.`
-    : `${inviterName || "The church office"} created a member account for you at ${churchName}. Use the button below to choose your own password and sign in.`;
+    ? `We noticed you haven't set up your ${fellowshipName} member account yet. Use the button below to choose your password and sign in.`
+    : `${inviterName || "The fellowship leaders"} created a member account for you at ${fellowshipName}. Use the button below to choose your own password and sign in.`;
 
   const text = [
     `Hello ${firstName || "friend"},`,

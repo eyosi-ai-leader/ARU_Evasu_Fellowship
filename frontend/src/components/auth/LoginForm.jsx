@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Loader2, Mail } from "lucide-react";
 
-import PasswordInput from "@/components/shared/password/PasswordInput";
+import PasswordInput from "@/components/shared/Password/PasswordInput";
 import GoogleSignInButton from "./GoogleSignInButton";
 import { loginUser } from "@/lib/authApi";
 import { loginWithGoogle } from "@/lib/googleAuthApi";
@@ -148,7 +148,7 @@ export default function LoginForm() {
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@church.com"
+              placeholder="you@fellowship.com"
               autoComplete="email"
               required
               className="w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-11 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"

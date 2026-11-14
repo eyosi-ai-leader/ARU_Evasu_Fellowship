@@ -10,8 +10,8 @@ import {
   Loader2,
 } from "lucide-react";
 
-import PasswordInput from "@/components/shared/password/PasswordInput";
-import PasswordRequirements from "@/components/shared/password/PasswordRequirements";
+import PasswordInput from "@/components/shared/Password/PasswordInput";
+import PasswordRequirements from "@/components/shared/Password/PasswordRequirements";
 import {
   PASSWORD_RULES_MESSAGE,
   isStrongPassword,
@@ -120,7 +120,7 @@ export default function SetPasswordForm() {
 
         <p className="mt-2 text-sm leading-6 text-slate-600">
           {invalidMessage} Invitation links work once and expire after 48
-          hours. Ask the church office to send you a new one. If you already
+          hours. Ask the fellowship leaders to send you a new one. If you already
           set your password, you can sign in instead.
         </p>
 

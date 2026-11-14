@@ -8,7 +8,8 @@ function escapeHtml(value = "") {
 }
 
 const verificationCodeEmail = ({ firstName, code, minutes }) => {
-  const churchName = process.env.CHURCH_NAME || "our church";
+  const fellowshipName =
+    process.env.CHURCH_NAME || "Arsi University Evasu Fellowship";
   const name = escapeHtml(firstName || "friend");
 
   const subject = `Your verification code: ${code}`;
@@ -16,7 +17,7 @@ const verificationCodeEmail = ({ firstName, code, minutes }) => {
   const text = [
     `Hello ${firstName || "friend"},`,
     "",
-    `Your verification code for ${churchName} is:`,
+    `Your verification code for ${fellowshipName} is:`,
     "",
     code,
     "",
@@ -27,7 +28,7 @@ const verificationCodeEmail = ({ firstName, code, minutes }) => {
   const html = `
   <div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#1e293b">
     <h2 style="margin:0 0 12px;color:#0f172a">Verify your email</h2>
-    <p style="line-height:1.6">Hello ${name}, enter this code to confirm your email for <strong>${escapeHtml(churchName)}</strong>:</p>
+    <p style="line-height:1.6">Hello ${name}, enter this code to confirm your email for <strong>${escapeHtml(fellowshipName)}</strong>:</p>
     <p style="margin:24px 0;text-align:center">
       <span style="display:inline-block;font-size:32px;font-weight:700;letter-spacing:10px;background:#f1f5f9;padding:14px 22px;border-radius:12px;color:#0f172a">${code}</span>
     </p>

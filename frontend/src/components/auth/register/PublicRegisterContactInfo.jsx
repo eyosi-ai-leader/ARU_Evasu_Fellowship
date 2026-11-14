@@ -1,96 +1,89 @@
 "use client";
 
+import { Mail, PhoneCall } from "lucide-react";
+
+import { SectionCard, TextInput } from "./RegisterFields";
+
 export default function PublicRegisterContactInfo({
   formData,
   errors,
   onChange,
 }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold text-slate-900">
-          Contact Information
-        </h2>
-
-        <p className="mt-1 text-sm text-slate-500">
-          Provide your contact details.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-        <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">
-            Email
-            <span className="text-red-500">
-              {" "}
-              *
-            </span>
-          </label>
-
-          <input
+    <>
+      <SectionCard
+        icon={Mail}
+        title="Contact information"
+        description="How can the fellowship reach you?"
+      >
+        <div className="grid gap-5 sm:grid-cols-2">
+          <TextInput
+            label="Email"
+            required
             type="email"
             name="email"
             value={formData.email}
             onChange={onChange}
-            placeholder="you@example.com"
+            placeholder="aru_evasu@fellowship.com"
             autoComplete="email"
-            className={`w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition focus:ring-2 ${
-              errors.email
-                ? "border-red-300 focus:ring-red-100"
-                : "border-slate-300 focus:border-blue-500 focus:ring-blue-100"
-            }`}
+            error={errors.email}
           />
 
-          {errors.email && (
-            <p className="mt-1 text-xs text-red-600">
-              {errors.email}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">
-            Phone
-          </label>
-
-          <input
+          <TextInput
+            label="Phone"
+            required
             type="tel"
             name="phone"
             value={formData.phone}
             onChange={onChange}
-            placeholder="Phone number"
+            placeholder="09..."
             autoComplete="tel"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            error={errors.phone}
           />
 
-          {errors.phone && (
-            <p className="mt-1 text-xs text-red-600">
-              {errors.phone}
-            </p>
-          )}
-        </div>
-
-        <div className="md:col-span-2">
-          <label className="mb-2 block text-sm font-medium text-slate-700">
-            Address
-          </label>
-
-          <textarea
-            name="address"
-            value={formData.address}
+          <TextInput
+            label="Telegram username"
+            name="telegramUsername"
+            value={formData.telegramUsername}
             onChange={onChange}
-            placeholder="Your address"
-            rows={3}
-            className="w-full resize-none rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            placeholder="@username"
+            hint="Optional"
+          />
+        </div>
+      </SectionCard>
+
+      <SectionCard
+        icon={PhoneCall}
+        title="Emergency contact"
+        description="Optional. Someone we can call if we cannot reach you."
+      >
+        <div className="grid gap-5 sm:grid-cols-3">
+          <TextInput
+            label="Name"
+            name="emergencyContactName"
+            value={formData.emergencyContactName}
+            onChange={onChange}
+            placeholder="Full name"
           />
 
-          {errors.address && (
-            <p className="mt-1 text-xs text-red-600">
-              {errors.address}
-            </p>
-          )}
+          <TextInput
+            label="Phone"
+            type="tel"
+            name="emergencyContactPhone"
+            value={formData.emergencyContactPhone}
+            onChange={onChange}
+            placeholder="09..."
+          />
+
+          <TextInput
+            label="Relation"
+            name="emergencyContactRelation"
+            value={formData.emergencyContactRelation}
+            onChange={onChange}
+            placeholder="e.g. Mother"
+          />
         </div>
-      </div>
-    </section>
+      </SectionCard>
+    </>
   );
 }

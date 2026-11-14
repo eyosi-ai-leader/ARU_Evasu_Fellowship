@@ -9,6 +9,26 @@ async function readJson(response, fallbackMessage) {
   }
 }
 
+/**
+ * When the backend rejects a form, it sends the exact field messages in
+ * "errors". Show those instead of only "Validation failed".
+ */
+function errorMessage(result, fallback) {
+  if (Array.isArray(result?.errors) && result.errors.length > 0) {
+    const messages = [
+      ...new Set(
+        result.errors.map((item) => item.msg).filter(Boolean)
+      ),
+    ];
+
+    if (messages.length > 0) {
+      return messages.join("; ");
+    }
+  }
+
+  return result?.message || fallback;
+}
+
 export async function loginUser(email, password) {
   let response;
 
@@ -35,7 +55,7 @@ export async function loginUser(email, password) {
   );
 
   if (!response.ok) {
-    throw new Error(result.message || "Unable to sign in.");
+    throw new Error(errorMessage(result, "Unable to sign in."));
   }
 
   return result;
@@ -68,7 +88,7 @@ export async function registerUser(formData) {
 
   if (!response.ok) {
     throw new Error(
-      result.message || "Unable to create your account."
+      errorMessage(result, "Unable to create your account.")
     );
   }
 
