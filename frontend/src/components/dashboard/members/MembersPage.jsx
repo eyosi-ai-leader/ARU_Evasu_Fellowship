@@ -4,12 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Plus,
   Users,
-  RefreshCw,
   UserPlus,
   Building2,
   CheckCircle2,
   ArrowUpRight,
   Download,
+  Loader2,
+  Lock,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -20,8 +21,21 @@ import {
   updateMember,
 } from "@/lib/memberApi";
 
-import { canManageMembers } from "@/lib/roles";
+import {
+  getDepartments,
+  getMySmallGroupMembers,
+} from "@/lib/fellowshipApi";
+
+import useMyAccess from "@/lib/useMyAccess";
+
+import {
+  ROLES,
+  canManageMembers,
+  isAdmin,
+} from "@/lib/roles";
+
 import { inviteMember } from "@/lib/memberAccessApi";
+import { formatEthiopianDate } from "@/lib/ethiopianCalendar";
 
 import MembersTable from "./MembersTable";
 import MemberFilters from "./MemberFilters";
@@ -41,9 +55,104 @@ const DEFAULT_FILTERS = {
   search: "",
   status: "",
   roleId: "",
+  fellowshipId: "",
+  departmentId: "",
+  academicStatus: "Student", // everyday view: current students
   sortBy: "created_at",
   sortOrder: "desc",
 };
+
+// Roles a Super Admin can give, and the ones everybody else can give.
+const ALL_ROLE_IDS = [
+  ROLES.PASTOR,
+  ROLES.SMALL_GROUP_LEADER,
+  ROLES.MINISTRY_LEADER,
+  ROLES.MEMBER,
+  ROLES.FELLOWSHIP_ADMIN,
+  ROLES.STAFF,
+  ROLES.ADMIN,
+];
+
+const MANAGER_ROLE_IDS = [
+  ROLES.PASTOR,
+  ROLES.SMALL_GROUP_LEADER,
+  ROLES.MINISTRY_LEADER,
+  ROLES.MEMBER,
+];
+
+const EXPORT_PAGE_SIZE = 100;
+const EXPORT_MAX_PAGES = 50;
+
+/*
+ * Stop a spreadsheet from running a cell that starts with = + - or @
+ * as a formula (a name typed as "=HYPERLINK(...)" for example).
+ */
+const escapeCsv = (value) => {
+  let text = value == null ? "" : String(value);
+
+  if (/^[=+\-@]/.test(text)) {
+    text = `'${text}`;
+  }
+
+  return `"${text.replace(/"/g, '""')}"`;
+};
+
+const MANAGER_EXPORT_COLUMNS = [
+  ["Member Number", (m) => m.member_number],
+  ["First Name", (m) => m.first_name],
+  ["Middle Name", (m) => m.middle_name],
+  ["Last Name", (m) => m.last_name],
+  ["Email", (m) => m.email],
+  ["Phone", (m) => m.phone || m.user_phone],
+  ["Telegram", (m) => m.telegram_username],
+  ["Gender", (m) => m.gender],
+  ["Campus", (m) => m.fellowship_name],
+  ["Department", (m) => m.department_name],
+  ["Students or Graduate", (m) => m.academic_status],
+  ["Graduation Year", (m) => m.graduation_year],
+  ["Home Region", (m) => m.home_region],
+  ["Home Town", (m) => m.home_town],
+  [
+    "May Contact After Graduation",
+    (m) => (m.alumni_contact_consent ? "Yes" : "No"),
+  ],
+  ["Date of Birth (E.C.)", (m) => formatEthiopianDate(m.date_of_birth, { fallback: "" })],
+  ["Address", (m) => m.address],
+  ["Member Status", (m) => m.status],
+];
+
+const LIMITED_EXPORT_COLUMNS = [
+  ["Member Number", (m) => m.member_number],
+  ["First Name", (m) => m.first_name],
+  ["Middle Name", (m) => m.middle_name],
+  ["Last Name", (m) => m.last_name],
+  ["Email", (m) => m.email],
+  ["Phone", (m) => m.phone],
+  ["Telegram", (m) => m.telegram_username],
+  ["Gender", (m) => m.gender],
+  ["Department", (m) => m.department_name],
+  ["Students or Graduate", (m) => m.academic_status],
+  ["Graduation Year", (m) => m.graduation_year],
+  ["Member Status", (m) => m.status],
+];
+
+const MINISTRY_EXPORT_COLUMNS = [
+  ["Member Number", (m) => m.member_number],
+  ["First Name", (m) => m.first_name],
+  ["Middle Name", (m) => m.middle_name],
+  ["Last Name", (m) => m.last_name],
+  ["Email", (m) => m.email],
+  ["Phone", (m) => m.phone],
+  ["Gender", (m) => m.gender],
+  ["Date of Birth (E.C.)", (m) => formatEthiopianDate(m.date_of_birth, { fallback: "" })],
+  ["Address", (m) => m.address],
+  ["Member Status", (m) => m.status],
+  ["Ministry", (m) => m.ministry_name],
+  ["Assignment Role", (m) => m.assignment_role],
+];
+
+const shortCampusName = (name) =>
+  String(name || "").replace(/\s+Fellowship$/i, "");
 
 export default function MembersPage() {
   const [members, setMembers] = useState([]);
@@ -52,11 +161,14 @@ export default function MembersPage() {
   const [ministriesLoading, setMinistriesLoading] = useState(false);
   const [selectedMinistryId, setSelectedMinistryId] = useState("");
 
+  const [departments, setDepartments] = useState([]);
+
   const [pagination, setPagination] = useState(DEFAULT_PAGINATION);
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState("");
 
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -67,11 +179,19 @@ export default function MembersPage() {
 
   const [roleTarget, setRoleTarget] = useState(null);
   const [changingRole, setChangingRole] = useState(false);
-    const [invitingId, setInvitingId] = useState(null);
+
+  const [invitingId, setInvitingId] = useState(null);
   const [notice, setNotice] = useState("");
 
-  const [roleId, setRoleId] = useState(null);
+  // The role saved at sign-in. Used only until /api/me answers (or if it fails).
+  const [storedRoleId, setStoredRoleId] = useState(null);
   const [userLoaded, setUserLoaded] = useState(false);
+
+  const {
+    access,
+    campuses,
+    loading: accessLoading,
+  } = useMyAccess();
 
   useEffect(() => {
     try {
@@ -79,7 +199,7 @@ export default function MembersPage() {
 
       if (storedUser) {
         const user = JSON.parse(storedUser);
-        setRoleId(Number(user?.roleId));
+        setStoredRoleId(Number(user?.roleId));
       }
     } catch (error) {
       console.error("Failed to load current user:", error);
@@ -88,8 +208,80 @@ export default function MembersPage() {
     }
   }, []);
 
-  const canManage = canManageMembers(roleId);
-  const isMinistryLeader = Number(roleId) === 4;
+  const ready = userLoaded && !accessLoading;
+
+  /*
+   * What this person can do. /api/me is the truth; the saved role is only
+   * a fallback if /api/me could not be reached.
+   */
+  const capabilities = access?.capabilities || null;
+  const effectiveRoleId = access?.roleId ?? storedRoleId;
+
+  const canManage = capabilities
+    ? capabilities.includes("fellowship:manage")
+    : canManageMembers(storedRoleId);
+
+  const isMinistryLeader =
+    !canManage && Number(effectiveRoleId) === ROLES.MINISTRY_LEADER;
+
+  const isSmallGroupLeader =
+    !canManage &&
+    !isMinistryLeader &&
+    Boolean(capabilities?.includes("smallgroup:lead"));
+
+  const noAccess =
+    ready && !canManage && !isMinistryLeader && !isSmallGroupLeader;
+
+  const mode = isMinistryLeader
+    ? "ministry"
+    : isSmallGroupLeader
+      ? "smallGroup"
+      : "manage";
+
+  const isSuperAdmin = access ? Boolean(access.isSuperAdmin) : isAdmin(storedRoleId);
+  const currentUserId = access?.user?.id ?? null;
+  const assignableRoleIds = isSuperAdmin ? ALL_ROLE_IDS : MANAGER_ROLE_IDS;
+
+  // The campus filter and column only make sense for people who manage several.
+  const showCampus = mode === "manage" && campuses.length > 1;
+
+  const scopeLabel =
+    mode !== "manage"
+      ? ""
+      : campuses.length === 1
+        ? shortCampusName(campuses[0].name)
+        : campuses.length > 1
+          ? "All campuses you manage"
+          : "";
+
+  /*
+   * Departments for the department filter: the chosen campus, or the only
+   * campus the person manages.
+   */
+  const departmentCampusId =
+    filters.fellowshipId ||
+    (campuses.length === 1 ? String(campuses[0].id) : "");
+
+  useEffect(() => {
+    if (!canManage || !departmentCampusId) {
+      setDepartments([]);
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    getDepartments(departmentCampusId)
+      .then((list) => {
+        if (!cancelled) setDepartments(list);
+      })
+      .catch(() => {
+        if (!cancelled) setDepartments([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canManage, departmentCampusId]);
 
   /*
    * Load the authenticated leader's assignment rows to discover
@@ -205,7 +397,7 @@ export default function MembersPage() {
   }, [isMinistryLeader]);
 
   useEffect(() => {
-    if (!userLoaded) {
+    if (!ready) {
       return;
     }
 
@@ -214,12 +406,62 @@ export default function MembersPage() {
     } else {
       setMinistries([]);
     }
-  }, [userLoaded, isMinistryLeader, loadMinistrySummary]);
+  }, [ready, isMinistryLeader, loadMinistrySummary]);
+
+  /*
+   * The options sent to the backend for the current filters.
+   */
+  const buildRequestOptions = useCallback(
+    (overrides = {}) => ({
+      page: pagination.page,
+      limit: pagination.limit,
+      search: filters.search,
+      status: filters.status,
+      roleId: filters.roleId,
+      fellowshipId: filters.fellowshipId,
+      departmentId: filters.departmentId,
+      academicStatus: filters.academicStatus,
+      sortBy: filters.sortBy,
+      sortOrder: filters.sortOrder,
+      ...overrides,
+    }),
+    [
+      pagination.page,
+      pagination.limit,
+      filters.search,
+      filters.status,
+      filters.roleId,
+      filters.fellowshipId,
+      filters.departmentId,
+      filters.academicStatus,
+      filters.sortBy,
+      filters.sortOrder,
+    ]
+  );
+
+  const fetchMembersForMode = useCallback(
+    (options) => {
+      if (isMinistryLeader) {
+        return getMyMinistryMembers({
+          ...options,
+          ministryId: selectedMinistryId,
+        });
+      }
+
+      if (isSmallGroupLeader) {
+        return getMySmallGroupMembers(options);
+      }
+
+      return getMembers(options);
+    },
+    [isMinistryLeader, isSmallGroupLeader, selectedMinistryId]
+  );
 
   /*
    * Load the current table.
-   * Ministry leaders use the scoped /my-ministry endpoint.
-   * Other roles keep using the existing general members endpoint.
+   * Ministry leaders use /my-ministry, small group leaders use
+   * /my-small-group; everyone else uses the general members endpoint,
+   * which the backend limits to the fellowships the person manages.
    */
   const loadMembers = useCallback(
     async (showRefresh = false) => {
@@ -232,26 +474,7 @@ export default function MembersPage() {
 
         setError("");
 
-        const requestOptions = {
-          page: pagination.page,
-          limit: pagination.limit,
-          search: filters.search,
-          status: filters.status,
-          roleId: filters.roleId,
-          sortBy: filters.sortBy,
-          sortOrder: filters.sortOrder,
-        };
-
-        let response;
-
-        if (isMinistryLeader) {
-          response = await getMyMinistryMembers({
-            ...requestOptions,
-            ministryId: selectedMinistryId,
-          });
-        } else {
-          response = await getMembers(requestOptions);
-        }
+        const response = await fetchMembersForMode(buildRequestOptions());
 
         const rows = Array.isArray(response?.data)
           ? response.data
@@ -271,26 +494,20 @@ export default function MembersPage() {
         setRefreshing(false);
       }
     },
-    [
-      isMinistryLeader,
-      selectedMinistryId,
-      pagination.page,
-      pagination.limit,
-      filters.search,
-      filters.status,
-      filters.roleId,
-      filters.sortBy,
-      filters.sortOrder,
-    ]
+    [fetchMembersForMode, buildRequestOptions]
   );
 
   useEffect(() => {
-    if (!userLoaded) {
+    if (!ready || noAccess) {
+      if (ready) {
+        setLoading(false);
+      }
+
       return;
     }
 
     loadMembers();
-  }, [userLoaded, loadMembers]);
+  }, [ready, noAccess, loadMembers]);
 
   async function handleRefresh() {
     if (refreshing) {
@@ -315,31 +532,38 @@ export default function MembersPage() {
     resetToFirstPage();
   }
 
-  function handleSearch(value) {
+  function setFilter(patch) {
     setFilters((previous) => ({
       ...previous,
-      search: value,
+      ...patch,
     }));
 
     resetToFirstPage();
+  }
+
+  function handleSearch(value) {
+    setFilter({ search: value });
   }
 
   function handleStatusChange(value) {
-    setFilters((previous) => ({
-      ...previous,
-      status: value,
-    }));
-
-    resetToFirstPage();
+    setFilter({ status: value });
   }
 
   function handleRoleChange(value) {
-    setFilters((previous) => ({
-      ...previous,
-      roleId: value,
-    }));
+    setFilter({ roleId: value });
+  }
 
-    resetToFirstPage();
+  function handleCampusChange(value) {
+    // A department belongs to one campus, so it is cleared.
+    setFilter({ fellowshipId: value, departmentId: "" });
+  }
+
+  function handleDepartmentChange(value) {
+    setFilter({ departmentId: value });
+  }
+
+  function handleAcademicStatusChange(value) {
+    setFilter({ academicStatus: value });
   }
 
   function handleSortChange(sortBy) {
@@ -382,6 +606,7 @@ export default function MembersPage() {
     } catch (error) {
       console.error("Delete member error:", error);
       setError(error.message || "Failed to delete member.");
+      setDeleteTarget(null);
     } finally {
       setDeleting(false);
     }
@@ -412,6 +637,7 @@ export default function MembersPage() {
     } catch (error) {
       console.error("Change member status error:", error);
       setError(error.message || "Failed to change member status.");
+      setStatusTarget(null);
     } finally {
       setChangingStatus(false);
     }
@@ -445,12 +671,13 @@ export default function MembersPage() {
     } catch (error) {
       console.error("Change member role error:", error);
       setError(error.message || "Failed to change member role.");
+      setRoleTarget(null);
     } finally {
       setChangingRole(false);
     }
   }
 
-    async function handleInvite(member) {
+  async function handleInvite(member) {
     if (!canManage || invitingId) {
       return;
     }
@@ -482,73 +709,165 @@ export default function MembersPage() {
     Boolean(filters.search) ||
     Boolean(filters.status) ||
     Boolean(filters.roleId) ||
+    Boolean(filters.fellowshipId) ||
+    Boolean(filters.departmentId) ||
+    filters.academicStatus !== DEFAULT_FILTERS.academicStatus ||
     Boolean(selectedMinistryId);
 
   const selectedMinistry = ministries.find(
     (ministry) => ministry.id === selectedMinistryId
   );
 
-  // Export the members currently loaded in the table as an Excel-compatible CSV.
-  const handleExportExcel = () => {
-    if (!members.length) {
-      alert("There are no members to export.");
+  /*
+   * Export to an Excel-compatible CSV.
+   *
+   * Managers and small group leaders: EVERY member that matches the
+   * current search and filters (not only the page on screen), so leaders
+   * can export, for example, all graduates of one campus.
+   * Ministry leaders: the rows currently loaded.
+   */
+  async function handleExportExcel() {
+    if (exporting) {
       return;
     }
 
-    const columns = [
-      ["Member Number", "member_number"],
-      ["First Name", "first_name"],
-      ["Middle Name", "middle_name"],
-      ["Last Name", "last_name"],
-      ["Email", "email"],
-      ["Phone", "phone"],
-      ["Gender", "gender"],
-      ["Date of Birth", "date_of_birth"],
-      ["Address", "address"],
-      ["Member Status", "status"],
-      ["Ministry", "ministry_name"],
-      ["Assignment Role", "assignment_role"],
-    ];
+    try {
+      setExporting(true);
+      setError("");
 
-    const escapeCsv = (value) => {
-      const text = value == null ? "" : String(value);
-      return `"${text.replace(/"/g, '""')}"`;
-    };
+      let rows = members;
 
-    const csvRows = [
-      columns.map(([label]) => escapeCsv(label)).join(","),
-      ...members.map((member) =>
-        columns
-          .map(([, key]) => escapeCsv(member[key]))
-          .join(",")
-      ),
-    ];
+      if (!isMinistryLeader) {
+        rows = [];
 
-    // BOM helps Excel display UTF-8 text correctly.
-    const csvContent = "\uFEFF" + csvRows.join("\r\n");
-    const blob = new Blob([csvContent], {
-      type: "text/csv;charset=utf-8;",
-    });
+        let page = 1;
+        let totalPages = 1;
 
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
+        do {
+          const response = await fetchMembersForMode(
+            buildRequestOptions({ page, limit: EXPORT_PAGE_SIZE })
+          );
 
-    const ministryName =
-      selectedMinistryId && members[0]?.ministry_name
-        ? members[0].ministry_name
-        : "All-My-Ministries";
+          rows = rows.concat(
+            Array.isArray(response?.data) ? response.data : []
+          );
 
-    const safeFileName = ministryName
-      .replace(/[^a-z0-9-_]/gi, "-")
-      .replace(/-+/g, "-");
+          totalPages = Number(response?.pagination?.totalPages || 1);
+          page += 1;
+        } while (page <= totalPages && page <= EXPORT_MAX_PAGES);
+      }
 
-    link.href = url;
-    link.download = `${safeFileName}-Members.csv`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
-  };
+      if (!rows.length) {
+        setError("There are no members to export.");
+        return;
+      }
+
+      const columns = isMinistryLeader
+        ? MINISTRY_EXPORT_COLUMNS
+        : isSmallGroupLeader
+          ? LIMITED_EXPORT_COLUMNS
+          : MANAGER_EXPORT_COLUMNS;
+
+      const csvRows = [
+        columns.map(([label]) => escapeCsv(label)).join(","),
+        ...rows.map((member) =>
+          columns.map(([, getValue]) => escapeCsv(getValue(member))).join(",")
+        ),
+      ];
+
+      // BOM helps Excel display UTF-8 text correctly.
+      const csvContent = "\uFEFF" + csvRows.join("\r\n");
+      const blob = new Blob([csvContent], {
+        type: "text/csv;charset=utf-8;",
+      });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      let nameForFile = "Members";
+
+      if (isMinistryLeader) {
+        nameForFile =
+          selectedMinistryId && members[0]?.ministry_name
+            ? members[0].ministry_name
+            : "All-My-Ministries";
+      } else if (isSmallGroupLeader) {
+        nameForFile = "My-Small-Group";
+      } else {
+        const chosenCampus = campuses.find(
+          (campus) => String(campus.id) === String(filters.fellowshipId)
+        );
+
+        nameForFile = chosenCampus
+          ? shortCampusName(chosenCampus.name)
+          : campuses.length === 1
+            ? shortCampusName(campuses[0].name)
+            : "All-Campuses";
+      }
+
+      const safeFileName = nameForFile
+        .replace(/[^a-z0-9-_]/gi, "-")
+        .replace(/-+/g, "-");
+
+      link.href = url;
+      link.download = `${safeFileName}-Members.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Export members error:", error);
+      setError(error.message || "Failed to export members.");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  const heading = isMinistryLeader
+    ? "Ministry Members"
+    : isSmallGroupLeader
+      ? "My Small Group"
+      : "Members";
+
+  const eyebrow = isMinistryLeader
+    ? "Ministry Management"
+    : isSmallGroupLeader
+      ? "Small Group"
+      : "Management";
+
+  const description = isMinistryLeader
+    ? "Manage and organize your ministry teams. View assignments across your ministries or select one ministry to focus on."
+    : isSmallGroupLeader
+      ? "The members of the small group you lead, and how to reach them."
+      : canManage
+        ? `Manage fellowship members${
+            scopeLabel ? ` of ${scopeLabel}` : ""
+          }, monitor their status, and keep their contact details up to date, including after they graduate.`
+        : "View fellowship member information and directory records.";
+
+  /*
+   * A person with no members to manage, no ministry and no small group.
+   */
+  if (noAccess) {
+    return (
+      <div className="min-h-full">
+        <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+            <Lock size={24} />
+          </div>
+
+          <h1 className="mt-4 text-sm font-bold text-slate-900">
+            No member list for your account
+          </h1>
+
+          <p className="mt-1 text-xs leading-5 text-slate-400">
+            You don&apos;t manage a fellowship, ministry or small group yet.
+            If you should, ask a Super Admin to check your role and campus.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-full space-y-6">
@@ -566,56 +885,45 @@ export default function MembersPage() {
 
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
-                {isMinistryLeader ? "Ministry Management" : "Management"}
+                {eyebrow}
               </p>
 
               <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-slate-900">
-                {isMinistryLeader ? "Ministry Members" : "Members"}
+                {heading}
               </h1>
             </div>
           </div>
 
           <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-            {isMinistryLeader
-              ? "Manage and organize your ministry teams. View assignments across your ministries or select one ministry to focus on."
-              : canManage
-                ? "Manage church members, monitor their status, and keep member information organized."
-                : "View church member information and directory records."}
+            {description}
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Export members to CSV */}
+        {/* Export and Add member, side by side */}
+        <div
+          className={`grid gap-2 sm:flex sm:items-center ${
+            canManage ? "grid-cols-2" : "grid-cols-1"
+          }`}
+        >
           <button
             type="button"
             onClick={handleExportExcel}
-            disabled={!members.length}
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={exporting || (!members.length && !loading)}
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 active:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Download size={16} />
-            <span className="hidden sm:inline">Export Excel</span>
-          </button>
+            {exporting ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Download size={16} />
+            )}
 
-          <button
-            type="button"
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-600 shadow-sm transition hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <RefreshCw
-              size={16}
-              className={refreshing ? "animate-spin" : ""}
-            />
-
-            <span className="hidden sm:inline">
-              {refreshing ? "Refreshing..." : "Refresh"}
-            </span>
+            <span>{exporting ? "Exporting..." : "Export"}</span>
           </button>
 
           {canManage && (
             <Link
               href="/dashboard/members/create"
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 active:bg-slate-700"
             >
               <Plus size={17} />
               <span>Add member</span>
@@ -788,58 +1096,62 @@ export default function MembersPage() {
 
       {/* General member overview cards for non-Ministry Leaders */}
       {!isMinistryLeader && (
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="grid grid-cols-3 gap-3 sm:gap-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-slate-400">
-                  Total members
+                  {filters.academicStatus === "Student"
+                    ? "Total students"
+                    : filters.academicStatus === "Graduate"
+                      ? "Total graduates"
+                      : "Total members"}
                 </p>
 
-                <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
+                <p className="mt-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
                   {pagination.total.toLocaleString()}
                 </p>
               </div>
 
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+              <div className="hidden h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600 sm:flex">
                 <Users size={18} />
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-slate-400">
                   Showing
                 </p>
 
-                <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
+                <p className="mt-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
                   {members.length}
                 </p>
               </div>
 
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+              <div className="hidden h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600 sm:flex">
                 <UserPlus size={18} />
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-slate-400">
-                  Current page
+                  Page
                 </p>
 
-                <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
+                <p className="mt-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
                   {pagination.totalPages
                     ? `${pagination.page} / ${pagination.totalPages}`
                     : "0"}
                 </p>
               </div>
 
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+              <div className="hidden h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600 sm:flex">
                 <span className="text-sm font-bold">
                   {pagination.page}
                 </span>
@@ -849,24 +1161,24 @@ export default function MembersPage() {
         </div>
       )}
 
-      {/* Existing search and filters */}
-
+      {/* Search and filters */}
       <MemberFilters
         filters={filters}
         onSearch={handleSearch}
         onStatusChange={handleStatusChange}
         onRoleChange={handleRoleChange}
-        onSortChange={handleSortChange}
+        onCampusChange={handleCampusChange}
+        onDepartmentChange={handleDepartmentChange}
+        onAcademicStatusChange={handleAcademicStatusChange}
         onClear={handleClearFilters}
         hasFilters={hasFilters}
+        campuses={showCampus ? campuses : []}
+        departments={departments}
+        hideRoleFilter={isSmallGroupLeader}
+        hideAcademicFilter={mode !== "manage"}
       />
 
-      {error && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-sm font-semibold text-red-700">
-                      {notice && (
+      {notice && (
         <div
           role="status"
           className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700"
@@ -874,6 +1186,12 @@ export default function MembersPage() {
           {notice}
         </div>
       )}
+
+      {error && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-red-700">
                 Could not complete the request
               </p>
 
@@ -892,10 +1210,10 @@ export default function MembersPage() {
         </div>
       )}
 
-      {/* Assignment-aware table */}
+      {/* Assignment-aware table (cards on phones) */}
       <MembersTable
         members={members}
-        loading={loading}
+        loading={loading || !ready}
         sortBy={filters.sortBy}
         sortOrder={filters.sortOrder}
         onSort={handleSortChange}
@@ -905,7 +1223,10 @@ export default function MembersPage() {
         onInvite={handleInvite}
         invitingId={invitingId}
         canManage={canManage}
-        isMinistryLeader={isMinistryLeader}
+        mode={mode}
+        showCampus={showCampus}
+        isSuperAdmin={isSuperAdmin}
+        currentUserId={currentUserId}
       />
 
       {!loading && !error && pagination.total > 0 && (
@@ -915,7 +1236,7 @@ export default function MembersPage() {
         />
       )}
 
-      {/* Existing church-wide management actions remain Admin/Pastor only */}
+      {/* Management actions: only for people who manage members */}
       {canManage && (
         <MemberDeleteDialog
           member={deleteTarget}
@@ -940,6 +1261,7 @@ export default function MembersPage() {
           member={roleTarget}
           open={Boolean(roleTarget)}
           saving={changingRole}
+          assignableRoleIds={assignableRoleIds}
           onClose={() => setRoleTarget(null)}
           onConfirm={handleRoleConfirm}
         />

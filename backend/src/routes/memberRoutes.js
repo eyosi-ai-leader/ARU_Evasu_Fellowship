@@ -6,6 +6,12 @@ const ministryMemberController = require("../controllers/ministryMemberControlle
 
 const authMiddleware = require("../middleware/authMiddleware");
 const roleMiddleware = require("../middleware/roleMiddleware");
+const {
+  loadAccess,
+  requireCapability,
+} = require("../middleware/accessMiddleware");
+
+const { ROLE_IDS } = require("../constants/roles");
 
 const {
   memberIdValidator,
@@ -30,22 +36,48 @@ const validateRequest = (req, res, next) => {
   next();
 };
 
+/**
+ * Every route below needs a signed-in person (authMiddleware) and then
+ * loads what that person is allowed to do (loadAccess -> req.access).
+ */
 router.use(authMiddleware);
+router.use(loadAccess);
 
 /**
- * Ministry Leader routes.
+ * Small group leader routes.
+ *
+ * Open to ANYONE who leads a small group (capability "smallgroup:lead"),
+ * whatever their role is. They see only the members of the group(s) they
+ * lead, and only the fields a leader needs.
+ */
+router.get(
+  "/my-small-group",
+  requireCapability("smallgroup:lead"),
+  memberController.getMySmallGroupMembers
+);
+
+router.get(
+  "/my-small-group/:id",
+  requireCapability("smallgroup:lead"),
+  memberIdValidator,
+  validateRequest,
+  memberController.getMySmallGroupMemberById
+);
+
+/**
+ * Ministry Leader routes (unchanged).
  * Role 4 can access only members assigned to active ministries
  * that the authenticated leader actively leads.
  */
 router.get(
   "/my-ministry",
-  roleMiddleware(4),
+  roleMiddleware(ROLE_IDS.MINISTRY_LEADER),
   ministryMemberController.getMyMinistryMembers
 );
 
 router.get(
   "/my-ministry/:id",
-  roleMiddleware(4),
+  roleMiddleware(ROLE_IDS.MINISTRY_LEADER),
   memberIdValidator,
   validateRequest,
   ministryMemberController.getMyMinistryMemberById
@@ -53,7 +85,7 @@ router.get(
 
 router.put(
   "/my-ministry/:id",
-  roleMiddleware(4),
+  roleMiddleware(ROLE_IDS.MINISTRY_LEADER),
   uploadProfileImage.single("profileImage"),
   memberIdValidator,
   updateMemberValidator,
@@ -62,60 +94,52 @@ router.put(
 );
 
 /**
- * Create member.
- * Roles: Admin (1), Pastor (2).
+ * Fellowship management routes.
+ *
+ * Open to people who manage at least one campus fellowship (capability
+ * "fellowship:manage"): Super Admin, Fellowship Admin and Staff (in the
+ * fellowships assigned to them) and Main Leaders (their own fellowship).
+ *
+ * The controllers then check, member by member, that the fellowship is one
+ * the person manages.
  */
+const canManageFellowship = requireCapability("fellowship:manage");
+
 router.post(
   "/",
-  roleMiddleware(1, 2),
+  canManageFellowship,
   uploadProfileImage.single("profileImage"),
   createMemberValidator,
   validateRequest,
   memberController.createMember
 );
 
-/**
- * General member list.
- * Roles: Admin (1), Pastor (2), Church Elder (3).
- */
 router.get(
   "/",
-  roleMiddleware(1, 2, 3),
+  canManageFellowship,
   memberController.getAllMembers
 );
 
-/**
- * General member details.
- * Roles: Admin (1), Pastor (2), Church Elder (3).
- */
 router.get(
   "/:id",
-  roleMiddleware(1, 2, 3),
+  canManageFellowship,
   memberIdValidator,
   validateRequest,
   memberController.getMemberById
 );
 
-/**
- * General member update.
- * Roles: Admin (1), Pastor (2).
- */
 router.put(
   "/:id",
-  roleMiddleware(1, 2),
+  canManageFellowship,
   uploadProfileImage.single("profileImage"),
   updateMemberValidator,
   validateRequest,
   memberController.updateMember
 );
 
-/**
- * Delete member.
- * Roles: Admin (1), Pastor (2).
- */
 router.delete(
   "/:id",
-  roleMiddleware(1, 2),
+  canManageFellowship,
   memberIdValidator,
   validateRequest,
   memberController.deleteMember

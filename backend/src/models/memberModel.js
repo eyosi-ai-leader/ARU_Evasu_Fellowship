@@ -1,5 +1,7 @@
 const db = require("../config/db");
 
+const { getAccessLevelForRole } = require("../constants/roles");
+
 /**
  * Columns returned for a member.
  * Shared by every read query so they always match.
@@ -92,6 +94,9 @@ const toTinyInt = (value) =>
  * Create User + Member
  * Member number is generated automatically from the campus code:
  * MAIN-2026-0001, HEALTH-2026-0001, AGRI-2026-0001 ...
+ *
+ * A Fellowship Admin or Staff account is also given access to the campus
+ * it was created in (user_fellowship_access), in the same transaction.
  */
 const createMember = async ({
   firstName,
@@ -128,6 +133,9 @@ const createMember = async ({
   churchMinistryRole,
   spiritualJourney,
   alumniContactConsent,
+
+  // Who created this account (stored with the fellowship access row).
+  createdBy,
 }) => {
   const connection = await db.getConnection();
 
@@ -303,6 +311,29 @@ const createMember = async ({
           status || "Active",
         ]
       );
+
+    /**
+     * Fellowship Admin / Staff: give access to the campus they were
+     * created in. A Super Admin can add more campuses later.
+     */
+    const accessLevel =
+      getAccessLevelForRole(roleId);
+
+    if (accessLevel) {
+      await connection.execute(
+        `
+          INSERT INTO user_fellowship_access
+            (user_id, fellowship_id, access_level, created_by)
+          VALUES (?, ?, ?, ?)
+        `,
+        [
+          userId,
+          fellowshipId,
+          accessLevel,
+          createdBy ?? null,
+        ]
+      );
+    }
 
     await connection.commit();
 
@@ -574,13 +605,39 @@ const deleteMember = async (
 };
 
 /**
+ * "m.column IN (?, ?, ?)" for a list of ids.
+ *
+ * An EMPTY list matches nothing ("1 = 0"). This is deliberate: a person
+ * with no access to any fellowship must get an empty list, never everyone.
+ */
+const inList = (column, ids, conditions, queryParams) => {
+  if (ids.length === 0) {
+    conditions.push("1 = 0");
+    return;
+  }
+
+  conditions.push(
+    `${column} IN (${ids.map(() => "?").join(", ")})`
+  );
+
+  queryParams.push(...ids);
+};
+
+/**
  * Build the WHERE part shared by the list and the count.
+ *
+ * fellowshipIds / smallGroupIds:
+ *   undefined -> no restriction
+ *   an array  -> only members of those fellowships / small groups
+ *                (an empty array returns nobody)
  */
 const buildMemberFilters = ({
   search,
   status,
   roleId,
   fellowshipId,
+  fellowshipIds,
+  smallGroupIds,
   departmentId,
   academicStatus,
 }) => {
@@ -623,6 +680,14 @@ const buildMemberFilters = ({
     queryParams.push(fellowshipId);
   }
 
+  if (Array.isArray(fellowshipIds)) {
+    inList("m.fellowship_id", fellowshipIds, conditions, queryParams);
+  }
+
+  if (Array.isArray(smallGroupIds)) {
+    inList("m.small_group_id", smallGroupIds, conditions, queryParams);
+  }
+
   if (departmentId) {
     conditions.push("m.department_id = ?");
     queryParams.push(departmentId);
@@ -657,6 +722,8 @@ const getAllMembers = async ({
   status = "",
   roleId = "",
   fellowshipId = "",
+  fellowshipIds,
+  smallGroupIds,
   departmentId = "",
   academicStatus = "",
   sortBy = "created_at",
@@ -668,6 +735,8 @@ const getAllMembers = async ({
       status,
       roleId,
       fellowshipId,
+      fellowshipIds,
+      smallGroupIds,
       departmentId,
       academicStatus,
     });
@@ -745,6 +814,8 @@ const countMembers = async ({
   status = "",
   roleId = "",
   fellowshipId = "",
+  fellowshipIds,
+  smallGroupIds,
   departmentId = "",
   academicStatus = "",
 } = {}) => {
@@ -754,6 +825,8 @@ const countMembers = async ({
       status,
       roleId,
       fellowshipId,
+      fellowshipIds,
+      smallGroupIds,
       departmentId,
       academicStatus,
     });

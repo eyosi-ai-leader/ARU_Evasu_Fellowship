@@ -22,13 +22,14 @@ import {
   Eye,
   BriefcaseBusiness,
   KeyRound,
+  X,
 } from "lucide-react";
 
 import { ROLES } from "@/lib/roles";
 import { getFellowshipRoleName } from "@/lib/fellowshipRoles";
 import { getStoredUser } from "@/lib/userStorage";
 import SidebarUserMenu from "@/components/dashboard/SidebarUserMenu";
-import BrandLogo from "@/components/shared/BrandLogo";
+import BrandLogo from "@/components/shared/BrandLogo/BrandLogo";
 import { BRAND } from "@/data/brand";
 
 /*
@@ -220,17 +221,32 @@ const navigationByRole = {
   ],
 };
 
+/*
+ * Fellowship Admin and Staff manage members like a Main Leader, so they
+ * get the same menu. (Without this they would get the plain Member menu.)
+ */
+navigationByRole[ROLES.FELLOWSHIP_ADMIN] = navigationByRole[ROLES.PASTOR];
+navigationByRole[ROLES.STAFF] = navigationByRole[ROLES.PASTOR];
+
 const roleConfig = {
   [ROLES.ADMIN]: {
-    title: "ADMIN DASHBOARD",
+    title: "SUPER ADMIN",
     icon: Crown,
   },
-  [ROLES.PASTOR]: {
-    title: "PASTOR DASHBOARD",
+  [ROLES.FELLOWSHIP_ADMIN]: {
+    title: "FELLOWSHIP ADMIN",
     icon: ShieldCheck,
   },
-  [ROLES.CHURCH_ELDER]: {
-    title: "FELLOWSHIP ELDER",
+  [ROLES.STAFF]: {
+    title: "STAFF",
+    icon: BriefcaseBusiness,
+  },
+  [ROLES.PASTOR]: {
+    title: "MAIN LEADER",
+    icon: ShieldCheck,
+  },
+  [ROLES.SMALL_GROUP_LEADER]: {
+    title: "SMALL GROUP LEADER",
     icon: Eye,
   },
   [ROLES.MINISTRY_LEADER]: {
@@ -243,7 +259,11 @@ const roleConfig = {
   },
 };
 
-export default function DashboardSidebar() {
+/*
+ * open / onClose are used on phones and tablets only: the sidebar slides
+ * in over the page. On large screens it is always visible.
+ */
+export default function DashboardSidebar({ open = false, onClose }) {
   const pathname = usePathname();
 
   const [user, setUser] = useState(null);
@@ -291,9 +311,15 @@ export default function DashboardSidebar() {
   };
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-slate-200 bg-white">
-      {/* Logo */}
-      <div className="flex h-16 shrink-0 items-center border-b border-slate-200 px-5">
+    <aside
+      id="dashboard-sidebar"
+      aria-label="Sidebar"
+      className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-slate-200 bg-white shadow-2xl transition-transform duration-200 ease-out lg:w-64 lg:max-w-none lg:translate-x-0 lg:shadow-none ${
+        open ? "translate-x-0" : "-translate-x-full"
+      }`}
+    >
+      {/* Logo (and the close button on phones) */}
+      <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-5">
         <Link
           href="/dashboard"
           className="flex items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
@@ -310,6 +336,15 @@ export default function DashboardSidebar() {
             </p>
           </div>
         </Link>
+
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close menu"
+          className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-900 lg:hidden"
+        >
+          <X size={20} />
+        </button>
       </div>
 
       {/* Overview: the role card is the link to the overview dashboard */}
@@ -364,7 +399,7 @@ export default function DashboardSidebar() {
       </div>
 
       {/* Navigation (takes all the remaining space and scrolls if needed) */}
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 [scrollbar-width:thin]">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 [scrollbar-width:thin]">
         <nav aria-label="Dashboard">
           {navigation.map((section, index) => {
             const sectionOpen = !collapsed[section.label];
@@ -385,7 +420,7 @@ export default function DashboardSidebar() {
                   onClick={() => toggleSection(section.label)}
                   aria-expanded={sectionOpen}
                   aria-controls={panelId}
-                  className="group mb-1 flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  className="group mb-1 flex w-full items-center justify-between rounded-lg px-2 py-2 text-left transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 >
                   <span className="flex items-center gap-2">
                     <span className="text-[11px] font-bold uppercase tracking-[0.13em] text-slate-500 group-hover:text-slate-700">
@@ -427,7 +462,7 @@ export default function DashboardSidebar() {
                             <div
                               key={item.name}
                               aria-disabled="true"
-                              className="flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium text-slate-300"
+                              className="flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-medium text-slate-300 lg:py-2.5"
                             >
                               <Icon
                                 size={18}
@@ -451,10 +486,10 @@ export default function DashboardSidebar() {
                             href={item.href}
                             aria-current={active ? "page" : undefined}
                             tabIndex={sectionOpen ? 0 : -1}
-                            className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                            className={`group relative flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 lg:py-2.5 ${
                               active
                                 ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
-                                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:bg-slate-100"
                             }`}
                           >
                             {active && (
@@ -501,7 +536,7 @@ export default function DashboardSidebar() {
       </div>
 
       {/* Account menu: My Profile, Settings, Help & Support, Sign out */}
-      <div className="shrink-0">
+      <div className="shrink-0 pb-[env(safe-area-inset-bottom)]">
         <SidebarUserMenu
           user={user}
           roleName={roleName}

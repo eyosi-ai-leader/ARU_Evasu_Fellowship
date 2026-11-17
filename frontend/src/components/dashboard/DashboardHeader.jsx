@@ -8,6 +8,8 @@ import {
   Search,
   Plus,
   ChevronDown,
+  Menu,
+  X,
   Users,
   HeartHandshake,
   CalendarDays,
@@ -26,6 +28,7 @@ import {
 import { ROLES } from "@/lib/roles";
 import { getFellowshipRoleName } from "@/lib/fellowshipRoles";
 import { getStoredUser } from "@/lib/userStorage";
+import { BRAND } from "@/data/brand";
 import UserAvatar from "@/components/shared/Avatar/UserAvatar";
 import NotificationBell from "@/components/dashboard/notifications/NotificationBell";
 
@@ -223,7 +226,19 @@ const quickActionsByRole = {
   ],
 };
 
-export default function DashboardHeader() {
+/*
+ * Fellowship Admin and Staff manage members like a Main Leader, so they
+ * get the same search list and quick actions.
+ */
+navigationByRole[ROLES.FELLOWSHIP_ADMIN] = navigationByRole[ROLES.PASTOR];
+navigationByRole[ROLES.STAFF] = navigationByRole[ROLES.PASTOR];
+quickActionsByRole[ROLES.FELLOWSHIP_ADMIN] = quickActionsByRole[ROLES.PASTOR];
+quickActionsByRole[ROLES.STAFF] = quickActionsByRole[ROLES.PASTOR];
+
+/*
+ * onMenuClick opens the sidebar on phones and tablets.
+ */
+export default function DashboardHeader({ onMenuClick }) {
   const router = useRouter();
 
   const [user, setUser] = useState(null);
@@ -329,6 +344,13 @@ export default function DashboardHeader() {
     );
   };
 
+  const handleMobileSearchToggle = () => {
+    setSearch("");
+    setActiveMenu((current) =>
+      current === "mobileSearch" ? null : "mobileSearch"
+    );
+  };
+
   const handleLogout = () => {
     document.cookie = "token=; path=/; max-age=0; SameSite=Lax";
     localStorage.removeItem("user");
@@ -338,10 +360,27 @@ export default function DashboardHeader() {
   return (
     <header
       ref={headerRef}
-      className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-slate-200 bg-white/90 px-6 backdrop-blur-xl"
+      className="sticky top-0 z-40 flex h-16 items-center justify-between gap-2 border-b border-slate-200 bg-white/90 px-4 backdrop-blur-xl sm:px-6"
     >
-      {/* Search */}
-      <div className="relative flex items-center">
+      {/* Left: menu button (phones), name (phones), search (computers) */}
+      <div className="relative flex min-w-0 items-center gap-2">
+        <button
+          type="button"
+          onClick={onMenuClick}
+          aria-label="Open menu"
+          aria-controls="dashboard-sidebar"
+          className="-ml-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 active:bg-slate-100 lg:hidden"
+        >
+          <Menu size={21} />
+        </button>
+
+        <Link
+          href="/dashboard"
+          className="truncate text-[15px] font-bold tracking-tight text-slate-900 md:hidden"
+        >
+          {BRAND.shortName}
+        </Link>
+
         <div className="relative hidden w-80 md:block">
           <Search
             size={17}
@@ -365,7 +404,7 @@ export default function DashboardHeader() {
         </div>
 
         {activeMenu === "search" && search.trim() && (
-          <div className="absolute left-0 top-12 w-80 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+          <div className="absolute left-0 top-12 hidden w-80 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl md:block">
             {searchResults.length > 0 ? (
               <>
                 <div className="px-3 py-2">
@@ -416,7 +455,26 @@ export default function DashboardHeader() {
       </div>
 
       {/* Right Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+        {/* Search button (phones only) */}
+        <button
+          type="button"
+          onClick={handleMobileSearchToggle}
+          aria-label="Search"
+          aria-expanded={activeMenu === "mobileSearch"}
+          className={`flex h-10 w-10 items-center justify-center rounded-xl transition md:hidden ${
+            activeMenu === "mobileSearch"
+              ? "bg-indigo-50 text-indigo-700"
+              : "text-slate-600 hover:bg-slate-100 active:bg-slate-100"
+          }`}
+        >
+          {activeMenu === "mobileSearch" ? (
+            <X size={19} />
+          ) : (
+            <Search size={19} />
+          )}
+        </button>
+
         {/* Role */}
         <div className="hidden items-center rounded-full bg-indigo-50 px-3.5 py-1.5 lg:flex">
           <span className="text-xs font-semibold text-indigo-700">
@@ -424,31 +482,33 @@ export default function DashboardHeader() {
           </span>
         </div>
 
-        {/* Quick Action */}
-        <div className="relative hidden sm:block">
+        {/* Quick Action (icon only on phones) */}
+        <div className="relative">
           <button
             type="button"
             onClick={handleQuickActionToggle}
-            className={`flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-semibold transition ${
+            aria-label="Quick action"
+            aria-expanded={activeMenu === "quickAction"}
+            className={`flex h-10 items-center justify-center gap-2 rounded-xl border px-3 text-xs font-semibold transition sm:px-3.5 ${
               activeMenu === "quickAction"
                 ? "border-indigo-200 bg-indigo-50 text-indigo-700"
                 : "border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
             }`}
           >
-            <Plus size={15} />
+            <Plus size={16} />
 
-            <span>Quick Action</span>
+            <span className="hidden sm:inline">Quick Action</span>
 
             <ChevronDown
               size={13}
-              className={`transition-transform ${
+              className={`hidden transition-transform sm:block ${
                 activeMenu === "quickAction" ? "rotate-180" : ""
               }`}
             />
           </button>
 
           {activeMenu === "quickAction" && (
-            <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+            <div className="absolute right-0 top-full mt-2 w-60 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
               <div className="px-3 py-2">
                 <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
                   {roleName} Actions
@@ -463,7 +523,7 @@ export default function DashboardHeader() {
                     key={action.name}
                     href={action.href}
                     onClick={() => setActiveMenu(null)}
-                    className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-indigo-50 hover:text-indigo-700"
+                    className="flex items-center gap-2.5 rounded-lg px-3 py-3 text-sm font-medium text-slate-600 transition hover:bg-indigo-50 hover:text-indigo-700 sm:py-2.5"
                   >
                     <Icon size={16} className="text-slate-400" />
 
@@ -506,7 +566,7 @@ export default function DashboardHeader() {
                 <Link
                   href="/dashboard/profile"
                   onClick={() => setActiveMenu(null)}
-                  className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-indigo-50 hover:text-indigo-700"
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-3 text-sm font-medium text-slate-600 transition hover:bg-indigo-50 hover:text-indigo-700 sm:py-2.5"
                 >
                   <UserRound size={16} className="text-slate-400" />
                   My Profile
@@ -515,7 +575,7 @@ export default function DashboardHeader() {
                 <Link
                   href="/dashboard/settings"
                   onClick={() => setActiveMenu(null)}
-                  className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-indigo-50 hover:text-indigo-700"
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-3 text-sm font-medium text-slate-600 transition hover:bg-indigo-50 hover:text-indigo-700 sm:py-2.5"
                 >
                   <Settings size={16} className="text-slate-400" />
                   Settings
@@ -524,7 +584,7 @@ export default function DashboardHeader() {
                 <Link
                   href="/dashboard/help"
                   onClick={() => setActiveMenu(null)}
-                  className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-indigo-50 hover:text-indigo-700"
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-3 text-sm font-medium text-slate-600 transition hover:bg-indigo-50 hover:text-indigo-700 sm:py-2.5"
                 >
                   <HelpCircle size={16} className="text-slate-400" />
                   Help & Support
@@ -533,7 +593,7 @@ export default function DashboardHeader() {
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
+                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-3 text-sm font-medium text-red-600 transition hover:bg-red-50 sm:py-2.5"
                 >
                   <LogOut size={16} />
                   Sign out
@@ -543,6 +603,58 @@ export default function DashboardHeader() {
           )}
         </div>
       </div>
+
+      {/* Search panel (phones only) */}
+      {activeMenu === "mobileSearch" && (
+        <div className="absolute inset-x-0 top-full border-b border-slate-200 bg-white p-3 shadow-lg md:hidden">
+          <div className="relative">
+            <Search
+              size={17}
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+            />
+
+            <input
+              autoFocus
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              placeholder={`Search ${roleName.toLowerCase()} dashboard...`}
+              className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
+            />
+          </div>
+
+          {search.trim() && (
+            <div className="mt-2 max-h-64 overflow-y-auto">
+              {searchResults.length > 0 ? (
+                searchResults.map((item) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => {
+                        setSearch("");
+                        setActiveMenu(null);
+                      }}
+                      className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-slate-600 transition active:bg-indigo-50 active:text-indigo-700"
+                    >
+                      <Icon size={17} className="text-slate-400" />
+
+                      <span>{item.name}</span>
+                    </Link>
+                  );
+                })
+              ) : (
+                <p className="px-3 py-4 text-center text-sm text-slate-400">
+                  No results found
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </header>
   );
 }

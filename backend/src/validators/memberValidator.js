@@ -1,6 +1,7 @@
 const { body, param } = require("express-validator");
 
 const { profileRules } = require("./memberProfileRules");
+const { MIN_ROLE_ID, MAX_ROLE_ID } = require("../constants/roles");
 
 /**
  * Validate member ID
@@ -87,9 +88,9 @@ const createMemberValidator = [
     ),
 
   body("roleId")
-    .isInt({ min: 1, max: 5 })
+    .isInt({ min: MIN_ROLE_ID, max: MAX_ROLE_ID })
     .withMessage(
-      "Role ID must be between 1 and 5"
+      `Role ID must be between ${MIN_ROLE_ID} and ${MAX_ROLE_ID}`
     ),
 
   body("gender")
@@ -185,9 +186,9 @@ const updateMemberValidator = [
 
   body("roleId")
     .optional()
-    .isInt({ min: 1, max: 5 })
+    .isInt({ min: MIN_ROLE_ID, max: MAX_ROLE_ID })
     .withMessage(
-      "Role ID must be between 1 and 5"
+      `Role ID must be between ${MIN_ROLE_ID} and ${MAX_ROLE_ID}`
     ),
 
   body("gender")

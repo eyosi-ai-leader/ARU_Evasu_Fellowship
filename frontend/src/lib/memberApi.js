@@ -88,6 +88,10 @@ async function request(
 
 /**
  * Get all members
+ *
+ * Besides search / status / role, it can filter by campus
+ * (fellowshipId), department (departmentId) and students or
+ * graduates (academicStatus).
  */
 export async function getMembers({
   page = 1,
@@ -95,6 +99,9 @@ export async function getMembers({
   search = "",
   status = "",
   roleId = "",
+  fellowshipId = "",
+  departmentId = "",
+  academicStatus = "",
   sortBy = "created_at",
   sortOrder = "desc",
 } = {}) {
@@ -117,6 +124,18 @@ export async function getMembers({
 
   if (roleId) {
     params.set("roleId", roleId);
+  }
+
+  if (fellowshipId) {
+    params.set("fellowshipId", String(fellowshipId));
+  }
+
+  if (departmentId) {
+    params.set("departmentId", String(departmentId));
+  }
+
+  if (academicStatus) {
+    params.set("academicStatus", academicStatus);
   }
 
   if (sortBy) {

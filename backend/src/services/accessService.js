@@ -1,30 +1,9 @@
 const db = require("../config/db");
 
-/**
- * Role ids (users.role_id). The account type of a person.
- */
-const ROLE_IDS = {
-  SUPER_ADMIN: 1,
-  MAIN_LEADER: 2,
-  SMALL_GROUP_LEADER: 3,
-  MINISTRY_LEADER: 4,
-  MEMBER: 5,
-  FELLOWSHIP_ADMIN: 6,
-  STAFF: 7,
-};
-
-/**
- * Names shown to people (the same labels the web and mobile apps use).
- */
-const ROLE_LABELS = {
-  [ROLE_IDS.SUPER_ADMIN]: "Super Admin",
-  [ROLE_IDS.MAIN_LEADER]: "Main Leader",
-  [ROLE_IDS.SMALL_GROUP_LEADER]: "Small Group Leader",
-  [ROLE_IDS.MINISTRY_LEADER]: "Ministry Leader",
-  [ROLE_IDS.MEMBER]: "Member",
-  [ROLE_IDS.FELLOWSHIP_ADMIN]: "Fellowship Admin",
-  [ROLE_IDS.STAFF]: "Staff",
-};
+const {
+  ROLE_IDS,
+  ROLE_LABELS,
+} = require("../constants/roles");
 
 /**
  * Work out everything a person is allowed to be and do.

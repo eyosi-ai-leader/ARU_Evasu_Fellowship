@@ -12,13 +12,13 @@ const statuses = [
     value: "Active",
     label: "Active",
     description:
-      "Member is currently active in the church.",
+      "Member is currently active in the fellowship.",
   },
   {
     value: "Inactive",
     label: "Inactive",
     description:
-      "Member is currently inactive in the church.",
+      "Member is currently inactive in the fellowship.",
   },
 ];
 
@@ -72,7 +72,7 @@ export default function ChangeStatusModal({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 px-4 py-6 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/40 px-0 py-0 backdrop-blur-sm sm:items-center sm:px-4 sm:py-6"
       onMouseDown={(event) => {
         if (
           event.target === event.currentTarget &&
@@ -83,7 +83,7 @@ export default function ChangeStatusModal({
       }}
     >
       <div
-        className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+        className="w-full max-w-md overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-2xl sm:rounded-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="change-status-title"
@@ -111,7 +111,8 @@ export default function ChangeStatusModal({
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label="Close"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
             title="Close"
           >
             <X size={17} />
@@ -138,6 +139,7 @@ export default function ChangeStatusModal({
                     onClick={() =>
                       setStatus(item.value)
                     }
+                    aria-pressed={selected}
                     className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left transition ${
                       selected
                         ? "border-slate-400 bg-slate-50"
@@ -177,7 +179,7 @@ export default function ChangeStatusModal({
               type="button"
               onClick={onClose}
               disabled={saving}
-              className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50 sm:h-10"
             >
               Cancel
             </button>
@@ -190,7 +192,7 @@ export default function ChangeStatusModal({
                   (member.status ||
                     "Active")
               }
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 sm:h-10"
             >
               {saving ? (
                 <>

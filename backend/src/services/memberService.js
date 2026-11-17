@@ -1,7 +1,8 @@
 const bcrypt = require("bcrypt");
 
 const memberModel = require("../models/memberModel");
-const fellowshipModel = require("../models/fellowshipmodel");
+const fellowshipModel = require("../models/fellowshipModel");
+const fellowshipAccessModel = require("../models/fellowshipAccessModel");
 
 const {
   uploadImage,
@@ -280,6 +281,9 @@ const keep = (incoming, existing) =>
  * - Profile image removal
  *
  * The campus itself cannot be changed here.
+ *
+ * When the person's role changes to or from Fellowship Admin / Staff, their
+ * fellowship access is kept in step with it.
  */
 const updateMember = async (
   memberId,
@@ -541,6 +545,18 @@ const updateMember = async (
       );
 
     /**
+     * Keep fellowship access in step with the role
+     * (Fellowship Admin and Staff only).
+     */
+    await fellowshipAccessModel.syncForRoleChange({
+      userId: existingMember.user_id,
+      fellowshipId: existingMember.fellowship_id,
+      oldRoleId: existingMember.role_id,
+      newRoleId: updatedData.roleId,
+      createdBy: memberData.updatedBy ?? null,
+    });
+
+    /**
      * Database update succeeded.
      *
      * Now remove the old Cloudinary image
@@ -646,6 +662,9 @@ const deleteMember = async (
  * - Pagination
  * - Search
  * - Status, role, campus, department and academic-status filters
+ * - fellowshipIds: only members of these fellowships
+ *   (an empty list returns nobody; leave it out for no restriction)
+ * - smallGroupIds: only members of these small groups (same rule)
  * - Sorting
  *
  * IMPORTANT:
@@ -661,6 +680,8 @@ const getAllMembers = async (
     status = "",
     roleId = "",
     fellowshipId = "",
+    fellowshipIds,
+    smallGroupIds,
     departmentId = "",
     academicStatus = "",
     sortBy = "created_at",
@@ -688,6 +709,8 @@ const getAllMembers = async (
       status,
       roleId,
       fellowshipId,
+      fellowshipIds,
+      smallGroupIds,
       departmentId,
       academicStatus,
       sortBy,
@@ -699,6 +722,8 @@ const getAllMembers = async (
       status,
       roleId,
       fellowshipId,
+      fellowshipIds,
+      smallGroupIds,
       departmentId,
       academicStatus,
     }),

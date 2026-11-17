@@ -3,12 +3,19 @@ const crypto = require("crypto");
 const memberService = require("../services/memberService");
 const memberAccessService = require("../services/memberAccessService");
 const { deliverInvitation } = require("../services/invitationEmailService");
+const { canManageFellowship } = require("../services/accessService");
 const normalizeEmail = require("../utils/normalizeEmail");
 const { TOKEN_TYPES } = require("../utils/accountToken");
 const {
   pickProfileFields,
   ACADEMIC_STATUSES,
 } = require("../utils/memberProfileFields");
+const {
+  MIN_ROLE_ID,
+  MAX_ROLE_ID,
+  MANAGER_ASSIGNABLE_ROLE_IDS,
+  isPrivilegedRole,
+} = require("../constants/roles");
 const {
   deleteUnusedTokensByUserAndType,
 } = require("../models/accountTokenModel");
@@ -18,10 +25,175 @@ const {
   errorResponse,
 } = require("../utils/response");
 
+const httpError = (message, statusCode) => {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  return error;
+};
+
+/* ------------------------------------------------------------------ */
+/* Permission helpers                                                  */
+/*                                                                     */
+/* req.access is filled in by loadAccess (middleware/accessMiddleware) */
+/* before any of these controllers run.                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Only a Super Admin may give out the Super Admin, Fellowship Admin and
+ * Staff roles. Everyone else who manages members may give roles 2 to 5.
+ */
+const assertCanAssignRole = (access, roleId) => {
+  if (access.isSuperAdmin) return;
+
+  if (!MANAGER_ASSIGNABLE_ROLE_IDS.includes(Number(roleId))) {
+    throw httpError(
+      "Only a Super Admin can give the Super Admin, Fellowship Admin or Staff role.",
+      403
+    );
+  }
+};
+
+/**
+ * Load a member, but only if the signed-in person manages the member's
+ * fellowship. A member of another fellowship is answered with "not found",
+ * so nobody can find out who belongs to a fellowship they cannot see.
+ */
+const getMemberInScope = async (access, memberId) => {
+  const member = await memberService.getMemberById(memberId);
+
+  if (!canManageFellowship(access, member.fellowship_id)) {
+    throw httpError("Member not found.", 404);
+  }
+
+  return member;
+};
+
+/**
+ * Super Admin, Fellowship Admin and Staff accounts can only be edited or
+ * deleted by a Super Admin.
+ */
+const assertNotPrivilegedTarget = (access, member) => {
+  if (isPrivilegedRole(member.role_id) && !access.isSuperAdmin) {
+    throw httpError(
+      "Only a Super Admin can manage Super Admin, Fellowship Admin and Staff accounts.",
+      403
+    );
+  }
+};
+
+/* ------------------------------------------------------------------ */
+/* List query                                                          */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Read and check the list query (?page=&limit=&search=&...).
+ * Throws a 400 error when something is not valid.
+ */
+const parseListQuery = (req) => {
+  const text = (value, fallback = "") =>
+    value !== undefined ? String(value).trim() : fallback;
+
+  const number = (value) =>
+    value !== undefined && value !== "" ? Number(value) : "";
+
+  const page = req.query.page !== undefined ? Number(req.query.page) : 1;
+  const limit = req.query.limit !== undefined ? Number(req.query.limit) : 10;
+  const search = text(req.query.search);
+  const status = text(req.query.status);
+  const roleId = number(req.query.roleId);
+  const fellowshipId = number(req.query.fellowshipId);
+  const departmentId = number(req.query.departmentId);
+  const academicStatus = text(req.query.academicStatus);
+  const sortBy = text(req.query.sortBy, "created_at");
+  const sortOrder = text(req.query.sortOrder, "desc").toLowerCase();
+
+  if (!Number.isInteger(page) || page < 1) {
+    throw httpError("Page must be greater than or equal to 1", 400);
+  }
+
+  if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+    throw httpError("Limit must be between 1 and 100", 400);
+  }
+
+  if (status && status !== "Active" && status !== "Inactive") {
+    throw httpError("Status must be either Active or Inactive", 400);
+  }
+
+  if (
+    roleId !== "" &&
+    (!Number.isInteger(roleId) || roleId < MIN_ROLE_ID || roleId > MAX_ROLE_ID)
+  ) {
+    throw httpError(
+      `Role ID must be between ${MIN_ROLE_ID} and ${MAX_ROLE_ID}`,
+      400
+    );
+  }
+
+  if (
+    fellowshipId !== "" &&
+    (!Number.isInteger(fellowshipId) || fellowshipId < 1)
+  ) {
+    throw httpError("Fellowship ID must be a positive integer", 400);
+  }
+
+  if (
+    departmentId !== "" &&
+    (!Number.isInteger(departmentId) || departmentId < 1)
+  ) {
+    throw httpError("Department ID must be a positive integer", 400);
+  }
+
+  if (academicStatus && !ACADEMIC_STATUSES.includes(academicStatus)) {
+    throw httpError(
+      "Academic status must be either Student or Graduate",
+      400
+    );
+  }
+
+  const allowedSortFields = [
+    "first_name",
+    "last_name",
+    "member_number",
+    "email",
+    "created_at",
+    "graduation_year",
+    "fellowship",
+  ];
+
+  if (!allowedSortFields.includes(sortBy)) {
+    throw httpError(
+      `Invalid sort field. Allowed fields are ${allowedSortFields.join(", ")}`,
+      400
+    );
+  }
+
+  if (sortOrder !== "asc" && sortOrder !== "desc") {
+    throw httpError("Sort order must be either asc or desc", 400);
+  }
+
+  return {
+    page,
+    limit,
+    search,
+    status,
+    roleId,
+    fellowshipId,
+    departmentId,
+    academicStatus,
+    sortBy,
+    sortOrder,
+  };
+};
+
+/* ------------------------------------------------------------------ */
+/* Members (people who manage a fellowship)                            */
+/* ------------------------------------------------------------------ */
+
 /**
  * Create member
  *
- * The admin chooses the member's campus fellowship (required).
+ * The person creating the member must manage the chosen campus fellowship,
+ * and may only give roles they are allowed to give.
  *
  * The admin does not choose a password. The account is created with a
  * random one nobody knows, and (if requested) an invitation email lets
@@ -53,33 +225,31 @@ const createMember = async (req, res) => {
       roleId === undefined ||
       roleId === null ||
       !Number.isInteger(Number(roleId)) ||
-      Number(roleId) < 1 ||
-      Number(roleId) > 5
+      Number(roleId) < MIN_ROLE_ID ||
+      Number(roleId) > MAX_ROLE_ID
     ) {
       return errorResponse(
         res,
-        "Role ID must be between 1 and 5",
+        `Role ID must be between ${MIN_ROLE_ID} and ${MAX_ROLE_ID}`,
         400
       );
     }
 
-    // Only an administrator can create another administrator.
-    if (
-      Number(roleId) === 1 &&
-      Number(req.user.roleId) !== 1
-    ) {
-      return errorResponse(
-        res,
-        "Only an administrator can create an administrator account.",
-        403
-      );
-    }
+    assertCanAssignRole(req.access, roleId);
 
     if (!profile.fellowshipId) {
       return errorResponse(
         res,
         "Please select the member's campus fellowship",
         400
+      );
+    }
+
+    if (!canManageFellowship(req.access, profile.fellowshipId)) {
+      return errorResponse(
+        res,
+        "You can only add members to the fellowships you manage.",
+        403
       );
     }
 
@@ -161,6 +331,9 @@ const createMember = async (req, res) => {
 
           // Campus, department, graduation, hometown, emergency contact...
           ...profile,
+
+          // Stored with the fellowship access of Fellowship Admin / Staff.
+          createdBy: req.user.id,
         },
 
         req.file || null
@@ -230,14 +403,11 @@ const createMember = async (req, res) => {
 };
 
 /**
- * Get member by ID
+ * Get member by ID (only inside the fellowships the person manages)
  */
 const getMemberById = async (req, res) => {
   try {
-    const { id } = req.params;
-
-    const member =
-      await memberService.getMemberById(id);
+    const member = await getMemberInScope(req.access, req.params.id);
 
     return successResponse(
       res,
@@ -263,8 +433,9 @@ const getMemberById = async (req, res) => {
 /**
  * Update member
  *
- * Admin can edit everyone. A Pastor can edit everyone except
- * Administrator accounts.
+ * Only inside the fellowships the person manages. Super Admin, Fellowship
+ * Admin and Staff accounts can only be edited by a Super Admin, and nobody
+ * can change their own role here.
  *
  * Moving a member to another campus is not supported yet.
  *
@@ -294,11 +465,11 @@ const updateMember = async (req, res) => {
       pickProfileFields(req.body);
 
     /*
-     * Load the member as it is now. Used for the Administrator
-     * protection, the campus check and to notice an email change.
+     * Load the member as it is now (and make sure the person may touch it).
      */
-    const existing = await memberService.getMemberById(id);
-    const requesterIsAdmin = Number(req.user.roleId) === 1;
+    const existing = await getMemberInScope(req.access, id);
+
+    assertNotPrivilegedTarget(req.access, existing);
 
     if (
       fellowshipId !== undefined &&
@@ -312,24 +483,19 @@ const updateMember = async (req, res) => {
       );
     }
 
-    if (!requesterIsAdmin && Number(existing.role_id) === 1) {
-      return errorResponse(
-        res,
-        "Only an administrator can edit an administrator account.",
-        403
-      );
-    }
-
     if (
-      !requesterIsAdmin &&
       roleId !== undefined &&
-      Number(roleId) === 1
+      Number(roleId) !== Number(existing.role_id)
     ) {
-      return errorResponse(
-        res,
-        "Only an administrator can assign the Admin role.",
-        403
-      );
+      if (Number(existing.user_id) === Number(req.user.id)) {
+        return errorResponse(
+          res,
+          "You can't change your own role.",
+          400
+        );
+      }
+
+      assertCanAssignRole(req.access, roleId);
     }
 
     /*
@@ -389,6 +555,8 @@ const updateMember = async (req, res) => {
 
         removeProfileImage:
           shouldRemoveProfileImage,
+
+        updatedBy: req.user.id,
       },
 
       /*
@@ -440,12 +608,19 @@ const updateMember = async (req, res) => {
 /**
  * Delete member
  *
+ * Only inside the fellowships the person manages, and never a Super Admin,
+ * Fellowship Admin or Staff account unless the person is a Super Admin.
+ *
  * Same safety rules as the Member Access page: removes the sign-in
  * account too, and refuses members who have signed in before.
  */
 const deleteMember = async (req, res) => {
   try {
     const { id } = req.params;
+
+    const existing = await getMemberInScope(req.access, id);
+
+    assertNotPrivilegedTarget(req.access, existing);
 
     await memberAccessService.removeAccount(req.user, Number(id));
 
@@ -473,228 +648,36 @@ const deleteMember = async (req, res) => {
 /**
  * Get all members
  *
- * Supports:
- * - Pagination
- * - Search
- * - Status, role, campus, department and academic-status filters
- * - Sorting
+ * A Super Admin sees every fellowship. Everyone else sees only the
+ * fellowships they manage. Asking for a fellowship outside that list is
+ * refused.
  *
- * IMPORTANT:
- * The service expects ONE options object.
+ * Supports: pagination, search, status / role / campus / department /
+ * academic-status filters and sorting.
  */
 const getAllMembers = async (req, res) => {
   try {
-    const page =
-      req.query.page !== undefined
-        ? Number(req.query.page)
-        : 1;
+    const query = parseListQuery(req);
 
-    const limit =
-      req.query.limit !== undefined
-        ? Number(req.query.limit)
-        : 10;
-
-    const search =
-      req.query.search !== undefined
-        ? req.query.search.trim()
-        : "";
-
-    const status =
-      req.query.status !== undefined
-        ? req.query.status.trim()
-        : "";
-
-    const roleId =
-      req.query.roleId !== undefined
-        ? Number(req.query.roleId)
-        : "";
-
-    const fellowshipId =
-      req.query.fellowshipId !== undefined &&
-      req.query.fellowshipId !== ""
-        ? Number(req.query.fellowshipId)
-        : "";
-
-    const departmentId =
-      req.query.departmentId !== undefined &&
-      req.query.departmentId !== ""
-        ? Number(req.query.departmentId)
-        : "";
-
-    const academicStatus =
-      req.query.academicStatus !== undefined
-        ? req.query.academicStatus.trim()
-        : "";
-
-    const sortBy =
-      req.query.sortBy !== undefined
-        ? req.query.sortBy.trim()
-        : "created_at";
-
-    const sortOrder =
-      req.query.sortOrder !== undefined
-        ? req.query.sortOrder.trim().toLowerCase()
-        : "desc";
-
-    /**
-     * Validate page
-     */
     if (
-      !Number.isInteger(page) ||
-      page < 1
+      query.fellowshipId !== "" &&
+      !canManageFellowship(req.access, query.fellowshipId)
     ) {
       return errorResponse(
         res,
-        "Page must be greater than or equal to 1",
-        400
-      );
-    }
-
-    /**
-     * Validate limit
-     */
-    if (
-      !Number.isInteger(limit) ||
-      limit < 1 ||
-      limit > 100
-    ) {
-      return errorResponse(
-        res,
-        "Limit must be between 1 and 100",
-        400
-      );
-    }
-
-    /**
-     * Validate status
-     */
-    if (
-      status &&
-      status !== "Active" &&
-      status !== "Inactive"
-    ) {
-      return errorResponse(
-        res,
-        "Status must be either Active or Inactive",
-        400
-      );
-    }
-
-    /**
-     * Validate role ID
-     *
-     * 1 = Admin
-     * 2 = Pastor
-     * 3 = Church Elder
-     * 4 = Ministry Leader
-     * 5 = Member
-     */
-    if (
-      roleId !== "" &&
-      (
-        !Number.isInteger(roleId) ||
-        roleId < 1 ||
-        roleId > 5
-      )
-    ) {
-      return errorResponse(
-        res,
-        "Role ID must be between 1 and 5",
-        400
-      );
-    }
-
-    /**
-     * Validate campus and department filters
-     */
-    if (
-      fellowshipId !== "" &&
-      (
-        !Number.isInteger(fellowshipId) ||
-        fellowshipId < 1
-      )
-    ) {
-      return errorResponse(
-        res,
-        "Fellowship ID must be a positive integer",
-        400
-      );
-    }
-
-    if (
-      departmentId !== "" &&
-      (
-        !Number.isInteger(departmentId) ||
-        departmentId < 1
-      )
-    ) {
-      return errorResponse(
-        res,
-        "Department ID must be a positive integer",
-        400
-      );
-    }
-
-    if (
-      academicStatus &&
-      !ACADEMIC_STATUSES.includes(academicStatus)
-    ) {
-      return errorResponse(
-        res,
-        "Academic status must be either Student or Graduate",
-        400
-      );
-    }
-
-    /**
-     * Validate sort field
-     */
-    const allowedSortFields = [
-      "first_name",
-      "last_name",
-      "member_number",
-      "email",
-      "created_at",
-      "graduation_year",
-      "fellowship",
-    ];
-
-    if (
-      !allowedSortFields.includes(sortBy)
-    ) {
-      return errorResponse(
-        res,
-        `Invalid sort field. Allowed fields are ${allowedSortFields.join(", ")}`,
-        400
-      );
-    }
-
-    /**
-     * Validate sort order
-     */
-    if (
-      sortOrder !== "asc" &&
-      sortOrder !== "desc"
-    ) {
-      return errorResponse(
-        res,
-        "Sort order must be either asc or desc",
-        400
+        "You don't have access to that fellowship.",
+        403
       );
     }
 
     const result =
       await memberService.getAllMembers({
-        page,
-        limit,
-        search,
-        status,
-        roleId,
-        fellowshipId,
-        departmentId,
-        academicStatus,
-        sortBy,
-        sortOrder,
+        ...query,
+
+        // undefined = no restriction (Super Admin only)
+        fellowshipIds: req.access.scope.all
+          ? undefined
+          : req.access.scope.memberFellowshipIds,
       });
 
     return res.status(200).json({
@@ -719,10 +702,115 @@ const getAllMembers = async (req, res) => {
   }
 };
 
+/* ------------------------------------------------------------------ */
+/* Small group leader (works for ANY person who leads a small group)   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * What a small group leader may see about the members of their group:
+ * who they are and how to reach them. Not the spiritual background,
+ * emergency contacts, address or date of birth.
+ */
+const SMALL_GROUP_VIEW_FIELDS = [
+  "id",
+  "member_number",
+  "first_name",
+  "middle_name",
+  "last_name",
+  "email",
+  "phone",
+  "profile_image",
+  "gender",
+  "telegram_username",
+  "fellowship_name",
+  "small_group_id",
+  "small_group_name",
+  "department_name",
+  "academic_status",
+  "graduation_year",
+  "status",
+];
+
+const toSmallGroupView = (member) =>
+  Object.fromEntries(
+    SMALL_GROUP_VIEW_FIELDS.map((field) => [field, member[field] ?? null])
+  );
+
+const getLedSmallGroupIds = (access) =>
+  access.positions.smallGroups.map((group) => group.id);
+
+/**
+ * GET /api/members/my-small-group
+ * The members of the small group(s) the signed-in person leads.
+ */
+const getMySmallGroupMembers = async (req, res) => {
+  try {
+    const query = parseListQuery(req);
+
+    const result =
+      await memberService.getAllMembers({
+        page: query.page,
+        limit: query.limit,
+        search: query.search,
+        status: query.status,
+        sortBy: query.sortBy,
+        sortOrder: query.sortOrder,
+
+        smallGroupIds: getLedSmallGroupIds(req.access),
+      });
+
+    return res.status(200).json({
+      success: true,
+      message: "Small group members retrieved successfully",
+      data: result.members.map(toSmallGroupView),
+      pagination: result.pagination,
+    });
+  } catch (error) {
+    console.error("Get small group members error:", error);
+
+    return errorResponse(
+      res,
+      error.message || "Failed to retrieve small group members",
+      error.statusCode || 500
+    );
+  }
+};
+
+/**
+ * GET /api/members/my-small-group/:id
+ * One member, only if they are in a small group the person leads.
+ */
+const getMySmallGroupMemberById = async (req, res) => {
+  try {
+    const member = await memberService.getMemberById(req.params.id);
+
+    if (!getLedSmallGroupIds(req.access).includes(Number(member.small_group_id))) {
+      throw httpError("Member not found.", 404);
+    }
+
+    return successResponse(
+      res,
+      "Member retrieved successfully",
+      toSmallGroupView(member),
+      200
+    );
+  } catch (error) {
+    console.error("Get small group member error:", error);
+
+    return errorResponse(
+      res,
+      error.message || "Failed to retrieve member",
+      error.statusCode || 500
+    );
+  }
+};
+
 module.exports = {
   createMember,
   getMemberById,
   updateMember,
   deleteMember,
   getAllMembers,
+  getMySmallGroupMembers,
+  getMySmallGroupMemberById,
 };
