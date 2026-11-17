@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/layout/navbar";
 import Footer from "@/components/layout/footer";
 import SiteChrome from "@/components/layout/SiteChrome";
+import { BRAND } from "@/data/brand";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -18,11 +19,14 @@ const fraunces = Fraunces({
 
 export const metadata = {
   title: {
-    default: "Arsi University Evasu Fellowship",
-    template: "%s | Arsi University Evasu Fellowship",
+    default: BRAND.name,
+    template: `%s | ${BRAND.name}`,
   },
-  description:
-    "Welcome to the Arsi University Evasu Fellowship. Connect, grow and serve together.",
+  description: `Welcome to the ${BRAND.name}. ${BRAND.tagline}`,
+  icons: {
+    icon: BRAND.logo,
+    apple: BRAND.logo,
+  },
 };
 
 export default function RootLayout({ children }) {

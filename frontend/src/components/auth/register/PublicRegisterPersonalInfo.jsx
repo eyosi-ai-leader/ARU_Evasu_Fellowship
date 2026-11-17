@@ -1,159 +1,82 @@
 "use client";
 
+import { UserRound } from "lucide-react";
+
+import EthiopianDateField from "./EthiopianDateField";
+import {
+  SectionCard,
+  SegmentedRadio,
+  TextInput,
+} from "./RegisterFields";
+
 export default function PublicRegisterPersonalInfo({
   formData,
   errors,
   onChange,
 }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold text-slate-900">
-          Personal Information
-        </h2>
+    <SectionCard
+      icon={UserRound}
+      title="Personal information"
+      description="Tell us a little about yourself."
+    >
+      <div className="grid gap-5 sm:grid-cols-3">
+        <TextInput
+          label="First name"
+          required
+          name="firstName"
+          value={formData.firstName}
+          onChange={onChange}
+          placeholder="First name"
+          autoComplete="given-name"
+          error={errors.firstName}
+        />
 
-        <p className="mt-1 text-sm text-slate-500">
-          Tell us a little about yourself.
-        </p>
+        <TextInput
+          label="Middle name"
+          name="middleName"
+          value={formData.middleName}
+          onChange={onChange}
+          placeholder="Middle name"
+          error={errors.middleName}
+        />
+
+        <TextInput
+          label="Last name"
+          required
+          name="lastName"
+          value={formData.lastName}
+          onChange={onChange}
+          placeholder="Last name"
+          autoComplete="family-name"
+          error={errors.lastName}
+        />
+
+        <SegmentedRadio
+          className="sm:col-span-3"
+          label="Gender"
+          required
+          name="gender"
+          value={formData.gender}
+          onChange={onChange}
+          error={errors.gender}
+          options={[
+            { value: "Male", label: "Male" },
+            { value: "Female", label: "Female" },
+          ]}
+        />
+
+        <EthiopianDateField
+          className="sm:col-span-3"
+          label="Date of birth"
+          name="dateOfBirth"
+          value={formData.dateOfBirth}
+          onChange={onChange}
+          error={errors.dateOfBirth}
+          newestYearsAgo={10}
+          oldestYearsAgo={80}
+        />
       </div>
-
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-        <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">
-            First name
-            <span className="text-red-500">
-              {" "}
-              *
-            </span>
-          </label>
-
-          <input
-            type="text"
-            name="firstName"
-            value={formData.firstName}
-            onChange={onChange}
-            placeholder="First name"
-            className={`w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition focus:ring-2 ${
-              errors.firstName
-                ? "border-red-300 focus:ring-red-100"
-                : "border-slate-300 focus:border-blue-500 focus:ring-blue-100"
-            }`}
-          />
-
-          {errors.firstName && (
-            <p className="mt-1 text-xs text-red-600">
-              {errors.firstName}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">
-            Middle name
-          </label>
-
-          <input
-            type="text"
-            name="middleName"
-            value={formData.middleName}
-            onChange={onChange}
-            placeholder="Middle name"
-            className={`w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 ${
-              errors.middleName
-                ? "border-red-300"
-                : "border-slate-300"
-            }`}
-          />
-
-          {errors.middleName && (
-            <p className="mt-1 text-xs text-red-600">
-              {errors.middleName}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">
-            Last name
-            <span className="text-red-500">
-              {" "}
-              *
-            </span>
-          </label>
-
-          <input
-            type="text"
-            name="lastName"
-            value={formData.lastName}
-            onChange={onChange}
-            placeholder="Last name"
-            className={`w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition focus:ring-2 ${
-              errors.lastName
-                ? "border-red-300 focus:ring-red-100"
-                : "border-slate-300 focus:border-blue-500 focus:ring-blue-100"
-            }`}
-          />
-
-          {errors.lastName && (
-            <p className="mt-1 text-xs text-red-600">
-              {errors.lastName}
-            </p>
-          )}
-        </div>
-
-        <div>
-                    <label className="mb-2 block text-sm font-medium text-slate-700">
-            Gender
-            <span className="text-red-500">
-              {" "}
-              *
-            </span>
-          </label>
-          
-          <select
-            name="gender"
-            value={formData.gender}
-            onChange={onChange}
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-          >
-            <option value="">
-              Select gender
-            </option>
-            <option value="Male">
-              Male
-            </option>
-            <option value="Female">
-              Female
-            </option>
-          </select>
-
-          {errors.gender && (
-            <p className="mt-1 text-xs text-red-600">
-              {errors.gender}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">
-            Date of birth
-          </label>
-
-          <input
-            type="date"
-            name="dateOfBirth"
-            value={formData.dateOfBirth}
-            onChange={onChange}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-          />
-
-          {errors.dateOfBirth && (
-            <p className="mt-1 text-xs text-red-600">
-              {errors.dateOfBirth}
-            </p>
-          )}
-        </div>
-      </div>
-    </section>
+    </SectionCard>
   );
 }

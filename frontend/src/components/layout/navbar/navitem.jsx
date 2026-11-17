@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 
-const NavItem = ({ href, label, onClick }) => {
+const NavItem = ({ href, label, onClick, mobile = false }) => {
   const pathname = usePathname();
   const isActive = href === "/" ? pathname === "/" : pathname.startsWith(href);
 
@@ -14,15 +14,27 @@ const NavItem = ({ href, label, onClick }) => {
       onClick={onClick}
       aria-current={isActive ? "page" : undefined}
       className={clsx(
-        "relative rounded-full px-3.5 py-2 text-sm transition-all duration-300 ease-out",
+        "relative transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        mobile
+          ? "flex items-center justify-between rounded-2xl px-4 py-3.5 text-base"
+          : "rounded-full px-3.5 py-2 text-sm",
         isActive
-          ? "font-medium text-ink"
-          : "text-body hover:bg-surface-muted hover:text-ink"
+          ? "bg-ink/5 font-semibold text-ink"
+          : "text-body hover:bg-ink/5 hover:text-ink"
       )}
     >
       {label}
+
       {isActive && (
-        <span className="absolute -bottom-0.5 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-accent" />
+        <span
+          aria-hidden="true"
+          className={clsx(
+            "rounded-full bg-accent",
+            mobile
+              ? "h-2 w-2"
+              : "absolute -bottom-0.5 left-1/2 h-1 w-4 -translate-x-1/2"
+          )}
+        />
       )}
     </Link>
   );

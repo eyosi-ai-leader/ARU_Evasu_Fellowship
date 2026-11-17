@@ -2,6 +2,8 @@
 
 import { Building2, Check, GraduationCap } from "lucide-react";
 
+import { currentEthiopianYear } from "@/lib/ethiopianCalendar";
+
 import {
   CheckboxCard,
   FieldError,
@@ -22,12 +24,13 @@ export default function PublicRegisterCampusInfo({
   departments,
   departmentsLoading,
 }) {
-  const currentYear = new Date().getFullYear();
+  // Years are shown in the Ethiopian calendar (E.C.).
+  const currentYear = currentEthiopianYear();
   const isGraduate = formData.academicStatus === "Graduate";
 
-    const years = isGraduate
+  const years = isGraduate
     ? Array.from(
-        { length: currentYear - 1999 },
+        { length: currentYear - 1991 },
         (_, index) => currentYear - index
       )
     : Array.from({ length: 9 }, (_, index) => currentYear + index);
@@ -134,7 +137,9 @@ export default function PublicRegisterCampusInfo({
           />
 
           <SelectInput
-            label={isGraduate ? "Graduation year" : "Expected graduation year"}
+            label={`${
+              isGraduate ? "Graduation year" : "Expected graduation year"
+            } (E.C.)`}
             required
             name="graduationYear"
             value={formData.graduationYear}
@@ -145,7 +150,7 @@ export default function PublicRegisterCampusInfo({
 
             {years.map((year) => (
               <option key={year} value={year}>
-                {year}
+                {year} E.C.
               </option>
             ))}
           </SelectInput>

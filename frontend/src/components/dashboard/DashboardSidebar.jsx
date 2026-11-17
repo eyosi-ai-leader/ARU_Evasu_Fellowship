@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   Users,
-  Church,
+  HeartHandshake,
   CalendarDays,
   Sparkles,
   BarChart3,
@@ -24,9 +24,12 @@ import {
   KeyRound,
 } from "lucide-react";
 
-import { getRoleName, ROLES } from "@/lib/roles";
+import { ROLES } from "@/lib/roles";
+import { getFellowshipRoleName } from "@/lib/fellowshipRoles";
 import { getStoredUser } from "@/lib/userStorage";
 import SidebarUserMenu from "@/components/dashboard/SidebarUserMenu";
+import BrandLogo from "@/components/shared/BrandLogo";
+import { BRAND } from "@/data/brand";
 
 /*
  * The Dashboard / Overview page is opened from the role card at the
@@ -37,27 +40,19 @@ const navigationByRole = {
     {
       label: "Management",
       items: [
-        {
-          name: "Members",
-          href: "/dashboard/members",
-          icon: Users,
-        },
+        { name: "Members", href: "/dashboard/members", icon: Users },
         {
           name: "Ministries",
           href: "/dashboard/ministries",
-          icon: Church,
+          icon: HeartHandshake,
         },
-        {
-          name: "Events",
-          href: "/dashboard/events",
-          icon: CalendarDays,
-        },
+        { name: "Events", href: "/dashboard/events", icon: CalendarDays },
         {
           name: "Announcements",
           href: "/dashboard/announcements",
           icon: Megaphone,
         },
-                {
+        {
           name: "Member Access",
           href: "/dashboard/account-access",
           icon: KeyRound,
@@ -68,45 +63,33 @@ const navigationByRole = {
       label: "Intelligence",
       items: [
         {
-          name: "Church AI",
+          name: "Fellowship AI",
           href: "/dashboard/ai",
           icon: Sparkles,
           badge: "AI",
         },
-        {
-          name: "Insights",
-          href: "/dashboard/insights",
-          icon: BarChart3,
-        },
+        { name: "Insights", href: "/dashboard/insights", icon: BarChart3 },
       ],
     },
   ],
 
   [ROLES.PASTOR]: [
     {
-      label: "Church Management",
+      label: "Fellowship Management",
       items: [
-        {
-          name: "Members",
-          href: "/dashboard/members",
-          icon: Users,
-        },
+        { name: "Members", href: "/dashboard/members", icon: Users },
         {
           name: "Ministries",
           href: "/dashboard/ministries",
-          icon: Church,
+          icon: HeartHandshake,
         },
-        {
-          name: "Events",
-          href: "/dashboard/events",
-          icon: CalendarDays,
-        },
+        { name: "Events", href: "/dashboard/events", icon: CalendarDays },
         {
           name: "Announcements",
           href: "/dashboard/announcements",
           icon: Megaphone,
         },
-                {
+        {
           name: "Member Access",
           href: "/dashboard/account-access",
           icon: KeyRound,
@@ -117,40 +100,28 @@ const navigationByRole = {
       label: "Intelligence",
       items: [
         {
-          name: "Church AI",
+          name: "Fellowship AI",
           href: "/dashboard/ai",
           icon: Sparkles,
           badge: "AI",
         },
-        {
-          name: "Insights",
-          href: "/dashboard/insights",
-          icon: BarChart3,
-        },
+        { name: "Insights", href: "/dashboard/insights", icon: BarChart3 },
       ],
     },
   ],
 
   [ROLES.CHURCH_ELDER]: [
     {
-      label: "Church",
+      label: "Fellowship",
       items: [
-        {
-          name: "Members",
-          href: "/dashboard/members",
-          icon: Users,
-        },
+        { name: "Members", href: "/dashboard/members", icon: Users },
         {
           name: "Ministries",
           href: "/dashboard/ministries",
-          icon: Church,
+          icon: HeartHandshake,
         },
+        { name: "Events", href: "/dashboard/events", icon: CalendarDays },
         {
-          name: "Events",
-          href: "/dashboard/events",
-          icon: CalendarDays,
-        },
-                {
           name: "Announcements",
           href: "/dashboard/announcements",
           icon: Megaphone,
@@ -161,16 +132,12 @@ const navigationByRole = {
       label: "Intelligence",
       items: [
         {
-          name: "Church AI",
+          name: "Fellowship AI",
           href: "/dashboard/ai",
           icon: Sparkles,
           badge: "AI",
         },
-        {
-          name: "Insights",
-          href: "/dashboard/insights",
-          icon: BarChart3,
-        },
+        { name: "Insights", href: "/dashboard/insights", icon: BarChart3 },
       ],
     },
   ],
@@ -189,7 +156,7 @@ const navigationByRole = {
           href: "/dashboard/events",
           icon: CalendarDays,
         },
-         {
+        {
           name: "Announcements",
           href: "/dashboard/announcements",
           icon: Megaphone,
@@ -205,42 +172,33 @@ const navigationByRole = {
           icon: Activity,
           comingSoon: true,
         },
-       
       ],
     },
     {
       label: "Intelligence",
       items: [
         {
-          name: "Church AI",
+          name: "Fellowship AI",
           href: "/dashboard/ai",
           icon: Sparkles,
           badge: "AI",
         },
-        {
-          name: "Insights",
-          href: "/dashboard/insights",
-          icon: BarChart3,
-        },
+        { name: "Insights", href: "/dashboard/insights", icon: BarChart3 },
       ],
     },
   ],
 
   [ROLES.MEMBER]: [
     {
-      label: "My Church",
+      label: "My Fellowship",
       items: [
         {
           name: "My Ministry",
           href: "/dashboard/my-ministry",
-          icon: Church,
+          icon: HeartHandshake,
           comingSoon: true,
         },
-         {
-          name: "Events",
-          href: "/dashboard/events",
-          icon: CalendarDays,
-        },
+        { name: "Events", href: "/dashboard/events", icon: CalendarDays },
         {
           name: "My Attendance",
           href: "/dashboard/attendance",
@@ -256,7 +214,6 @@ const navigationByRole = {
           name: "Announcements",
           href: "/dashboard/announcements",
           icon: Megaphone,
-
         },
       ],
     },
@@ -273,7 +230,7 @@ const roleConfig = {
     icon: ShieldCheck,
   },
   [ROLES.CHURCH_ELDER]: {
-    title: "CHURCH ELDER",
+    title: "FELLOWSHIP ELDER",
     icon: Eye,
   },
   [ROLES.MINISTRY_LEADER]: {
@@ -305,7 +262,7 @@ export default function DashboardSidebar() {
   }, []);
 
   const roleId = Number(user?.roleId);
-  const roleName = getRoleName(roleId);
+  const roleName = getFellowshipRoleName(roleId);
 
   const navigation =
     navigationByRole[roleId] || navigationByRole[ROLES.MEMBER];
@@ -339,19 +296,17 @@ export default function DashboardSidebar() {
       <div className="flex h-16 shrink-0 items-center border-b border-slate-200 px-5">
         <Link
           href="/dashboard"
-          className="flex items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+          className="flex items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
-            <Church size={19} strokeWidth={2} aria-hidden="true" />
-          </div>
+          <BrandLogo size={38} priority />
 
-          <div>
-            <p className="text-base font-bold tracking-tight text-slate-900">
-              CHMS
+          <div className="leading-tight">
+            <p className="text-[15px] font-bold tracking-tight text-slate-900">
+              {BRAND.shortName}
             </p>
 
             <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-slate-400">
-              Church Management
+              Management Portal
             </p>
           </div>
         </Link>
@@ -363,17 +318,17 @@ export default function DashboardSidebar() {
           href="/dashboard"
           aria-label="Overview dashboard"
           aria-current={overviewActive ? "page" : undefined}
-          className={`group flex items-center gap-3 rounded-2xl border px-3 py-2.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 ${
+          className={`group flex items-center gap-3 rounded-2xl border px-3 py-2.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
             overviewActive
-              ? "border-slate-900 bg-slate-900 shadow-md shadow-slate-200"
+              ? "border-indigo-600 bg-indigo-600 shadow-md shadow-indigo-600/20"
               : "border-slate-200 bg-slate-50 hover:-translate-y-px hover:border-slate-300 hover:bg-slate-100 hover:shadow-sm"
           }`}
         >
           <div
             className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl shadow-sm ${
               overviewActive
-                ? "bg-white/15 text-white"
-                : "bg-slate-900 text-white"
+                ? "bg-white/20 text-white"
+                : "bg-slate-950 text-white"
             }`}
           >
             <RoleIcon size={17} strokeWidth={2} aria-hidden="true" />
@@ -390,7 +345,7 @@ export default function DashboardSidebar() {
 
             <p
               className={`mt-0.5 flex items-center gap-1.5 text-xs font-medium ${
-                overviewActive ? "text-white/70" : "text-slate-400"
+                overviewActive ? "text-white/75" : "text-slate-400"
               }`}
             >
               <LayoutDashboard size={12} aria-hidden="true" />
@@ -402,7 +357,7 @@ export default function DashboardSidebar() {
             size={16}
             aria-hidden="true"
             className={`shrink-0 transition-transform group-hover:translate-x-0.5 ${
-              overviewActive ? "text-white/70" : "text-slate-400"
+              overviewActive ? "text-white/75" : "text-slate-400"
             }`}
           />
         </Link>
@@ -430,7 +385,7 @@ export default function DashboardSidebar() {
                   onClick={() => toggleSection(section.label)}
                   aria-expanded={sectionOpen}
                   aria-controls={panelId}
-                  className="group mb-1 flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                  className="group mb-1 flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 >
                   <span className="flex items-center gap-2">
                     <span className="text-[11px] font-bold uppercase tracking-[0.13em] text-slate-500 group-hover:text-slate-700">
@@ -496,16 +451,16 @@ export default function DashboardSidebar() {
                             href={item.href}
                             aria-current={active ? "page" : undefined}
                             tabIndex={sectionOpen ? 0 : -1}
-                            className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 ${
+                            className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                               active
-                                ? "bg-slate-900 text-white shadow-md shadow-slate-200"
+                                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
                                 : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                             }`}
                           >
                             {active && (
                               <span
                                 aria-hidden="true"
-                                className="absolute -left-4 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-slate-900"
+                                className="absolute -left-4 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-indigo-600"
                               />
                             )}
 
@@ -526,8 +481,8 @@ export default function DashboardSidebar() {
                               <span
                                 className={`ml-auto rounded-full px-2 py-0.5 text-[9px] font-bold ${
                                   active
-                                    ? "bg-white/15 text-white"
-                                    : "bg-slate-100 text-slate-500"
+                                    ? "bg-white/20 text-white"
+                                    : "bg-indigo-50 text-indigo-600"
                                 }`}
                               >
                                 {item.badge}

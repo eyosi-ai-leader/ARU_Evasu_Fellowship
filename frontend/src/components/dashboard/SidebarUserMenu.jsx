@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   ChevronUp,
+  Globe,
   HelpCircle,
   LogOut,
   Settings,
@@ -17,6 +18,7 @@ const MENU_ITEMS = [
   { name: "My Profile", href: "/dashboard/profile", icon: UserRound },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
   { name: "Help & Support", href: "/dashboard/help", icon: HelpCircle },
+  { name: "Visit website", href: "/", icon: Globe },
 ];
 
 export default function SidebarUserMenu({ user, roleName, onLogout }) {
@@ -60,7 +62,8 @@ export default function SidebarUserMenu({ user, roleName, onLogout }) {
     };
   }, [open]);
 
-  const isActive = (href) => pathname.startsWith(href);
+  // "/" would match every page, so the website link is never "active".
+  const isActive = (href) => href !== "/" && pathname.startsWith(href);
 
   return (
     <div className="border-t border-slate-200 p-3">
@@ -85,7 +88,7 @@ export default function SidebarUserMenu({ user, roleName, onLogout }) {
                   </p>
                 )}
 
-                <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-indigo-600">
                   {roleName}
                 </p>
               </div>
@@ -102,9 +105,9 @@ export default function SidebarUserMenu({ user, roleName, onLogout }) {
                     href={item.href}
                     role="menuitem"
                     aria-current={active ? "page" : undefined}
-                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 ${
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                       active
-                        ? "bg-slate-900 text-white"
+                        ? "bg-indigo-600 text-white"
                         : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                     }`}
                   >
@@ -139,7 +142,7 @@ export default function SidebarUserMenu({ user, roleName, onLogout }) {
           onClick={() => setOpen((current) => !current)}
           aria-haspopup="menu"
           aria-expanded={open}
-          className={`flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 ${
+          className={`flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
             open ? "bg-slate-100" : "hover:bg-slate-100"
           }`}
         >

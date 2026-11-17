@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
@@ -24,6 +24,11 @@ import {
 import { registerUser } from "@/lib/authApi";
 import { getFellowships, getDepartments } from "@/lib/fellowshipApi";
 import { OTHER_OPTION } from "@/lib/ethiopiaLocations";
+import {
+  ecDateProblem,
+  ecGraduationToGregorian,
+  ecValueToIso,
+} from "@/lib/ethiopianCalendar";
 
 import { CheckboxCard } from "./RegisterFields";
 import PublicRegisterProfileImage from "./PublicRegisterProfileImage";
@@ -118,13 +123,11 @@ const TEXT_FIELDS = [
   "fellowshipId",
   "departmentId",
   "academicStatus",
-  "graduationYear",
   "studentId",
   "firstName",
   "middleName",
   "lastName",
   "gender",
-  "dateOfBirth",
   "email",
   "phone",
   "telegramUsername",
@@ -134,15 +137,12 @@ const TEXT_FIELDS = [
   "homeRegion",
   "address",
   "previousChurch",
-  "baptismDate",
   "spiritualJourney",
 ];
 
-const scrollToTop = () =>
-  window.scrollTo({ top: 0, behavior: "smooth" });
-
 export default function RegisterForm() {
   const router = useRouter();
+  const scrollRef = useRef(null);
 
   const [step, setStep] = useState(0);
   const [formData, setFormData] = useState(initialFormData);
@@ -161,6 +161,12 @@ export default function RegisterForm() {
   const [departmentsLoading, setDepartmentsLoading] = useState(false);
 
   const meta = STEP_META[step];
+
+  // Phones scroll the page; on desktop the form column scrolls.
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   /**
    * Load the campus list.
@@ -295,16 +301,31 @@ export default function RegisterForm() {
         newErrors.email = "Please enter a valid email.";
       }
 
-      if (!formData.phone.trim()) {
+           if (!formData.phone.trim()) {
         newErrors.phone = "Phone number is required.";
       } else if (formData.phone.replace(/\D/g, "").length < 9) {
         newErrors.phone = "Please enter a valid phone number.";
       }
+
+      const birthProblem = ecDateProblem(
+        formData.dateOfBirth,
+        "Date of birth"
+      );
+
+      if (birthProblem) newErrors.dateOfBirth = birthProblem;
     }
 
-    if (stepIndex === 2) {
+       if (stepIndex === 2) {
+      const baptismProblem = ecDateProblem(
+        formData.baptismDate,
+        "Baptism date"
+      );
+
+      if (baptismProblem) newErrors.baptismDate = baptismProblem;
+
       if (
         formData.homeCity === OTHER_OPTION &&
+
         !formData.homeTownOther.trim()
       ) {
         newErrors.homeTownOther = "Please write your city or town.";
@@ -419,11 +440,27 @@ export default function RegisterForm() {
     try {
       const data = new FormData();
 
-      TEXT_FIELDS.forEach((key) => {
+            TEXT_FIELDS.forEach((key) => {
         const text = String(formData[key] ?? "").trim();
 
         if (text) data.append(key, text);
       });
+
+      // Dates are typed in the Ethiopian calendar (E.C.) and sent as
+      // Gregorian (G.C.), which is what the database and reports use.
+      const birthDate = ecValueToIso(formData.dateOfBirth);
+
+      if (birthDate) data.append("dateOfBirth", birthDate);
+
+      const baptismDate = ecValueToIso(formData.baptismDate);
+
+      if (baptismDate) data.append("baptismDate", baptismDate);
+
+      // Graduation year: the E.C. year + 8 is the G.C. year.
+      data.append(
+        "graduationYear",
+        String(ecGraduationToGregorian(formData.graduationYear))
+      );
 
       // City or town: the chosen one, or the one they typed.
       const homeTown =
@@ -504,10 +541,15 @@ export default function RegisterForm() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 lg:flex">
-      {/* Brand panel (desktop only): fixed height, stays while the form scrolls */}
-      <aside className="relative hidden bg-slate-950 text-white lg:sticky lg:top-0 lg:block lg:h-screen lg:w-[400px] lg:shrink-0 lg:self-start lg:overflow-y-auto xl:w-[440px]">
-        <div className="relative flex min-h-full flex-col justify-between gap-10 overflow-hidden p-10 xl:p-12">
+    /*
+     * Desktop: a full-screen layout that does not depend on any wrapper
+     * around this page. Left = fixed brand panel, right = scrolling form.
+     * Phones: the normal page layout.
+     */
+    <div className="min-h-screen bg-slate-50 lg:fixed lg:inset-0 lg:z-[100] lg:flex lg:min-h-0">
+      {/* Brand panel (desktop only) */}
+      <aside className="relative hidden w-[400px] shrink-0 overflow-y-auto bg-slate-950 text-white [scrollbar-width:none] lg:block xl:w-[440px] [&::-webkit-scrollbar]:hidden">
+        <div className="relative flex min-h-full flex-col justify-between gap-8 overflow-hidden p-10 xl:p-12">
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0"
@@ -531,7 +573,8 @@ export default function RegisterForm() {
           />
 
           <div className="relative">
-            <AuthBrand light />
+        
+            <AuthBrand light showHome />
           </div>
 
           <div className="relative">
@@ -544,7 +587,7 @@ export default function RegisterForm() {
               with announcements, your ministries and your community.
             </p>
 
-            <ol className="mt-10">
+            <ol className="mt-8">
               {STEP_META.map((item, index) => {
                 const Icon = item.icon;
                 const done = index < step;
@@ -606,7 +649,8 @@ export default function RegisterForm() {
             </ol>
           </div>
 
-          <figure className="relative border-l-2 border-white/20 pl-5">
+          {/* Hidden on short screens so the panel never needs a scrollbar */}
+          <figure className="relative border-l-2 border-white/20 pl-5 [@media(max-height:780px)]:hidden">
             <blockquote className="text-sm italic leading-6 text-slate-300">
               &ldquo;Behold, how good and how pleasant it is for brethren to
               dwell together in unity!&rdquo;
@@ -619,11 +663,14 @@ export default function RegisterForm() {
         </div>
       </aside>
 
-      {/* Form panel */}
-      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+      {/* Form panel (this is the part that scrolls on desktop) */}
+      <div
+        ref={scrollRef}
+        className="flex min-h-screen min-w-0 flex-1 flex-col lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain"
+      >
         {/* Top bar (small screens) */}
         <header className="border-b border-slate-200 bg-white/80 px-5 py-4 backdrop-blur-xl lg:hidden">
-          <AuthBrand />
+          <AuthBrand showHome />
 
           <div
             className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-200"
@@ -642,7 +689,7 @@ export default function RegisterForm() {
         </header>
 
         {/* Top bar (desktop) */}
-        <div className="hidden items-center justify-between px-12 pt-8 lg:flex">
+        <div className="hidden shrink-0 items-center justify-between px-10 pt-8 lg:flex xl:px-12">
           <div className="flex items-center gap-2" aria-hidden="true">
             {STEP_META.map((item, index) => (
               <span
@@ -670,7 +717,7 @@ export default function RegisterForm() {
           noValidate
           className="flex flex-1 flex-col"
         >
-          <div className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-5 py-8 sm:px-8 lg:max-w-3xl lg:px-12 lg:py-10">
+          <div className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-5 py-8 sm:px-8 lg:max-w-3xl lg:px-10 lg:py-10 xl:px-12">
             <div>
               <p className="text-sm font-semibold text-indigo-600">
                 Step {step + 1} of {STEP_META.length}
@@ -770,7 +817,7 @@ export default function RegisterForm() {
 
           {/* Action bar */}
           <div className="sticky bottom-0 border-t border-slate-200 bg-white/80 backdrop-blur-xl">
-            <div className="mx-auto flex w-full max-w-2xl items-center gap-3 px-5 py-4 sm:px-8 lg:max-w-3xl lg:px-12">
+            <div className="mx-auto flex w-full max-w-2xl items-center gap-3 px-5 py-4 sm:px-8 lg:max-w-3xl lg:px-10 xl:px-12">
               {step > 0 && (
                 <button
                   type="button"

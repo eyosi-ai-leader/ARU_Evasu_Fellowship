@@ -9,6 +9,7 @@ const FOCUSED_ROUTES = [
   "/verify-email",
   "/forgot-password",
   "/set-password",
+  "/dashboard",
 ];
 
 export default function SiteChrome({ navbar, footer, children }) {

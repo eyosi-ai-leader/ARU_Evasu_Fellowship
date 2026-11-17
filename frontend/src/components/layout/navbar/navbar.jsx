@@ -22,13 +22,23 @@ const Navbar = () => {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-surface-muted px-4 pt-4 lg:px-6">
+    <header className="sticky top-0 z-50 w-full px-3 pt-3 sm:px-4 lg:px-6">
       <div
         className={clsx(
-          "mx-auto flex w-full max-w-7xl items-center justify-between rounded-full bg-surface px-5 shadow-card ring-1 ring-line transition-all duration-300",
-          scrolled ? "py-2 shadow-soft" : "py-2.5"
+          "relative mx-auto flex w-full max-w-7xl items-center justify-between gap-4 rounded-full px-3 transition-all duration-300 lg:pl-4",
+          scrolled ? "py-1.5" : "py-2.5"
         )}
       >
+        {/* Frosted background: a separate layer so the mobile menu
+            (which is fixed to the screen) is not affected by the blur. */}
+        <div
+          aria-hidden="true"
+          className={clsx(
+            "pointer-events-none absolute inset-0 -z-10 rounded-full bg-white/80 ring-1 ring-ink/5 backdrop-blur-xl transition-shadow duration-300",
+            scrolled ? "shadow-soft" : "shadow-card"
+          )}
+        />
+
         <Logo />
         <DesktopNav onGive={openGive} />
         <MobileNav onGive={openGive} />

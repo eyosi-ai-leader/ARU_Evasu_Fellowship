@@ -274,6 +274,7 @@ const keep = (incoming, existing) =>
  * - Personal information
  * - Account information
  * - Fellowship information (department, graduation, hometown, ...)
+ * - Spiritual background (ministries, roles, journey)
  * - Profile image upload
  * - Profile image replacement
  * - Profile image removal
@@ -495,7 +496,15 @@ const updateMember = async (
         memberData.previousChurch,
         existingMember.previous_church
       ),
-      
+
+      /**
+       * Spiritual background
+       */
+      highSchoolMinistry: keep(
+        memberData.highSchoolMinistry,
+        existingMember.high_school_ministry
+      ),
+
       highSchoolMinistryRole: keep(
         memberData.highSchoolMinistryRole,
         existingMember.high_school_ministry_role

@@ -8,6 +8,7 @@ import {
   OTHER_OPTION,
   getCities,
 } from "@/lib/ethiopiaLocations";
+import EthiopianDateField from "./EthiopianDateField";
 
 import {
   Field,
@@ -252,13 +253,14 @@ export default function PublicRegisterBackgroundInfo({
             value={formData.previousChurch}
             onChange={onChange}
           />
-
-          <TextInput
+          <EthiopianDateField
             label="Baptism date"
-            type="date"
             name="baptismDate"
             value={formData.baptismDate}
             onChange={onChange}
+            error={errors.baptismDate}
+            newestYearsAgo={0}
+            oldestYearsAgo={70}
           />
 
           <SegmentedRadio

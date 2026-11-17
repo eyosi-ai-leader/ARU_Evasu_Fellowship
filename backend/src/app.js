@@ -39,6 +39,9 @@ const publicEventRoutes = require("./routes/publicEventRoutes");
 // NEW: public list of campus fellowships and their departments
 const fellowshipRoutes = require("./routes/fellowshipRoutes");
 
+const accessRoutes = require("./routes/accessRoutes");
+
+
 const app = express();
 
 // Security
@@ -102,6 +105,7 @@ app.use("/api/events", eventRoutes);
 
 app.use("/api/public/events", publicEventRoutes);
 
+app.use("/api/me", accessRoutes);
 
 /**
  * Global Error Handler

@@ -1,23 +1,26 @@
 import Link from "next/link";
-import Image from "next/image";
+
+import BrandLogo from "@/components/shared/BrandLogo/BrandLogo";
+import { BRAND } from "@/data/brand";
 
 const Logo = () => {
   return (
     <Link
       href="/"
-      className="flex items-center gap-2.5 transition-opacity duration-300 hover:opacity-80"
-      aria-label="Church Platform Home"
+      aria-label={`${BRAND.name} home`}
+      className="group flex items-center gap-3 rounded-full py-0.5 pr-3 transition-opacity duration-300 hover:opacity-85"
     >
-      <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-ink">
-        <Image
-          src="/images/Fares-Logo.jpg"
-          alt="Church Logo"
-          width={36}
-          height={36}
-          className="h-full w-full object-cover"
-        />
-      </div>
-      <span className="text-sm font-medium text-ink">Fares church</span>
+      <BrandLogo size={40} priority />
+
+      <span className="leading-tight">
+        <span className="block text-[15px] font-semibold tracking-tight text-ink">
+          {BRAND.university}
+        </span>
+
+        <span className="block text-xs font-medium text-body">
+          {BRAND.shortName}
+        </span>
+      </span>
     </Link>
   );
 };
