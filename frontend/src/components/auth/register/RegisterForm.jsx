@@ -37,6 +37,8 @@ import PublicRegisterContactInfo from "./PublicRegisterContactInfo";
 import PublicRegisterCampusInfo from "./PublicRegisterCampusInfo";
 import PublicRegisterBackgroundInfo from "./PublicRegisterBackgroundInfo";
 import PublicRegisterAccountInfo from "./PublicRegisterAccountInfo";
+import TermsDialog from "@/components/shared/Terms/TermsDialog";
+import { TERMS_VERSION } from "@/lib/fellowshipTerms";
 
 const STEP_META = [
   {
@@ -81,6 +83,8 @@ const initialFormData = {
   entryYear: "",
   studentId: "",
   alumniContactConsent: false,
+
+  
 
   // About you
   firstName: "",
@@ -148,6 +152,7 @@ export default function RegisterForm() {
   const [formData, setFormData] = useState(initialFormData);
   const [profileImage, setProfileImage] = useState(null);
   const [agreed, setAgreed] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -497,6 +502,9 @@ export default function RegisterForm() {
         "alumniContactConsent",
         String(formData.alumniContactConsent)
       );
+      
+      data.append("termsAccepted", "true");
+data.append("termsVersion", TERMS_VERSION);
 
       data.append("password", formData.password);
       data.append("confirmPassword", formData.confirmPassword);
@@ -792,6 +800,7 @@ export default function RegisterForm() {
                 />
 
                 <CheckboxCard
+                
                   checked={agreed}
                   onChange={(event) => {
                     setAgreed(event.target.checked);
@@ -801,6 +810,25 @@ export default function RegisterForm() {
                   description="I confirm that the information I have provided is accurate."
                   error={errors.terms}
                 />
+                <p className="-mt-2 px-1 text-sm text-slate-500">
+  Please read the{" "}
+  <button
+    type="button"
+    onClick={() => setTermsOpen(true)}
+    className="rounded font-semibold text-indigo-600 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+  >
+    Fellowship Terms &amp; Conditions
+  </button>{" "}
+  before you create your account, or{" "}
+  <Link
+    href="/terms"
+    target="_blank"
+    className="font-semibold text-indigo-600 underline-offset-2 hover:underline"
+  >
+    open them in a new tab
+  </Link>
+  .
+</p>
               </>
             )}
 
@@ -863,6 +891,15 @@ export default function RegisterForm() {
           </div>
         </form>
       </div>
+            <TermsDialog
+        open={termsOpen}
+        onClose={() => setTermsOpen(false)}
+        onAccept={() => {
+          setAgreed(true);
+          setErrors((current) => ({ ...current, terms: "" }));
+        }}
+      />
+  
     </div>
   );
 }
