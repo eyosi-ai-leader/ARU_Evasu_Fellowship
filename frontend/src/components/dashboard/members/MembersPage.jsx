@@ -36,6 +36,7 @@ import {
 
 import { inviteMember } from "@/lib/memberAccessApi";
 import { formatEthiopianDate } from "@/lib/ethiopianCalendar";
+import { batchFromChoice, getBatchInfo } from "@/lib/studentBatch";
 
 import MembersTable from "./MembersTable";
 import MemberFilters from "./MemberFilters";
@@ -57,7 +58,10 @@ const DEFAULT_FILTERS = {
   roleId: "",
   fellowshipId: "",
   departmentId: "",
-  academicStatus: "Student", // everyday view: current students
+  // This page is for the current campus students only. Graduates will
+  // get their own pages later, so this is fixed and has no filter button.
+  academicStatus: "Student",
+  batch: "", // "year:3" (3rd year now) or "batch:2017" (started in 2017 E.C.)
   sortBy: "created_at",
   sortOrder: "desc",
 };
@@ -108,8 +112,8 @@ const MANAGER_EXPORT_COLUMNS = [
   ["Gender", (m) => m.gender],
   ["Campus", (m) => m.fellowship_name],
   ["Department", (m) => m.department_name],
-  ["Students or Graduate", (m) => m.academic_status],
-  ["Graduation Year", (m) => m.graduation_year],
+  ["Batch (E.C.)", (m) => getBatchInfo(m)?.batch],
+  ["Expected Graduation (E.C.)", (m) => getBatchInfo(m)?.graduationEc],
   ["Home Region", (m) => m.home_region],
   ["Home Town", (m) => m.home_town],
   [
@@ -131,8 +135,8 @@ const LIMITED_EXPORT_COLUMNS = [
   ["Telegram", (m) => m.telegram_username],
   ["Gender", (m) => m.gender],
   ["Department", (m) => m.department_name],
-  ["Students or Graduate", (m) => m.academic_status],
-  ["Graduation Year", (m) => m.graduation_year],
+  ["Batch (E.C.)", (m) => getBatchInfo(m)?.batch],
+  ["Expected Graduation (E.C.)", (m) => getBatchInfo(m)?.graduationEc],
   ["Member Status", (m) => m.status],
 ];
 
@@ -421,6 +425,7 @@ export default function MembersPage() {
       fellowshipId: filters.fellowshipId,
       departmentId: filters.departmentId,
       academicStatus: filters.academicStatus,
+      batch: batchFromChoice(filters.batch),
       sortBy: filters.sortBy,
       sortOrder: filters.sortOrder,
       ...overrides,
@@ -434,6 +439,7 @@ export default function MembersPage() {
       filters.fellowshipId,
       filters.departmentId,
       filters.academicStatus,
+      filters.batch,
       filters.sortBy,
       filters.sortOrder,
     ]
@@ -562,8 +568,8 @@ export default function MembersPage() {
     setFilter({ departmentId: value });
   }
 
-  function handleAcademicStatusChange(value) {
-    setFilter({ academicStatus: value });
+  function handleBatchChange(value) {
+    setFilter({ batch: value });
   }
 
   function handleSortChange(sortBy) {
@@ -711,7 +717,7 @@ export default function MembersPage() {
     Boolean(filters.roleId) ||
     Boolean(filters.fellowshipId) ||
     Boolean(filters.departmentId) ||
-    filters.academicStatus !== DEFAULT_FILTERS.academicStatus ||
+    Boolean(filters.batch) ||
     Boolean(selectedMinistryId);
 
   const selectedMinistry = ministries.find(
@@ -1101,11 +1107,7 @@ export default function MembersPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-medium text-slate-400">
-                  {filters.academicStatus === "Student"
-                    ? "Total students"
-                    : filters.academicStatus === "Graduate"
-                      ? "Total graduates"
-                      : "Total members"}
+                  Total students
                 </p>
 
                 <p className="mt-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
@@ -1169,13 +1171,13 @@ export default function MembersPage() {
         onRoleChange={handleRoleChange}
         onCampusChange={handleCampusChange}
         onDepartmentChange={handleDepartmentChange}
-        onAcademicStatusChange={handleAcademicStatusChange}
+        onBatchChange={handleBatchChange}
         onClear={handleClearFilters}
         hasFilters={hasFilters}
         campuses={showCampus ? campuses : []}
         departments={departments}
         hideRoleFilter={isSmallGroupLeader}
-        hideAcademicFilter={mode !== "manage"}
+        hideBatchFilter={mode !== "manage"}
       />
 
       {notice && (

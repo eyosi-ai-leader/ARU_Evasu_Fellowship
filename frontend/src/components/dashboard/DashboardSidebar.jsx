@@ -22,6 +22,7 @@ import {
   Eye,
   BriefcaseBusiness,
   KeyRound,
+  GraduationCap,
   X,
 } from "lucide-react";
 
@@ -42,6 +43,12 @@ const navigationByRole = {
       label: "Management",
       items: [
         { name: "Members", href: "/dashboard/members", icon: Users },
+        {
+          name: "Graduates",
+          href: "/dashboard/graduates",
+          icon: GraduationCap,
+          comingSoon: true,
+        },
         {
           name: "Ministries",
           href: "/dashboard/ministries",
@@ -79,6 +86,12 @@ const navigationByRole = {
       label: "Fellowship Management",
       items: [
         { name: "Members", href: "/dashboard/members", icon: Users },
+        {
+          name: "Graduates",
+          href: "/dashboard/graduates",
+          icon: GraduationCap,
+          comingSoon: true,
+        },
         {
           name: "Ministries",
           href: "/dashboard/ministries",

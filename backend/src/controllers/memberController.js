@@ -104,6 +104,7 @@ const parseListQuery = (req) => {
   const fellowshipId = number(req.query.fellowshipId);
   const departmentId = number(req.query.departmentId);
   const academicStatus = text(req.query.academicStatus);
+  const batch = number(req.query.batch);
   const sortBy = text(req.query.sortBy, "created_at");
   const sortOrder = text(req.query.sortOrder, "desc").toLowerCase();
 
@@ -150,6 +151,14 @@ const parseListQuery = (req) => {
     );
   }
 
+  // Batch = the year the student started, in E.C. (for example 2016).
+  if (
+    batch !== "" &&
+    (!Number.isInteger(batch) || batch < 1900 || batch > 2300)
+  ) {
+    throw httpError("Batch must be a year such as 2016", 400);
+  }
+
   const allowedSortFields = [
     "first_name",
     "last_name",
@@ -180,6 +189,7 @@ const parseListQuery = (req) => {
     fellowshipId,
     departmentId,
     academicStatus,
+    batch,
     sortBy,
     sortOrder,
   };
@@ -726,6 +736,7 @@ const SMALL_GROUP_VIEW_FIELDS = [
   "small_group_id",
   "small_group_name",
   "department_name",
+  "department_duration_years",
   "academic_status",
   "graduation_year",
   "status",

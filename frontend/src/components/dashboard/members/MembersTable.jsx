@@ -21,6 +21,7 @@ import {
 
 import { getRoleName, isPrivilegedRole } from "@/lib/roles";
 import { formatEthiopianDate } from "@/lib/ethiopianCalendar";
+import { getBatchInfo } from "@/lib/studentBatch";
 
 import MemberActionsMenu from "./MemberActionsMenu";
 import MemberMobileCard from "./MemberMobileCard";
@@ -79,26 +80,16 @@ function getAccess(member) {
 
 /*
  * Department and graduation, for example:
- *   Computer Science  /  Class of 2028
- *   Nursing           /  Graduated 2025
+ *   Computer Science  /  Batch 2016 · 4th year
+ *   Nursing           /  Batch 2017 · 3rd year
  */
 function getAcademic(member) {
-  const year = member.graduation_year;
-
-  let yearText = "";
-
-  if (year) {
-    yearText =
-      member.academic_status === "Graduate"
-        ? `Graduated ${year}`
-        : `Class of ${year}`;
-  } else if (member.academic_status === "Graduate") {
-    yearText = "Graduate";
-  }
+  const batch = getBatchInfo(member);
 
   return {
     department: member.department_name || "",
-    yearText,
+    // "Batch 2016 · 4th year"
+    yearText: batch?.text || "",
   };
 }
 
@@ -199,7 +190,7 @@ function getColumns(mode, showCampus) {
     return [
       { key: "member", label: "Member", sort: "first_name", min: "min-w-[240px]" },
       { key: "number", label: "Member No.", sort: "member_number", min: "min-w-[130px]" },
-      { key: "academic", label: "Department · Class", sort: "graduation_year", min: "min-w-[190px]" },
+      { key: "academic", label: "Department · Batch", sort: "graduation_year", min: "min-w-[190px]" },
       { key: "status", label: "Status", min: "min-w-[110px]" },
     ];
   }
@@ -210,7 +201,7 @@ function getColumns(mode, showCampus) {
     ...(showCampus
       ? [{ key: "campus", label: "Campus", sort: "fellowship", min: "min-w-[130px]" }]
       : []),
-    { key: "academic", label: "Department · Class", sort: "graduation_year", min: "min-w-[190px]" },
+    { key: "academic", label: "Department · Batch", sort: "graduation_year", min: "min-w-[190px]" },
     { key: "role", label: "Role", min: "min-w-[135px]" },
     { key: "status", label: "Status", min: "min-w-[110px]" },
     { key: "access", label: "Access", min: "min-w-[120px]" },

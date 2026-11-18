@@ -661,7 +661,7 @@ const deleteMember = async (
  * Supports:
  * - Pagination
  * - Search
- * - Status, role, campus, department and academic-status filters
+ * - Status, role, campus, department, academic-status and batch filters
  * - fellowshipIds: only members of these fellowships
  *   (an empty list returns nobody; leave it out for no restriction)
  * - smallGroupIds: only members of these small groups (same rule)
@@ -684,6 +684,7 @@ const getAllMembers = async (
     smallGroupIds,
     departmentId = "",
     academicStatus = "",
+    batch = "",
     sortBy = "created_at",
     sortOrder = "desc",
   } = options;
@@ -713,6 +714,7 @@ const getAllMembers = async (
       smallGroupIds,
       departmentId,
       academicStatus,
+      batch,
       sortBy,
       sortOrder,
     }),
@@ -726,6 +728,7 @@ const getAllMembers = async (
       smallGroupIds,
       departmentId,
       academicStatus,
+      batch,
     }),
   ]);
 

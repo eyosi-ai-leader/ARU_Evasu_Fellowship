@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 
 import { ROLES, ROLE_NAMES } from "@/lib/roles";
+import { getBatchOptions, getYearOptions } from "@/lib/studentBatch";
 
 const ROLE_FILTER_ORDER = [
   ROLES.ADMIN,
@@ -14,12 +15,6 @@ const ROLE_FILTER_ORDER = [
   ROLES.SMALL_GROUP_LEADER,
   ROLES.MINISTRY_LEADER,
   ROLES.MEMBER,
-];
-
-const ACADEMIC_OPTIONS = [
-  { value: "Student", label: "Students" },
-  { value: "Graduate", label: "Graduates" },
-  { value: "", label: "All" },
 ];
 
 const selectClass =
@@ -36,13 +31,13 @@ export default function MemberFilters({
   onRoleChange,
   onCampusChange,
   onDepartmentChange,
-  onAcademicStatusChange,
+  onBatchChange,
   onClear,
   hasFilters,
   campuses = [],
   departments = [],
   hideRoleFilter = false,
-  hideAcademicFilter = false,
+  hideBatchFilter = false,
 }) {
   // Phones: the filters are folded away until the person taps "Filters".
   const [open, setOpen] = useState(false);
@@ -55,13 +50,13 @@ export default function MemberFilters({
     filters.roleId,
     filters.fellowshipId,
     filters.departmentId,
-    filters.academicStatus !== "Student" ? "changed" : "",
+    filters.batch,
   ].filter(Boolean).length;
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex flex-col gap-3">
-        {/* Search (wide) + Students / Graduates switch */}
+        {/* Search (wide) */}
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <div className="relative min-w-0 flex-1">
@@ -97,34 +92,6 @@ export default function MemberFilters({
             </button>
           </div>
 
-          {!hideAcademicFilter && (
-            <div
-              role="group"
-              aria-label="Students or graduates"
-              className="grid h-12 shrink-0 grid-cols-3 rounded-xl bg-slate-100 p-1 lg:w-[300px]"
-            >
-              {ACADEMIC_OPTIONS.map((option) => {
-                const selected =
-                  filters.academicStatus === option.value;
-
-                return (
-                  <button
-                    key={option.label}
-                    type="button"
-                    onClick={() => onAcademicStatusChange(option.value)}
-                    aria-pressed={selected}
-                    className={`rounded-lg px-3 text-sm font-semibold transition ${
-                      selected
-                        ? "bg-slate-900 text-white shadow-sm"
-                        : "text-slate-500 hover:text-slate-900"
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
         </div>
 
         {/* Controls */}
@@ -194,6 +161,34 @@ export default function MemberFilters({
                   {department.name}
                 </option>
               ))}
+            </select>
+          )}
+
+          {/* Year of study or batch (the year they started, E.C.) */}
+          {!hideBatchFilter && (
+            <select
+              value={filters.batch}
+              onChange={(event) => onBatchChange(event.target.value)}
+              aria-label="Year or batch"
+              className={selectClass}
+            >
+              <option value="">All years &amp; batches</option>
+
+              <optgroup label="Year of study">
+                {getYearOptions().map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </optgroup>
+
+              <optgroup label="Batch (year started, E.C.)">
+                {getBatchOptions().map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </optgroup>
             </select>
           )}
 

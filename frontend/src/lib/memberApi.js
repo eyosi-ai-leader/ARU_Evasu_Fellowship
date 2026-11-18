@@ -102,6 +102,7 @@ export async function getMembers({
   fellowshipId = "",
   departmentId = "",
   academicStatus = "",
+  batch = "",
   sortBy = "created_at",
   sortOrder = "desc",
 } = {}) {
@@ -136,6 +137,10 @@ export async function getMembers({
 
   if (academicStatus) {
     params.set("academicStatus", academicStatus);
+  }
+
+  if (batch) {
+    params.set("batch", String(batch));
   }
 
   if (sortBy) {

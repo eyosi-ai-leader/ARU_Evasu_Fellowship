@@ -31,6 +31,7 @@ const MEMBER_FIELDS = `
 
   m.department_id,
   d.name AS department_name,
+  d.duration_years AS department_duration_years,
   m.student_id,
   m.academic_status,
   m.graduation_year,
@@ -640,6 +641,7 @@ const buildMemberFilters = ({
   smallGroupIds,
   departmentId,
   academicStatus,
+  batch,
 }) => {
   const conditions = [];
   const queryParams = [];
@@ -698,6 +700,24 @@ const buildMemberFilters = ({
     queryParams.push(academicStatus);
   }
 
+  /*
+   * Batch = the year the student started (E.C.).
+   *
+   * It is not stored. It is worked out from the graduation year (stored
+   * in G.C., which is the E.C. year + 8) and the length of the
+   * department's program (departments.duration_years, set per department):
+   *
+   *   batch = graduation year - 8 - program length
+   *
+   * A department with no program length (NULL) never matches a batch.
+   */
+  if (batch) {
+    conditions.push(
+      "(m.graduation_year - 8 - d.duration_years) = ?"
+    );
+    queryParams.push(batch);
+  }
+
   return {
     whereClause:
       conditions.length > 0
@@ -726,6 +746,7 @@ const getAllMembers = async ({
   smallGroupIds,
   departmentId = "",
   academicStatus = "",
+  batch = "",
   sortBy = "created_at",
   sortOrder = "desc",
 } = {}) => {
@@ -739,6 +760,7 @@ const getAllMembers = async ({
       smallGroupIds,
       departmentId,
       academicStatus,
+      batch,
     });
 
   /**
@@ -818,6 +840,7 @@ const countMembers = async ({
   smallGroupIds,
   departmentId = "",
   academicStatus = "",
+  batch = "",
 } = {}) => {
   const { whereClause, queryParams } =
     buildMemberFilters({
@@ -829,6 +852,7 @@ const countMembers = async ({
       smallGroupIds,
       departmentId,
       academicStatus,
+      batch,
     });
 
   const query = `
@@ -838,6 +862,9 @@ const countMembers = async ({
 
     INNER JOIN users u
       ON m.user_id = u.id
+
+    LEFT JOIN departments d
+      ON m.department_id = d.id
 
     ${whereClause}
   `;

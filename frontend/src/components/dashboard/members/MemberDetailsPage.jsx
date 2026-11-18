@@ -28,6 +28,7 @@ import {
 import { getMySmallGroupMemberById } from "@/lib/fellowshipApi";
 import useMyAccess from "@/lib/useMyAccess";
 import { formatEthiopianDate } from "@/lib/ethiopianCalendar";
+import { getBatchInfo } from "@/lib/studentBatch";
 import {
   ROLES,
   canManageMembers,
@@ -48,19 +49,6 @@ function formatDate(date) {
 // "Main Campus Fellowship" -> "Main Campus"
 function shortCampusName(name) {
   return String(name || "").replace(/\s+Fellowship$/i, "");
-}
-
-// "Class of 2028" / "Graduated 2025"
-function getClassText(member) {
-  const year = member.graduation_year;
-
-  if (year) {
-    return member.academic_status === "Graduate"
-      ? `Graduated ${year}`
-      : `Class of ${year}`;
-  }
-
-  return member.academic_status === "Graduate" ? "Graduate" : "";
 }
 
 function InfoItem({ icon: Icon, label, value }) {
@@ -302,7 +290,8 @@ export default function MemberDetailsPage() {
 
   const status = member.status || "Inactive";
   const phone = member.phone || member.user_phone || "";
-  const classText = getClassText(member);
+  const batchInfo = getBatchInfo(member);
+  const classText = batchInfo ? batchInfo.text : "";
   const memberNumber = member.member_number || member.memberNumber || "";
 
   // Full details (and Edit) are for managers only.
@@ -519,13 +508,35 @@ export default function MemberDetailsPage() {
               />
 
               <InfoItem
+                icon={GraduationCap}
+                label="Batch (year started)"
+                value={batchInfo?.batch != null ? `${batchInfo.batch} E.C.` : ""}
+              />
+
+              <InfoItem
+                icon={CalendarDays}
+                label={batchInfo?.isGraduate ? "Status" : "Year of study"}
+                value={batchInfo?.batch != null ? batchInfo.yearText : ""}
+              />
+
+              <InfoItem
                 icon={CalendarDays}
                 label={
-                  member.academic_status === "Graduate"
+                  batchInfo?.isGraduate
                     ? "Graduation year"
                     : "Expected graduation"
                 }
-                value={member.graduation_year ? String(member.graduation_year) : ""}
+                value={batchInfo ? `${batchInfo.graduationEc} E.C.` : ""}
+              />
+
+              <InfoItem
+                icon={Clock3}
+                label="Program length"
+                value={
+                  batchInfo?.programYears
+                    ? `${batchInfo.programYears} years`
+                    : ""
+                }
               />
 
               {member.small_group_name !== undefined && (
