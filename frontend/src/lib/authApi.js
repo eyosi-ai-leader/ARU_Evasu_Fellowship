@@ -16,9 +16,7 @@ async function readJson(response, fallbackMessage) {
 function errorMessage(result, fallback) {
   if (Array.isArray(result?.errors) && result.errors.length > 0) {
     const messages = [
-      ...new Set(
-        result.errors.map((item) => item.msg).filter(Boolean)
-      ),
+      ...new Set(result.errors.map((item) => item.msg).filter(Boolean)),
     ];
 
     if (messages.length > 0) {
@@ -27,6 +25,21 @@ function errorMessage(result, fallback) {
   }
 
   return result?.message || fallback;
+}
+
+/**
+ * Build an Error that also carries the HTTP status, the backend "code"
+ * (for example ACCOUNT_INACTIVE) and any extra "data" (for example the
+ * member's first name), so the UI can react to specific cases.
+ */
+function buildError(response, result, fallback) {
+  const error = new Error(errorMessage(result, fallback));
+
+  error.status = response.status;
+  error.code = result?.code;
+  error.data = result?.data;
+
+  return error;
 }
 
 export async function loginUser(email, password) {
@@ -55,7 +68,7 @@ export async function loginUser(email, password) {
   );
 
   if (!response.ok) {
-    throw new Error(errorMessage(result, "Unable to sign in."));
+    throw buildError(response, result, "Unable to sign in.");
   }
 
   return result;
@@ -87,9 +100,7 @@ export async function registerUser(formData) {
   );
 
   if (!response.ok) {
-    throw new Error(
-      errorMessage(result, "Unable to create your account.")
-    );
+    throw buildError(response, result, "Unable to create your account.");
   }
 
   return result;

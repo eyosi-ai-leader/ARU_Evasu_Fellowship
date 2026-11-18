@@ -10,6 +10,8 @@ const env = require("../config/env");
 const model = require("../models/userGoogleModel");
 const { recordLogin } = require("../models/userActivityModel");
 
+const { assertAccountActive } = require("../utils/accountStatus");
+
 const SALT_ROUNDS = 10;
 
 let client = null;
@@ -100,14 +102,7 @@ const verifyCredential = async (credential) => {
   return payload;
 };
 
-const assertActive = (user) => {
-  if (user.is_active !== null && Number(user.is_active) === 0) {
-    throw httpError(
-      "This account has been disabled. Please contact the church office.",
-      403
-    );
-  }
-};
+const assertActive = (user) => assertAccountActive(user);
 
 const randomPassword = () => crypto.randomBytes(32).toString("hex");
 

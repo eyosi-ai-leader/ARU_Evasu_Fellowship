@@ -25,9 +25,15 @@ export async function loginWithGoogle(credential) {
   }
 
   if (!response.ok) {
-    throw new Error(
+    const error = new Error(
       result.message || "We couldn't sign you in with Google. Please try again."
     );
+
+    error.status = response.status;
+    error.code = result.code;
+    error.data = result.data;
+
+    throw error;
   }
 
   return result;

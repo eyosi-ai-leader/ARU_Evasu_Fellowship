@@ -27,6 +27,16 @@ const googleSignIn = async (req, res) => {
       }
     );
   } catch (error) {
+    // Inactive account: let the login page show the gentle message.
+    if (error.code === "ACCOUNT_INACTIVE") {
+      return res.status(403).json({
+        success: false,
+        code: "ACCOUNT_INACTIVE",
+        message: error.message,
+        data: error.data || null,
+      });
+    }
+
     if (error.statusCode) {
       return errorResponse(res, error.message, error.statusCode);
     }

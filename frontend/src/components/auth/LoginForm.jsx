@@ -7,6 +7,7 @@ import { ArrowRight, Loader2, Mail } from "lucide-react";
 
 import PasswordInput from "@/components/shared/Password/PasswordInput";
 import GoogleSignInButton from "./GoogleSignInButton";
+import InactiveAccountNotice from "./InactiveAccountNotice";
 import { loginUser } from "@/lib/authApi";
 import { loginWithGoogle } from "@/lib/googleAuthApi";
 import { saveSession } from "@/lib/authSession";
@@ -23,6 +24,14 @@ function readSession(result) {
   return { token, user };
 }
 
+// The backend sends code "ACCOUNT_INACTIVE" (the message check is a fallback).
+function isInactiveError(err) {
+  return (
+    err?.code === "ACCOUNT_INACTIVE" ||
+    String(err?.message || "").toLowerCase().includes("inactive")
+  );
+}
+
 export default function LoginForm() {
   const router = useRouter();
 
@@ -33,8 +42,23 @@ export default function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
+  const [inactive, setInactive] = useState(null); // { name, email }
 
   const busy = loading || googleLoading;
+
+  function showInactive(err, fallbackEmail) {
+    setError("");
+    setInactive({
+      name: err?.data?.firstName || "",
+      email: err?.data?.email || fallbackEmail || "",
+    });
+  }
+
+  function backToSignIn() {
+    setInactive(null);
+    setPassword("");
+    setError("");
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -51,6 +75,12 @@ export default function LoginForm() {
       router.push("/dashboard");
     } catch (err) {
       const message = err.message || "Unable to sign in.";
+
+      // Inactive account: show the gentle message, not a red error.
+      if (isInactiveError(err)) {
+        showInactive(err, email.trim());
+        return;
+      }
 
       // Unverified account: send the person to the code page.
       if (message.toLowerCase().includes("verify your email")) {
@@ -80,9 +110,24 @@ export default function LoginForm() {
       router.push("/dashboard");
       // Stay in the loading state while the dashboard opens.
     } catch (err) {
-      setError(err.message || "We couldn't sign you in with Google.");
+      if (isInactiveError(err)) {
+        showInactive(err, "");
+      } else {
+        setError(err.message || "We couldn't sign you in with Google.");
+      }
+
       setGoogleLoading(false);
     }
+  }
+
+  if (inactive) {
+    return (
+      <InactiveAccountNotice
+        name={inactive.name}
+        email={inactive.email}
+        onBack={backToSignIn}
+      />
+    );
   }
 
   return (

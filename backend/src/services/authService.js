@@ -20,6 +20,7 @@ const {
   pickProfileFields,
 } = require("../utils/memberProfileFields");
 
+const { assertAccountActive } = require("../utils/accountStatus");
 /**
  * Register a new public fellowship member.
  *
@@ -160,8 +161,16 @@ const loginUser = async (
   }
 
   /*
-   * The password is correct, but the email must be confirmed
-   * with the 6-digit code before the account can be used.
+   * The password is correct. Inactive accounts stop here, with a
+   * gentle message pointing them to the fellowship leaders.
+   * This runs AFTER the password check on purpose, so strangers
+   * cannot use the login form to find out who is inactive.
+   */
+   await assertAccountActive(user);
+
+  /*
+   * The email must be confirmed with the 6-digit code
+   * before the account can be used.
    */
   const verified = await isEmailVerified(user.id);
 

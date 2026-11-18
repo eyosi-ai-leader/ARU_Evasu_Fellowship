@@ -74,13 +74,24 @@ const login = async (req, res) => {
       }
     );
   } catch (error) {
+    // Inactive account: send the code and first name so the login page
+    // can show the gentle message.
+    if (error.code === "ACCOUNT_INACTIVE") {
+      return res.status(403).json({
+        success: false,
+        code: "ACCOUNT_INACTIVE",
+        message: error.message,
+        data: error.data || null,
+      });
+    }
+
     return errorResponse(
       res,
       error.message,
       error.statusCode || 500
     );
   }
-};
+}; 
 
 const verifyEmail = async (req, res) => {
   try {
