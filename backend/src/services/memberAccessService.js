@@ -233,14 +233,30 @@ const setStatus = async (requester, memberId, status) => {
   await model.setMemberStatus(memberId, status);
 };
 
-const removeAccount = async (requester, memberId) => {
+/**
+ * Permanently delete a member and their sign-in account.
+ *
+ * allowSignedIn:
+ *   false (default) - the Member Access page: only people who never signed in.
+ *   true            - the Members page. The caller (memberController.deleteMember)
+ *                     has already checked that the person manages the member's
+ *                     campus and may touch that kind of account, so a member who
+ *                     HAS signed in can be deleted too (for example a student
+ *                     who is not part of the fellowship).
+ */
+const removeAccount = async (
+  requester,
+  memberId,
+  { allowSignedIn = false } = {}
+) => {
   const target = await model.getTarget(memberId);
 
+  // Also stops people from deleting their own account.
   assertCanManage(requester, target);
 
-  if (target.last_login_at) {
+  if (target.last_login_at && !allowSignedIn) {
     throw httpError(
-      "This member has signed in before, so they can't be deleted here. Mark them inactive instead.",
+      "This member has signed in before, so they can't be deleted here. Delete them from the Members page, or mark them inactive.",
       400
     );
   }

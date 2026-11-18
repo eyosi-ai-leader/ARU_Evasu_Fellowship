@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { AlertTriangle, Loader2, Trash2, X } from "lucide-react";
 
 export default function MemberDeleteDialog({
@@ -8,23 +9,27 @@ export default function MemberDeleteDialog({
   onCancel,
   onConfirm,
 }) {
+  const [understood, setUnderstood] = useState(false);
+
+  // Start unchecked for every member.
+  useEffect(() => {
+    setUnderstood(false);
+  }, [member?.id]);
+
   if (!member) {
     return null;
   }
 
-  const firstName =
-    member.first_name ||
-    member.firstName ||
-    "";
+  const firstName = member.first_name || member.firstName || "";
+  const lastName = member.last_name || member.lastName || "";
 
-  const lastName =
-    member.last_name ||
-    member.lastName ||
-    "";
+  const name = `${firstName} ${lastName}`.trim() || "this member";
 
-  const name =
-    `${firstName} ${lastName}`.trim() ||
-    "this member";
+  // A member who has signed in has a working account: ask for one more
+  // confirmation before it is removed.
+  const hasSignedIn = Boolean(member.last_login_at);
+
+  const canConfirm = !deleting && (!hasSignedIn || understood);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/40 px-0 backdrop-blur-sm sm:items-center sm:px-4">
@@ -32,7 +37,7 @@ export default function MemberDeleteDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="delete-member-title"
-        className="w-full max-w-md overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-2xl sm:rounded-2xl"
+        className="max-h-[92vh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-slate-200 bg-white shadow-2xl sm:rounded-2xl"
       >
         {/* Header */}
         <div className="flex items-start justify-between border-b border-slate-100 p-5">
@@ -70,16 +75,33 @@ export default function MemberDeleteDialog({
         <div className="p-5">
           <p className="text-sm leading-6 text-slate-600">
             Are you sure you want to permanently delete{" "}
-            <span className="font-semibold text-slate-900">
-              {name}
-            </span>
-            ?
+            <span className="font-semibold text-slate-900">{name}</span>?
           </p>
 
-          <p className="mt-2 text-xs leading-5 text-slate-400">
-            Only members who have never signed in can be deleted. To
-            remove someone who has, mark them Inactive instead.
+          <p className="mt-2 text-xs leading-5 text-slate-500">
+            Their member record, sign-in account and ministry assignments
+            are removed for good.
           </p>
+
+          {hasSignedIn && (
+            <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
+              <input
+                type="checkbox"
+                checked={understood}
+                onChange={(event) => setUnderstood(event.target.checked)}
+                disabled={deleting}
+                className="mt-1 h-4 w-4 rounded border-red-300 text-red-600 focus:ring-red-500"
+              />
+
+              <span className="text-xs leading-5 text-red-800">
+                <span className="block text-sm font-semibold">
+                  This person has already signed in.
+                </span>
+                I understand that their account will be deleted and they
+                will no longer be able to sign in.
+              </span>
+            </label>
+          )}
 
           {member.member_number && (
             <div className="mt-4 rounded-xl bg-slate-50 px-4 py-3">
@@ -108,22 +130,17 @@ export default function MemberDeleteDialog({
           <button
             type="button"
             onClick={onConfirm}
-            disabled={deleting}
+            disabled={!canConfirm}
             className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60 sm:h-10"
           >
             {deleting ? (
               <>
-                <Loader2
-                  size={15}
-                  className="animate-spin"
-                />
-
+                <Loader2 size={15} className="animate-spin" />
                 Deleting...
               </>
             ) : (
               <>
                 <Trash2 size={15} />
-
                 Delete member
               </>
             )}

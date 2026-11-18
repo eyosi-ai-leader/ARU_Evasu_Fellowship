@@ -127,11 +127,10 @@ function describeMember(member, { mode, canManage, isSuperAdmin, currentUserId }
     currentUserId !== undefined &&
     Number(member.user_id) === Number(currentUserId);
 
-  const hasSignedIn = Boolean(member.last_login_at);
-
   const canEdit = mode === "manage" && canManage && !locked;
   const canChangeRole = canEdit && !isSelf;
-  const canDeleteNow = canEdit && !isSelf && !hasSignedIn;
+  const hasSignedIn = Boolean(member.last_login_at);
+  const canDeleteNow = canEdit && !isSelf;
 
   return {
     firstName,
@@ -157,9 +156,6 @@ function describeMember(member, { mode, canManage, isSuperAdmin, currentUserId }
     canEdit,
     canChangeRole,
     canDelete: canDeleteNow,
-    // Show a greyed-out delete button, with the reason, for people who
-    // have signed in (they can only be made Inactive).
-    deleteBlocked: canEdit && !isSelf && hasSignedIn,
     canInvite:
       mode === "manage" &&
       canManage &&
@@ -425,18 +421,6 @@ function RowActions({
               aria-label={`Delete ${info.fullName}`}
               onClick={() => onDelete(member)}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600 sm:h-8 sm:w-8"
-            >
-              <Trash2 size={15} />
-            </button>
-          )}
-
-          {info.deleteBlocked && (
-            <button
-              type="button"
-              disabled
-              title="This member has signed in, so they can't be deleted. Mark them Inactive instead."
-              aria-label="Cannot delete: member has signed in"
-              className="flex h-9 w-9 shrink-0 cursor-not-allowed items-center justify-center rounded-lg text-slate-200 sm:h-8 sm:w-8"
             >
               <Trash2 size={15} />
             </button>

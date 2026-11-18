@@ -622,8 +622,9 @@ const updateMember = async (req, res) => {
  * Only inside the fellowships the person manages, and never a Super Admin,
  * Fellowship Admin or Staff account unless the person is a Super Admin.
  *
- * Same safety rules as the Member Access page: removes the sign-in
- * account too, and refuses members who have signed in before.
+ * Removes the sign-in account too. Members who have signed in can be
+ * deleted as well. Nobody can delete their own account, and a member who
+ * leads a ministry must be replaced as leader first.
  */
 const deleteMember = async (req, res) => {
   try {
@@ -633,7 +634,11 @@ const deleteMember = async (req, res) => {
 
     assertNotPrivilegedTarget(req.access, existing);
 
-    await memberAccessService.removeAccount(req.user, Number(id));
+    // The checks above (campus scope, protected accounts) have been done,
+    // so a member who has signed in may be deleted too.
+    await memberAccessService.removeAccount(req.user, Number(id), {
+      allowSignedIn: true,
+    });
 
     return successResponse(
       res,
