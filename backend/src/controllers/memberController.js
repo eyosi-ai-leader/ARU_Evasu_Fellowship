@@ -165,6 +165,7 @@ const parseListQuery = (req) => {
     "member_number",
     "email",
     "created_at",
+    "entry_year",
     "graduation_year",
     "fellowship",
   ];
@@ -738,6 +739,7 @@ const SMALL_GROUP_VIEW_FIELDS = [
   "department_name",
   "department_duration_years",
   "academic_status",
+  "entry_year",
   "graduation_year",
   "status",
 ];

@@ -1,33 +1,7 @@
 "use client";
 
-const fieldClass = (error) =>
-  `h-11 w-full rounded-xl border bg-white px-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
-    error
-      ? "border-red-300 focus:border-red-400 focus:ring-red-100"
-      : "border-slate-200 focus:border-slate-400 focus:ring-slate-100"
-  }`;
-
-function Field({ id, label, required, error, children }) {
-  return (
-    <div>
-      <label
-        htmlFor={id}
-        className="mb-2 block text-sm font-medium text-slate-700"
-      >
-        {label}
-        {required && <span className="text-red-500"> *</span>}
-      </label>
-
-      {children}
-
-      {error && (
-        <p role="alert" className="mt-1.5 text-xs text-red-500">
-          {error}
-        </p>
-      )}
-    </div>
-  );
-}
+import EcDateField from "@/components/shared/EcDate/EcDateField";
+import { Field, Section, fieldClass } from "./FormParts";
 
 export default function MemberPersonalInfo({
   form,
@@ -36,24 +10,12 @@ export default function MemberPersonalInfo({
   genderRequired = true,
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="mb-6">
-        <h2 className="text-base font-semibold text-slate-900">
-          Personal Information
-        </h2>
-
-        <p className="mt-1 text-sm text-slate-500">
-          Basic information about the church member.
-        </p>
-      </div>
-
+    <Section
+      title="Personal Information"
+      description="Basic information about the fellowship member."
+    >
       <div className="grid gap-5 md:grid-cols-2">
-        <Field
-          id="firstName"
-          label="First name"
-          required
-          error={errors.firstName}
-        >
+        <Field id="firstName" label="First name" required error={errors.firstName}>
           <input
             id="firstName"
             type="text"
@@ -67,11 +29,7 @@ export default function MemberPersonalInfo({
           />
         </Field>
 
-        <Field
-          id="middleName"
-          label="Middle name"
-          error={errors.middleName}
-        >
+        <Field id="middleName" label="Middle name" error={errors.middleName}>
           <input
             id="middleName"
             type="text"
@@ -80,17 +38,11 @@ export default function MemberPersonalInfo({
             onChange={onChange}
             placeholder="Enter middle name"
             autoComplete="off"
-            aria-invalid={Boolean(errors.middleName)}
             className={fieldClass(errors.middleName)}
           />
         </Field>
 
-        <Field
-          id="lastName"
-          label="Last name"
-          required
-          error={errors.lastName}
-        >
+        <Field id="lastName" label="Last name" required error={errors.lastName}>
           <input
             id="lastName"
             type="text"
@@ -124,18 +76,17 @@ export default function MemberPersonalInfo({
           </select>
         </Field>
 
-        <Field id="dateOfBirth" label="Date of birth">
-          <input
-            id="dateOfBirth"
-            type="date"
-            name="dateOfBirth"
-            value={form.dateOfBirth}
-            onChange={onChange}
-            max={new Date().toISOString().slice(0, 10)}
-            className={fieldClass(false)}
-          />
-        </Field>
+        <EcDateField
+          id="dateOfBirth"
+          name="dateOfBirth"
+          label="Date of birth"
+          value={form.dateOfBirth}
+          onChange={onChange}
+          error={errors.dateOfBirth}
+          newestYearsAgo={10}
+          oldestYearsAgo={80}
+        />
       </div>
-    </div>
+    </Section>
   );
 }

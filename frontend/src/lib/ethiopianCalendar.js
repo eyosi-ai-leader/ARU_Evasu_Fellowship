@@ -213,3 +213,16 @@ export const formatEthiopianLongDate = (date = new Date()) => {
 
   return `${weekday}, ${e.day} ${ETHIOPIAN_MONTHS[e.month - 1].en} ${e.year} E.C.`;
 };
+
+/**
+ * "YYYY-MM-DD" (G.C.) -> "year-month-day" in E.C., for the date drop-downs.
+ */
+export const isoToEcValue = (value) => {
+  const [y, m, d] = String(value || "").slice(0, 10).split("-").map(Number);
+
+  if (!y || !m || !d) return "";
+
+  const e = jdnToEthiopian(gregorianToJdn(y, m, d));
+
+  return `${e.year}-${e.month}-${e.day}`;
+};

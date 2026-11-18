@@ -190,7 +190,7 @@ function getColumns(mode, showCampus) {
     return [
       { key: "member", label: "Member", sort: "first_name", min: "min-w-[240px]" },
       { key: "number", label: "Member No.", sort: "member_number", min: "min-w-[130px]" },
-      { key: "academic", label: "Department · Batch", sort: "graduation_year", min: "min-w-[190px]" },
+      { key: "academic", label: "Department · Batch", sort: "entry_year", min: "min-w-[190px]" },
       { key: "status", label: "Status", min: "min-w-[110px]" },
     ];
   }
@@ -201,7 +201,7 @@ function getColumns(mode, showCampus) {
     ...(showCampus
       ? [{ key: "campus", label: "Campus", sort: "fellowship", min: "min-w-[130px]" }]
       : []),
-    { key: "academic", label: "Department · Batch", sort: "graduation_year", min: "min-w-[190px]" },
+    { key: "academic", label: "Department · Batch", sort: "entry_year", min: "min-w-[190px]" },
     { key: "role", label: "Role", min: "min-w-[135px]" },
     { key: "status", label: "Status", min: "min-w-[110px]" },
     { key: "access", label: "Access", min: "min-w-[120px]" },

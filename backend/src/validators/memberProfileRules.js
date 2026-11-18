@@ -28,13 +28,17 @@ const optionalRole = (field, label) =>
  * Rules for the fellowship fields.
  *
  * partial = false  -> registration and "add member": campus is required, and
- *                     a student must give an expected graduation year.
+ *                     a student must give the year they started (entry year).
  * partial = true   -> "edit member": every field is optional, and only the
  *                     fields that are sent are checked.
  */
 const profileRules = ({ partial = false } = {}) => {
   const currentYear = new Date().getFullYear();
-  const maxYear = currentYear + 10;
+
+  // The Ethiopian year is the Gregorian year minus 7 from Meskerem
+  // (September) and minus 8 before it. Allow the later one.
+  const maxEntryYear = currentYear - 7;
+  const minEntryYear = 1990;
 
   return [
     partial
@@ -61,12 +65,13 @@ const profileRules = ({ partial = false } = {}) => {
       .isIn(ACADEMIC_STATUSES)
       .withMessage("Academic status must be Student or Graduate"),
 
-    body("graduationYear").custom((value, { req }) => {
+    // The year they started at the university, in E.C. (for example 2016).
+    body("entryYear").custom((value, { req }) => {
       const status = req.body.academicStatus || (partial ? "" : "Student");
 
       if (!hasValue(value)) {
         if (!partial && status === "Student") {
-          throw new Error("Expected graduation year is required");
+          throw new Error("Entry year is required");
         }
 
         return true;
@@ -74,20 +79,26 @@ const profileRules = ({ partial = false } = {}) => {
 
       const year = Number(value);
 
-      if (!Number.isInteger(year) || year < 2000 || year > maxYear) {
+      if (
+        !Number.isInteger(year) ||
+        year < minEntryYear ||
+        year > maxEntryYear
+      ) {
         throw new Error(
-          `Graduation year must be between 2000 and ${maxYear}`
-        );
-      }
-
-      if (status === "Student" && year < currentYear) {
-        throw new Error(
-          "Expected graduation year cannot be in the past. If you have already graduated, choose Graduate."
+          `Entry year must be an Ethiopian year between ${minEntryYear} and ${maxEntryYear}`
         );
       }
 
       return true;
     }),
+
+    // Kept for the graduates feature (the real graduation year, G.C.).
+    body("graduationYear")
+      .optional({ values: "falsy" })
+      .isInt({ min: 2000, max: currentYear + 10 })
+      .withMessage(
+        `Graduation year must be between 2000 and ${currentYear + 10}`
+      ),
 
     optionalText("homeRegion", 100, "Home region"),
     optionalText("homeTown", 100, "Home town"),

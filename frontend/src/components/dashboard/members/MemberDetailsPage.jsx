@@ -509,7 +509,7 @@ export default function MemberDetailsPage() {
 
               <InfoItem
                 icon={GraduationCap}
-                label="Batch (year started)"
+                label="Batch (entry year)"
                 value={batchInfo?.batch != null ? `${batchInfo.batch} E.C.` : ""}
               />
 
@@ -526,7 +526,11 @@ export default function MemberDetailsPage() {
                     ? "Graduation year"
                     : "Expected graduation"
                 }
-                value={batchInfo ? `${batchInfo.graduationEc} E.C.` : ""}
+                value={
+                  batchInfo?.graduationEc
+                    ? `${batchInfo.graduationEc} E.C.`
+                    : ""
+                }
               />
 
               <InfoItem

@@ -34,6 +34,7 @@ const MEMBER_FIELDS = `
   d.duration_years AS department_duration_years,
   m.student_id,
   m.academic_status,
+  m.entry_year,
   m.graduation_year,
 
   m.gender,
@@ -118,6 +119,7 @@ const createMember = async ({
   departmentId,
   studentId,
   academicStatus,
+  entryYear,
   graduationYear,
   homeRegion,
   homeTown,
@@ -246,6 +248,7 @@ const createMember = async ({
         department_id,
         student_id,
         academic_status,
+        entry_year,
         graduation_year,
         member_number,
         gender,
@@ -274,7 +277,7 @@ const createMember = async ({
         ?, ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?, ?, ?,
         ?, ?, ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?
+        ?, ?, ?, ?, ?
       )
     `;
 
@@ -287,6 +290,7 @@ const createMember = async ({
           departmentId ?? null,
           studentId ?? null,
           academicStatus || "Student",
+          entryYear ?? null,
           graduationYear ?? null,
           memberNumber,
           gender || null,
@@ -444,6 +448,7 @@ const updateMember = async (
     departmentId,
     studentId,
     academicStatus,
+    entryYear,
     graduationYear,
     homeRegion,
     homeTown,
@@ -521,6 +526,7 @@ const updateMember = async (
         department_id = ?,
         student_id = ?,
         academic_status = ?,
+        entry_year = ?,
         graduation_year = ?,
         home_region = ?,
         home_town = ?,
@@ -554,6 +560,7 @@ const updateMember = async (
           departmentId ?? null,
           studentId ?? null,
           academicStatus || "Student",
+          entryYear ?? null,
           graduationYear ?? null,
           homeRegion ?? null,
           homeTown ?? null,
@@ -701,20 +708,11 @@ const buildMemberFilters = ({
   }
 
   /*
-   * Batch = the year the student started (E.C.).
-   *
-   * It is not stored. It is worked out from the graduation year (stored
-   * in G.C., which is the E.C. year + 8) and the length of the
-   * department's program (departments.duration_years, set per department):
-   *
-   *   batch = graduation year - 8 - program length
-   *
-   * A department with no program length (NULL) never matches a batch.
+   * Batch = the year the student started at the university, in E.C.
+   * (for example 2016). It is stored as entry_year.
    */
   if (batch) {
-    conditions.push(
-      "(m.graduation_year - 8 - d.duration_years) = ?"
-    );
+    conditions.push("m.entry_year = ?");
     queryParams.push(batch);
   }
 
@@ -775,6 +773,7 @@ const getAllMembers = async ({
     member_number: "m.member_number",
     email: "u.email",
     created_at: "m.created_at",
+    entry_year: "m.entry_year",
     graduation_year: "m.graduation_year",
     fellowship: "f.name",
   };

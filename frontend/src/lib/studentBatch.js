@@ -1,24 +1,18 @@
-import {
-  currentEthiopianYear,
-  gregorianGraduationToEc,
-} from "@/lib/ethiopianCalendar";
+import { currentEthiopianYear } from "@/lib/ethiopianCalendar";
 
 /**
  * Batch and year of study.
  *
- * Nothing extra is stored. Everything is worked out from what the member
- * already has:
- *   - the graduation year (the database keeps it in G.C. = E.C. year + 8)
- *   - the length of the DEPARTMENT'S program, in years, set per department
- *     (engineering 5, medicine 6, information systems 4, ...)
+ * Every member has an ENTRY YEAR: the year they started at the university,
+ * as an Ethiopian (E.C.) year such as 2016. From it:
  *
- *   batch (the year they started, E.C.) = graduation year (E.C.) - program length
- *   year of study                        = this E.C. year - batch + 1
+ *   batch                = the entry year            ("Batch 2016")
+ *   year of study        = this E.C. year - entry + 1 ("3rd year")
+ *   expected graduation  = entry year + the department's program length
+ *                          (engineering 5, medicine 6, most others 4 ...)
  *
- * There is no "general" length. When a department has no program length
- * yet, the batch is simply "not set" instead of a wrong guess.
- *
- * The backend uses the same formula for the Batch filter.
+ * The program length only matters for the expected graduation year.
+ * The backend filters by the same entry year.
  */
 
 const ORDINAL_SUFFIX = { 1: "st", 2: "nd", 3: "rd" };
@@ -35,44 +29,25 @@ export const ordinal = (number) => {
 };
 
 /**
- * Returns null when the member has no graduation year.
- * When the department has no program length, `batch` is null and
- * `needsDuration` is true.
+ * Returns null when the member has no entry year yet.
  */
 export function getBatchInfo(member) {
-  const graduationGc = Number(member?.graduation_year);
+  const batch = Number(member?.entry_year);
 
-  if (!graduationGc) {
+  if (!batch) {
     return null;
   }
 
-  const graduationEc = gregorianGraduationToEc(graduationGc);
   const programYears = Number(member?.department_duration_years) || null;
+  const graduationEc = programYears ? batch + programYears : null;
 
-  if (!programYears) {
-    return {
-      batch: null,
-      graduationEc,
-      programYears: null,
-      studyYear: null,
-      isGraduate: member?.academic_status === "Graduate",
-      needsDuration: true,
-      yearText: "",
-      text: "Batch not set",
-    };
-  }
-
-  const batch = graduationEc - programYears;
   const isGraduate = member?.academic_status === "Graduate";
-
-  const studyYear = isGraduate
-    ? null
-    : currentEthiopianYear() - batch + 1;
+  const studyYear = isGraduate ? null : currentEthiopianYear() - batch + 1;
 
   let yearText;
 
   if (isGraduate) {
-    yearText = `Graduated ${graduationEc}`;
+    yearText = graduationEc ? `Graduated ${graduationEc}` : "Graduate";
   } else if (studyYear >= 1) {
     yearText = `${ordinal(studyYear)} year`;
   } else {
@@ -85,7 +60,6 @@ export function getBatchInfo(member) {
     programYears,
     studyYear,
     isGraduate,
-    needsDuration: false,
     yearText,
     text: `Batch ${batch} · ${yearText}`,
   };
@@ -95,12 +69,12 @@ export function getBatchInfo(member) {
  * The Batch / Year filter has two kinds of choice, both worked out from
  * TODAY's E.C. year, so nothing is fixed and it keeps working every year:
  *
- *   "year:3"   -> everybody who is in the 3rd year now
- *                 (the label never changes: 1st year ... 6th year)
+ *   "year:3"     -> everybody who is in the 3rd year now
+ *                   (the label never changes: 1st year ... 6th year)
  *   "batch:2019" -> everybody who started in 2019 E.C.
- *                 (the list moves forward by itself every Meskerem)
+ *                   (the list moves forward by itself every Meskerem)
  *
- * Both end up as one batch year for the backend.
+ * Both end up as one entry year for the backend.
  */
 export const MAX_STUDY_YEAR = 6; // medicine and veterinary medicine
 
@@ -123,7 +97,7 @@ export function getBatchOptions() {
 }
 
 /**
- * "year:3" / "batch:2017" -> the batch year as text ("" for no filter).
+ * "year:3" / "batch:2017" -> the entry year as text ("" for no filter).
  */
 export function batchFromChoice(choice) {
   if (!choice) {
@@ -146,4 +120,25 @@ export function batchFromChoice(choice) {
   }
 
   return "";
+}
+
+/**
+ * The entry years offered in the forms, newest first.
+ *   students:  this year back to 7 years ago (the longest program is 6 years)
+ *   graduates: the last 30 years
+ */
+export function getEntryYearOptions(isStudent) {
+  const now = currentEthiopianYear();
+  const count = isStudent ? 8 : 31;
+
+  return Array.from({ length: count }, (_, index) => {
+    const year = now - index;
+
+    return {
+      value: String(year),
+      label: isStudent
+        ? `${year} E.C. · ${ordinal(index + 1)} year`
+        : `${year} E.C.`,
+    };
+  });
 }

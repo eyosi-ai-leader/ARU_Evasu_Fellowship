@@ -2,7 +2,7 @@
 
 import { Building2, Check, GraduationCap } from "lucide-react";
 
-import { currentEthiopianYear } from "@/lib/ethiopianCalendar";
+import { getEntryYearOptions } from "@/lib/studentBatch";
 
 import {
   CheckboxCard,
@@ -24,16 +24,11 @@ export default function PublicRegisterCampusInfo({
   departments,
   departmentsLoading,
 }) {
-  // Years are shown in the Ethiopian calendar (E.C.).
-  const currentYear = currentEthiopianYear();
   const isGraduate = formData.academicStatus === "Graduate";
 
-  const years = isGraduate
-    ? Array.from(
-        { length: currentYear - 1991 },
-        (_, index) => currentYear - index
-      )
-    : Array.from({ length: 9 }, (_, index) => currentYear + index);
+  // Entry year (E.C.): the year they started at the university.
+  // Students: this year back to 7 years ago. Graduates: the last 30 years.
+  const years = getEntryYearOptions(!isGraduate);
 
   const needsDepartment =
     formData.academicStatus === "Student" && departments.length > 0;
@@ -137,20 +132,19 @@ export default function PublicRegisterCampusInfo({
           />
 
           <SelectInput
-            label={`${
-              isGraduate ? "Graduation year" : "Expected graduation year"
-            } (E.C.)`}
+            label="Entry year (E.C.)"
             required
-            name="graduationYear"
-            value={formData.graduationYear}
+            name="entryYear"
+            value={formData.entryYear}
             onChange={onChange}
-            error={errors.graduationYear}
+            error={errors.entryYear}
+            hint="The year you started at the university"
           >
             <option value="">Select year</option>
 
             {years.map((year) => (
-              <option key={year} value={year}>
-                {year} E.C.
+              <option key={year.value} value={year.value}>
+                {year.label}
               </option>
             ))}
           </SelectInput>

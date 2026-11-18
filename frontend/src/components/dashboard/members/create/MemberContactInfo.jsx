@@ -1,78 +1,62 @@
 "use client";
 
-export default function MemberContactInfo({
-  form,
-  errors,
-  onChange,
-}) {
+import { Field, Section, fieldClass } from "./FormParts";
+
+export default function MemberContactInfo({ form, errors = {}, onChange }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="mb-6">
-        <h2 className="text-base font-semibold text-slate-900">
-          Contact Information
-        </h2>
-
-        <p className="mt-1 text-sm text-slate-500">
-          Contact details and address information.
-        </p>
-      </div>
-
+    <Section
+      title="Contact Information"
+      description="How to reach the member."
+    >
       <div className="grid gap-5 md:grid-cols-2">
-        <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">
-            Email <span className="text-red-500">*</span>
-          </label>
-
+        <Field id="email" label="Email" required error={errors.email}>
           <input
+            id="email"
             type="email"
             name="email"
+            inputMode="email"
             value={form.email}
             onChange={onChange}
             placeholder="member@example.com"
-            className={`h-11 w-full rounded-xl border bg-white px-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
-              errors.email
-                ? "border-red-300 focus:border-red-400 focus:ring-red-100"
-                : "border-slate-200 focus:border-slate-400 focus:ring-slate-100"
-            }`}
+            autoComplete="off"
+            aria-invalid={Boolean(errors.email)}
+            className={fieldClass(errors.email)}
           />
+        </Field>
 
-          {errors.email && (
-            <p className="mt-1.5 text-xs text-red-500">
-              {errors.email}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">
-            Phone
-          </label>
-
+        <Field id="phone" label="Phone" error={errors.phone}>
           <input
+            id="phone"
             type="tel"
             name="phone"
+            inputMode="tel"
             value={form.phone}
             onChange={onChange}
             placeholder="0911 000 000"
-            className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+            className={fieldClass(errors.phone)}
           />
-        </div>
+        </Field>
 
-        <div className="md:col-span-2">
-          <label className="mb-2 block text-sm font-medium text-slate-700">
-            Address
-          </label>
-
-          <textarea
-            name="address"
-            value={form.address}
+        <Field
+          id="telegramUsername"
+          label="Telegram username"
+          error={errors.telegramUsername}
+          help="Used for quick one-tap contact."
+        >
+          <input
+            id="telegramUsername"
+            type="text"
+            name="telegramUsername"
+            value={form.telegramUsername}
             onChange={onChange}
-            rows={3}
-            placeholder="Enter member address"
-            className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+            placeholder="@username"
+            autoCapitalize="none"
+            autoComplete="off"
+            className={fieldClass(errors.telegramUsername)}
           />
-        </div>
+        </Field>
+
       </div>
-    </div>
+    </Section>
   );
 }

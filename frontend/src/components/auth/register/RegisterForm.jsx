@@ -78,7 +78,7 @@ const initialFormData = {
   fellowshipId: "",
   departmentId: "",
   academicStatus: "Student",
-  graduationYear: "",
+  entryYear: "",
   studentId: "",
   alumniContactConsent: false,
 
@@ -237,7 +237,7 @@ export default function RegisterForm() {
       if (name === "fellowshipId") next.departmentId = "";
 
       // Student and graduate have different year lists.
-      if (name === "academicStatus") next.graduationYear = "";
+      if (name === "academicStatus") next.entryYear = "";
 
       // A new region means a new city list.
       if (name === "homeRegion") {
@@ -277,8 +277,8 @@ export default function RegisterForm() {
         newErrors.departmentId = "Please select your department.";
       }
 
-      if (!formData.graduationYear) {
-        newErrors.graduationYear = "Please select your graduation year.";
+      if (!formData.entryYear) {
+        newErrors.entryYear = "Please select your entry year.";
       }
     }
 
@@ -456,10 +456,10 @@ export default function RegisterForm() {
 
       if (baptismDate) data.append("baptismDate", baptismDate);
 
-      // Graduation year: the E.C. year + 8 is the G.C. year.
+      // Entry year: the E.C. year + 8 is the G.C. year.
       data.append(
-        "graduationYear",
-        String(ecGraduationToGregorian(formData.graduationYear))
+        "entryYear",
+        String((formData.entryYear))
       );
 
       // City or town: the chosen one, or the one they typed.

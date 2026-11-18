@@ -5,6 +5,10 @@
  * Meaning of the returned values:
  *   undefined -> the field was not sent (on update: keep the existing value)
  *   null      -> the field was sent empty (on update: clear it)
+ *
+ * entryYear is the year the student started at the university, as an
+ * Ethiopian (E.C.) year such as 2016. The batch, the year of study and the
+ * expected graduation year are all worked out from it.
  */
 
 const ACADEMIC_STATUSES = ["Student", "Graduate"];
@@ -74,6 +78,7 @@ const pickProfileFields = (body = {}) => ({
 
   studentId: toText(body.studentId, 50),
   academicStatus: toText(body.academicStatus, 20),
+  entryYear: toInt(body.entryYear),
   graduationYear: toInt(body.graduationYear),
 
   homeRegion: toText(body.homeRegion, 100),

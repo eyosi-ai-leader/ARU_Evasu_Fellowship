@@ -15,36 +15,38 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { createMember } from "@/lib/memberApi";
+import { getDepartments } from "@/lib/fellowshipApi";
+import useMyAccess from "@/lib/useMyAccess";
 import { canManageMembers } from "@/lib/roles";
+import {
+  buildMemberFormData,
+  emptyMemberForm,
+  getAssignableRoles,
+  validateMemberForm,
+} from "@/lib/memberForm";
 
 import MemberProfileImage from "./MemberProfileImage";
 import MemberPersonalInfo from "./MemberPersonalInfo";
 import MemberContactInfo from "./MemberContactInfo";
-import MemberChurchInfo from "./MemberChurchInfo";
-
-const initialForm = {
-  firstName: "",
-  middleName: "",
-  lastName: "",
-  email: "",
-  phone: "",
-  gender: "",
-  dateOfBirth: "",
-  baptismDate: "",
-  address: "",
-  roleId: "5",
-  status: "Active",
-  sendInvitation: true,
-};
+import MemberFellowshipInfo from "./MemberFellowshipInfo";
+import MemberHomeInfo from "./MemberHomeInfo";
+import MemberEmergencyInfo from "./MemberEmergencyInfo";
+import MemberSpiritualInfo from "./MemberSpiritualInfo";
+import MemberAccountSettings from "./MemberAccountSettings";
 
 export default function CreateMemberForm() {
   const router = useRouter();
 
-  const [authorized, setAuthorized] = useState(false);
-  const [checkingAccess, setCheckingAccess] = useState(true);
-  const [currentRoleId, setCurrentRoleId] = useState(null);
+  const { access, campuses, loading: accessLoading } = useMyAccess();
 
-  const [form, setForm] = useState(initialForm);
+  // Role saved at sign-in: only used if /api/me cannot be loaded.
+  const [storedRoleId, setStoredRoleId] = useState(null);
+  const [userLoaded, setUserLoaded] = useState(false);
+
+  const [form, setForm] = useState(emptyMemberForm);
+
+  const [departments, setDepartments] = useState([]);
+  const [departmentsLoading, setDepartmentsLoading] = useState(false);
 
   const [profileImage, setProfileImage] = useState(null);
   const [preview, setPreview] = useState("");
@@ -56,46 +58,78 @@ export default function CreateMemberForm() {
   // Set after a member is created successfully.
   const [result, setResult] = useState(null);
 
-  /*
-   * Verify that the current user is allowed
-   * to create members.
-   *
-   * Admin  = 1
-   * Pastor = 2
-   *
-   * Church Elder, Ministry Leader and Member
-   * are redirected back to the members page.
-   */
   useEffect(() => {
     try {
       const storedUser = localStorage.getItem("user");
 
-      if (!storedUser) {
-        router.replace("/dashboard/members");
-        return;
+      if (storedUser) {
+        setStoredRoleId(Number(JSON.parse(storedUser)?.roleId));
       }
-
-      const user = JSON.parse(storedUser);
-      const roleId = Number(user?.roleId);
-
-      if (!canManageMembers(roleId)) {
-        router.replace("/dashboard/members");
-        return;
-      }
-
-      setCurrentRoleId(roleId);
-      setAuthorized(true);
     } catch (error) {
-      console.error(
-        "Failed to verify member creation access:",
-        error
-      );
-
-      router.replace("/dashboard/members");
+      console.error("Failed to load current user:", error);
     } finally {
-      setCheckingAccess(false);
+      setUserLoaded(true);
     }
-  }, [router]);
+  }, []);
+
+  const ready = userLoaded && !accessLoading;
+
+  const capabilities = access?.capabilities || null;
+
+  const canManage = capabilities
+    ? capabilities.includes("fellowship:manage")
+    : canManageMembers(storedRoleId);
+
+  const isSuperAdmin = access
+    ? Boolean(access.isSuperAdmin)
+    : Number(storedRoleId) === 1;
+
+  const roleOptions = getAssignableRoles(isSuperAdmin);
+
+  // Only people who manage members may open this page.
+  useEffect(() => {
+    if (ready && !canManage) {
+      router.replace("/dashboard/members");
+    }
+  }, [ready, canManage, router]);
+
+  // A person who manages only one campus does not have to choose it.
+  useEffect(() => {
+    if (campuses.length === 1) {
+      setForm((previous) =>
+        previous.fellowshipId
+          ? previous
+          : { ...previous, fellowshipId: String(campuses[0].id) }
+      );
+    }
+  }, [campuses]);
+
+  // Load the departments of the chosen campus.
+  useEffect(() => {
+    if (!form.fellowshipId) {
+      setDepartments([]);
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    setDepartmentsLoading(true);
+
+    getDepartments(form.fellowshipId)
+      .then((list) => {
+        if (!cancelled) setDepartments(list);
+      })
+      .catch(() => {
+        if (!cancelled) setDepartments([]);
+      })
+      .finally(() => {
+        if (!cancelled) setDepartmentsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [form.fellowshipId]);
 
   // Release the temporary photo preview when it changes or the page closes.
   useEffect(() => {
@@ -110,6 +144,12 @@ export default function CreateMemberForm() {
     setForm((previous) => ({
       ...previous,
       [name]: value,
+      // A department belongs to one campus.
+      ...(name === "fellowshipId" ? { departmentId: "" } : {}),
+      // A new academic status means a different entry-year list.
+      ...(name === "academicStatus" ? { entryYear: "" } : {}),
+      // A new region means a new city list.
+      ...(name === "homeRegion" ? { homeCity: "", homeTownOther: "" } : {}),
     }));
 
     setErrors((previous) => ({
@@ -132,38 +172,11 @@ export default function CreateMemberForm() {
     setServerError("");
   }
 
-  function validate() {
-    const nextErrors = {};
-
-    if (!form.firstName.trim()) {
-      nextErrors.firstName = "First name is required.";
-    }
-
-    if (!form.lastName.trim()) {
-      nextErrors.lastName = "Last name is required.";
-    }
-
-    if (!form.email.trim()) {
-      nextErrors.email = "Email is required.";
-    } else if (
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())
-    ) {
-      nextErrors.email = "Enter a valid email address.";
-    }
-
-    if (!form.gender) {
-      nextErrors.gender = "Gender is required.";
-    }
-
-    if (!form.roleId) {
-      nextErrors.roleId = "Role is required.";
-    }
-
-    return nextErrors;
-  }
-
   function resetForm() {
-    setForm(initialForm);
+    setForm({
+      ...emptyMemberForm,
+      fellowshipId: campuses.length === 1 ? String(campuses[0].id) : "",
+    });
     setProfileImage(null);
     setPreview("");
     setErrors({});
@@ -177,55 +190,26 @@ export default function CreateMemberForm() {
 
     if (saving) return;
 
-    const validationErrors = validate();
+    const validationErrors = validateMemberForm(form, {
+      mode: "create",
+      hasDepartments: departments.length > 0,
+    });
 
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
-
       window.scrollTo({ top: 0, behavior: "smooth" });
-
       return;
     }
 
     // Invitations are only for active members.
-    const invite =
-      form.status === "Active" && Boolean(form.sendInvitation);
+    const invite = form.status === "Active" && Boolean(form.sendInvitation);
 
     try {
       setSaving(true);
       setServerError("");
 
-      const formData = new FormData();
+      const formData = buildMemberFormData(form, { mode: "create" });
 
-      formData.append("firstName", form.firstName.trim());
-
-      if (form.middleName.trim()) {
-        formData.append("middleName", form.middleName.trim());
-      }
-
-      formData.append("lastName", form.lastName.trim());
-      formData.append("email", form.email.trim());
-
-      if (form.phone.trim()) {
-        formData.append("phone", form.phone.trim());
-      }
-
-      formData.append("gender", form.gender);
-
-      if (form.dateOfBirth) {
-        formData.append("dateOfBirth", form.dateOfBirth);
-      }
-
-      if (form.baptismDate) {
-        formData.append("baptismDate", form.baptismDate);
-      }
-
-      if (form.address.trim()) {
-        formData.append("address", form.address.trim());
-      }
-
-      formData.append("roleId", form.roleId);
-      formData.append("status", form.status || "Active");
       formData.append("sendInvitation", String(invite));
 
       if (profileImage) {
@@ -249,9 +233,7 @@ export default function CreateMemberForm() {
     } catch (error) {
       console.error("Create member error:", error);
 
-      setServerError(
-        error.message || "Failed to create member."
-      );
+      setServerError(error.message || "Failed to create member.");
 
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
@@ -259,11 +241,8 @@ export default function CreateMemberForm() {
     }
   }
 
-  /*
-   * While checking the user's role,
-   * don't render the form.
-   */
-  if (checkingAccess) {
+  // While checking access, don't render the form.
+  if (!ready) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
         <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
@@ -274,12 +253,8 @@ export default function CreateMemberForm() {
     );
   }
 
-  /*
-   * Unauthorized users are redirected.
-   * This prevents the form from flashing
-   * before the redirect happens.
-   */
-  if (!authorized) {
+  // Unauthorized people are redirected (see above): show nothing meanwhile.
+  if (!canManage) {
     return null;
   }
 
@@ -292,7 +267,7 @@ export default function CreateMemberForm() {
       <div className="mx-auto max-w-2xl pb-10">
         <div
           role="status"
-          className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm"
+          className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm sm:p-8"
         >
           <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
             <CheckCircle2 size={28} aria-hidden="true" />
@@ -312,8 +287,8 @@ export default function CreateMemberForm() {
               sent
                 ? "border-emerald-200 bg-emerald-50 text-emerald-800"
                 : failed
-                ? "border-amber-200 bg-amber-50 text-amber-900"
-                : "border-slate-200 bg-slate-50 text-slate-700"
+                  ? "border-amber-200 bg-amber-50 text-amber-900"
+                  : "border-slate-200 bg-slate-50 text-slate-700"
             }`}
           >
             <p className="flex items-start gap-2">
@@ -357,7 +332,7 @@ export default function CreateMemberForm() {
             <button
               type="button"
               onClick={resetForm}
-              className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+              className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
             >
               Add another member
             </button>
@@ -365,7 +340,7 @@ export default function CreateMemberForm() {
             {result.memberId && (
               <Link
                 href={`/dashboard/members/${result.memberId}`}
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               >
                 View member
               </Link>
@@ -374,7 +349,7 @@ export default function CreateMemberForm() {
             {(failed || (!sent && !result.inactive)) && (
               <Link
                 href="/dashboard/account-access"
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
               >
                 Open Member Access
               </Link>
@@ -382,7 +357,7 @@ export default function CreateMemberForm() {
 
             <Link
               href="/dashboard/members"
-              className="inline-flex h-10 items-center justify-center rounded-xl px-5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
+              className="inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
             >
               Back to members
             </Link>
@@ -410,8 +385,8 @@ export default function CreateMemberForm() {
             </h1>
 
             <p className="mt-2 text-sm text-slate-500">
-              Add a new member and keep their church information organized.
-              They choose their own password from an invitation email.
+              Add a new student to the fellowship. They choose their own
+              password from an invitation email.
             </p>
           </div>
 
@@ -452,10 +427,16 @@ export default function CreateMemberForm() {
           </div>
         )}
 
-        <MemberProfileImage
-          preview={preview}
-          onChange={handleProfileImage}
-        />
+        {Object.keys(errors).some((key) => errors[key]) && (
+          <div
+            role="alert"
+            className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+          >
+            Please fix the highlighted fields below.
+          </div>
+        )}
+
+        <MemberProfileImage preview={preview} onChange={handleProfileImage} />
 
         <MemberPersonalInfo
           form={form}
@@ -469,18 +450,46 @@ export default function CreateMemberForm() {
           onChange={handleChange}
         />
 
-        <MemberChurchInfo
+        <MemberFellowshipInfo
+          mode="create"
           form={form}
           errors={errors}
           onChange={handleChange}
-          isAdmin={currentRoleId === 1}
+          campuses={campuses}
+          departments={departments}
+          departmentsLoading={departmentsLoading}
+        />
+
+        <MemberEmergencyInfo
+          form={form}
+          errors={errors}
+          onChange={handleChange}
+        />
+
+        <MemberHomeInfo
+          form={form}
+          errors={errors}
+          onChange={handleChange}
+        />
+
+        <MemberSpiritualInfo
+          form={form}
+          errors={errors}
+          onChange={handleChange}
+        />
+
+        <MemberAccountSettings
+          form={form}
+          errors={errors}
+          onChange={handleChange}
+          roleOptions={roleOptions}
         />
 
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:hidden">
           <div className="flex gap-3">
             <Link
               href="/dashboard/members"
-              className="flex h-11 flex-1 items-center justify-center rounded-xl border border-slate-200 text-sm font-semibold text-slate-600"
+              className="flex h-12 flex-1 items-center justify-center rounded-xl border border-slate-200 text-sm font-semibold text-slate-600"
             >
               Cancel
             </Link>
@@ -488,7 +497,7 @@ export default function CreateMemberForm() {
             <button
               type="submit"
               disabled={saving}
-              className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 text-sm font-semibold text-white disabled:opacity-60"
+              className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 text-sm font-semibold text-white disabled:opacity-60"
             >
               {saving ? (
                 <Loader2 size={17} className="animate-spin" />

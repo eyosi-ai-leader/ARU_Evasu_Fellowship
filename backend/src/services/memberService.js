@@ -451,6 +451,11 @@ const updateMember = async (
         memberData.academicStatus ??
         existingMember.academic_status,
 
+      entryYear: keep(
+        memberData.entryYear,
+        existingMember.entry_year
+      ),
+
       graduationYear: keep(
         memberData.graduationYear,
         existingMember.graduation_year

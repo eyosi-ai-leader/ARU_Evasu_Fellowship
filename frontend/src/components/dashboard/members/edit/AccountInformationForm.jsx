@@ -2,6 +2,9 @@
 
 import { AlertTriangle, Loader2, Mail } from "lucide-react";
 
+import { formatEthiopianDate } from "@/lib/ethiopianCalendar";
+
+// "15 Meskerem 2019 E.C."  (a Date is used so the local day is shown)
 function formatDate(value) {
   if (!value) return "—";
 
@@ -9,13 +12,10 @@ function formatDate(value) {
 
   if (Number.isNaN(date.getTime())) return "—";
 
-  return date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return formatEthiopianDate(date) || "—";
 }
 
+// "15 Meskerem 2019 E.C., 3:20 PM"
 function formatDateTime(value) {
   if (!value) return "";
 
@@ -23,13 +23,12 @@ function formatDateTime(value) {
 
   if (Number.isNaN(date.getTime())) return "";
 
-  return date.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
+  const time = date.toLocaleTimeString(undefined, {
     hour: "numeric",
     minute: "2-digit",
   });
+
+  return `${formatEthiopianDate(date)}, ${time}`;
 }
 
 function getAccess(member) {
@@ -94,7 +93,7 @@ export default function AccountInformationForm({
   const showInvite = canInvite && !signedIn;
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <div className="mb-6">
         <h2 className="text-base font-semibold text-slate-900">
           Account Information
@@ -143,7 +142,7 @@ export default function AccountInformationForm({
               type="button"
               onClick={onInvite}
               disabled={inviting || inactive || emailChanged}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:h-10 sm:w-auto"
             >
               {inviting ? (
                 <Loader2 size={16} className="animate-spin" />
