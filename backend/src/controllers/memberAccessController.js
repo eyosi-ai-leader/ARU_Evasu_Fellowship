@@ -32,7 +32,7 @@ const handle = (action) => async (req, res) => {
 };
 
 const list = handle(async (req, res) => {
-  const data = await service.list(req.user, {
+  const data = await service.list(req.access, {
     filter: req.query.filter,
     search: req.query.search,
     page: req.query.page,
@@ -42,7 +42,7 @@ const list = handle(async (req, res) => {
 });
 
 const exportRows = handle(async (req, res) => {
-  const data = await service.exportRows(req.user, {
+  const data = await service.exportRows(req.access, {
     filter: req.query.filter,
     search: req.query.search,
   });
@@ -51,18 +51,18 @@ const exportRows = handle(async (req, res) => {
 });
 
 const invite = handle(async (req, res) => {
-  await service.sendInvite(req.user, Number(req.params.memberId));
+  await service.sendInvite(req.access, Number(req.params.memberId));
   return successResponse(res, "Invitation sent.", null);
 });
 
 const inviteBulk = handle(async (req, res) => {
-  const data = await service.sendInvites(req.user, req.body.memberIds);
+  const data = await service.sendInvites(req.access, req.body.memberIds);
   return successResponse(res, "Invitations processed.", data);
 });
 
 const setStatus = handle(async (req, res) => {
   await service.setStatus(
-    req.user,
+    req.access,
     Number(req.params.memberId),
     req.body.status
   );
@@ -71,7 +71,7 @@ const setStatus = handle(async (req, res) => {
 });
 
 const remove = handle(async (req, res) => {
-  await service.removeAccount(req.user, Number(req.params.memberId));
+  await service.removeAccount(req.access, Number(req.params.memberId));
   return successResponse(res, "Member deleted.", null);
 });
 

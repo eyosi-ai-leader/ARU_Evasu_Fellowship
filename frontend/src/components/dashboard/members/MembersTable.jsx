@@ -147,6 +147,16 @@ function describeMember(member, { mode, canManage, isSuperAdmin, currentUserId }
     status,
     access,
     academic: getAcademic(member),
+    positions: [
+      ...(member.is_small_group_leader ? ["Small Group Leader"] : []),
+      ...(member.is_ministry_leader ? ["Ministry Leader"] : []),
+    ],
+    placement: {
+      hasSmallGroup: Boolean(member.small_group_id),
+      smallGroup: member.small_group_name || "",
+      family: member.family_name || "",
+      familyRole: member.family_role || "",
+    },
     joined: formatEthiopianDate(member.created_at, {
       short: true,
       fallback: "—",
@@ -187,6 +197,7 @@ function getColumns(mode, showCampus) {
       { key: "member", label: "Member", sort: "first_name", min: "min-w-[240px]" },
       { key: "number", label: "Member No.", sort: "member_number", min: "min-w-[130px]" },
       { key: "academic", label: "Department · Batch", sort: "entry_year", min: "min-w-[190px]" },
+      { key: "placement", label: "Family", min: "min-w-[170px]" },
       { key: "status", label: "Status", min: "min-w-[110px]" },
     ];
   }
@@ -198,6 +209,7 @@ function getColumns(mode, showCampus) {
       ? [{ key: "campus", label: "Campus", sort: "fellowship", min: "min-w-[130px]" }]
       : []),
     { key: "academic", label: "Department · Batch", sort: "entry_year", min: "min-w-[190px]" },
+    { key: "placement", label: "Small group · Family", min: "min-w-[190px]" },
     { key: "role", label: "Role", min: "min-w-[135px]" },
     { key: "status", label: "Status", min: "min-w-[110px]" },
     { key: "access", label: "Access", min: "min-w-[120px]" },
@@ -346,6 +358,65 @@ function AcademicText({ academic }) {
       {academic.yearText && (
         <p className="mt-0.5 truncate text-xs text-slate-400">
           {academic.yearText}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function AttentionChip({ children }) {
+  return (
+    <span className="inline-flex rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700">
+      {children}
+    </span>
+  );
+}
+
+/*
+ * Where the person belongs. A person with no small group (or no family)
+ * gets a clear "not yet" label, so leaders can see who still needs a place.
+ */
+function PlacementText({ placement, mode }) {
+  // An overseer already knows the small group: show the family only.
+  if (mode === "smallGroup") {
+    return placement.family ? (
+      <div className="min-w-0">
+        <p
+          title={placement.family}
+          className="truncate text-sm font-medium text-slate-700"
+        >
+          {placement.family}
+        </p>
+
+        <p className="mt-0.5 truncate text-xs text-slate-400">
+          {placement.familyRole}
+        </p>
+      </div>
+    ) : (
+      <AttentionChip>Not yet in a family</AttentionChip>
+    );
+  }
+
+  if (!placement.hasSmallGroup) {
+    return <AttentionChip>Not yet in a small group</AttentionChip>;
+  }
+
+  return (
+    <div className="min-w-0">
+      <p
+        title={placement.smallGroup}
+        className="truncate text-sm font-medium text-slate-700"
+      >
+        {placement.smallGroup}
+      </p>
+
+      {placement.family ? (
+        <p className="mt-0.5 truncate text-xs text-slate-400">
+          {placement.family} · {placement.familyRole}
+        </p>
+      ) : (
+        <p className="mt-0.5 truncate text-xs font-medium text-amber-600">
+          Not yet in a family
         </p>
       )}
     </div>
@@ -611,7 +682,7 @@ export default function MembersTable({
         )}
 
         <div className="w-full overflow-x-auto">
-          <table className="w-full min-w-[960px] border-collapse">
+          <table className="w-full min-w-[1100px] border-collapse">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50/70">
                 {columns.map((column) => (
@@ -726,9 +797,29 @@ export default function MembersTable({
                       </td>
                     ),
 
+                    placement: (
+                      <td key="placement" className="max-w-0 px-3 py-4">
+                        <PlacementText
+                          placement={info.placement}
+                          mode={mode}
+                        />
+                      </td>
+                    ),
+
                     role: (
                       <td key="role" className="max-w-0 px-3 py-4">
-                        <RoleBadge role={info.displayedRole} />
+                        <div className="flex flex-wrap gap-1">
+                          <RoleBadge role={info.displayedRole} />
+
+                          {info.positions.map((position) => (
+                            <span
+                              key={position}
+                              className="inline-flex items-center rounded-lg bg-indigo-50 px-2 py-1 text-[11px] font-semibold text-indigo-600"
+                            >
+                              {position}
+                            </span>
+                          ))}
+                        </div>
                       </td>
                     ),
 

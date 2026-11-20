@@ -1,55 +1,51 @@
-
 const express = require("express");
 
 const router = express.Router();
 
 const ministryController = require("../controllers/ministryController");
 const authMiddleware = require("../middleware/authMiddleware");
-const roleMiddleware = require("../middleware/roleMiddleware");
+const {
+  loadAccess,
+  requireCapability,
+} = require("../middleware/accessMiddleware");
 
-router.use(authMiddleware);
+router.use(authMiddleware, loadAccess);
 
-// Ministry Leader: retrieve only ministries they actively lead.
-router.get(
-  "/my-ministries",
-  roleMiddleware(4),
-  ministryController.getMyMinistries
-);
+/*
+ * Ministry Leaders. A ministry leader is a position (read from
+ * ministry_members), not a role number. The service checks that the person
+ * leads THIS ministry.
+ */
+const leads = requireCapability("ministry:lead");
 
-// Ministry Leader: scoped member and ministry management.
-router.get(
-  "/:id/leader-members",
-  roleMiddleware(4),
-  ministryController.getLeaderMembers
-);
-
-router.patch(
-  "/:id/leader-details",
-  roleMiddleware(4),
-  ministryController.updateLeaderMinistry
-);
-
-router.post(
-  "/:id/leader-members",
-  roleMiddleware(4),
-  ministryController.assignLeaderMember
-);
-
+router.get("/my-ministries", leads, ministryController.getMyMinistries);
+router.get("/:id/leader-members", leads, ministryController.getLeaderMembers);
+router.patch("/:id/leader-details", leads, ministryController.updateLeaderMinistry);
+router.post("/:id/leader-members", leads, ministryController.assignLeaderMember);
 router.patch(
   "/:id/leader-members/:memberId/status",
-  roleMiddleware(4),
+  leads,
   ministryController.updateLeaderAssignmentStatus
 );
-
 router.delete(
   "/:id/leader-members/:memberId",
-  roleMiddleware(4),
+  leads,
   ministryController.removeLeaderAssignment
 );
 
-// Existing administrative routes remain restricted to Admin,
-// Pastor, and Church Elder.
-router.use(roleMiddleware(1, 2, 3));
+// Members who could be added (managers and the ministry's own leaders).
+router.get(
+  "/:id/candidates",
+  requireCapability("fellowship:manage", "general:manage", "ministry:lead"),
+  ministryController.getCandidates
+);
+
+/*
+ * Campus managers: Super Admin, Staff, Fellowship Admin, Main Leader
+ * (and General Main Leaders for the General Fellowship). The service limits
+ * each person to their own campuses.
+ */
+router.use(requireCapability("fellowship:manage", "general:manage"));
 
 router.get("/", ministryController.list);
 router.post("/", ministryController.create);

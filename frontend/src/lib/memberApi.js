@@ -103,6 +103,7 @@ export async function getMembers({
   departmentId = "",
   academicStatus = "",
   batch = "",
+  position = "",
   sortBy = "created_at",
   sortOrder = "desc",
 } = {}) {
@@ -141,6 +142,10 @@ export async function getMembers({
 
   if (batch) {
     params.set("batch", String(batch));
+  }
+
+  if (position) {
+    params.set("position", position);
   }
 
   if (sortBy) {
@@ -281,5 +286,38 @@ export async function getMyMinistryMembers({
 export async function getMyMinistryMemberById(id) {
   return request(
     `${API_URL}/members/my-ministry/${encodeURIComponent(id)}`
+  );
+}
+
+/**
+ * What the signed-in person may give as a role, and the campuses they can
+ * pick from. GET /api/leadership/options
+ * Returns { roles: [{ id, label, campusMode }], campuses: [...] }
+ */
+export async function getRoleOptions() {
+  const result = await request(`${API_URL}/leadership/options`);
+
+  return result?.data || { roles: [], campuses: [] };
+}
+
+/**
+ * Give a member a role. The campus is part of the request.
+ * PUT /api/leadership/members/:memberId/role
+ */
+export async function changeMemberRole(
+  memberId,
+  { roleId, fellowshipIds, allCampuses }
+) {
+  const body = { roleId };
+
+  if (fellowshipIds) body.fellowshipIds = fellowshipIds;
+  if (allCampuses) body.allCampuses = true;
+
+  return request(
+    `${API_URL}/leadership/members/${encodeURIComponent(memberId)}/role`,
+    {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }
   );
 }

@@ -33,6 +33,7 @@ const BASE = `
   SELECT
     m.id AS member_id,
     m.member_number,
+    m.fellowship_id,
     m.status AS member_status,
     m.created_at AS joined_at,
     u.id AS user_id,
@@ -58,7 +59,7 @@ const FILTERS = {
   signed_in: ["active"],
 };
 
-const buildWhere = ({ filter, search }) => {
+const buildWhere = ({ filter, search, campusIds = null }) => {
   const conditions = [];
   const params = [];
 
@@ -67,6 +68,13 @@ const buildWhere = ({ filter, search }) => {
   if (states) {
     conditions.push("x.access_state IN (?)");
     params.push(states);
+  }
+
+  // null = every campus (Super Admin). Otherwise only the campuses
+  // this person manages.
+  if (campusIds) {
+    conditions.push("x.fellowship_id IN (?)");
+    params.push(campusIds.length > 0 ? campusIds : [0]);
   }
 
   if (search) {
@@ -95,8 +103,9 @@ const listAccess = async ({
   search = "",
   limit = 20,
   offset = 0,
+  campusIds = null,
 }) => {
-  const { where, params } = buildWhere({ filter, search });
+  const { where, params } = buildWhere({ filter, search, campusIds });
 
   const [countRows] = await db.query(
     `SELECT COUNT(*) AS total FROM (${BASE}) x ${where}`,
@@ -117,9 +126,18 @@ const listAccess = async ({
   return { rows, total: Number(countRows[0]?.total || 0) };
 };
 
-const getSummary = async () => {
+const getSummary = async (campusIds = null) => {
+  const where = campusIds ? "WHERE x.fellowship_id IN (?)" : "";
+  const params = campusIds ? [campusIds.length > 0 ? campusIds : [0]] : [];
+
   const [rows] = await db.query(
-    `SELECT x.access_state, COUNT(*) AS total FROM (${BASE}) x GROUP BY x.access_state`
+    `
+      SELECT x.access_state, COUNT(*) AS total
+      FROM (${BASE}) x
+      ${where}
+      GROUP BY x.access_state
+    `,
+    params
   );
 
   return Object.fromEntries(
@@ -130,6 +148,7 @@ const getSummary = async () => {
 const TARGET_COLUMNS = `
   m.id AS member_id,
   m.status AS member_status,
+  m.fellowship_id,
   u.id AS user_id,
   u.first_name,
   u.last_name,
@@ -218,6 +237,20 @@ const isMinistryLeader = async (memberId) => {
   return rows.length > 0;
 };
 
+const isSmallGroupLeader = async (memberId) => {
+  const [rows] = await db.execute(
+    `
+      SELECT 1
+      FROM small_group_leaders
+      WHERE member_id = ? AND status = 'Active'
+      LIMIT 1
+    `,
+    [memberId]
+  );
+
+  return rows.length > 0;
+};
+
 /*
  * Permanently removes an account that never signed in,
  * together with everything that only exists because of it.
@@ -261,5 +294,6 @@ module.exports = {
   setMemberStatus,
   getUserName,
   isMinistryLeader,
+  isSmallGroupLeader,
   deleteAccount,
 };

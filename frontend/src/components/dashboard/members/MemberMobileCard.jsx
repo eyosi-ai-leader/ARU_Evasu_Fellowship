@@ -5,11 +5,13 @@ import {
   Building2,
   ChevronRight,
   GraduationCap,
+  Home,
   MapPin,
   Mail,
   Phone,
   Send,
   UserRound,
+  Users,
 } from "lucide-react";
 
 /*
@@ -19,6 +21,8 @@ import {
  * - Call / Telegram / Email are large one-tap buttons (44px high).
  * - The management buttons (edit, delete, more...) come from the table
  *   as `actions`, so the permission rules stay in ONE place.
+ * - Leadership badges and "not yet in a small group / family" labels come
+ *   from `info` (the table works them out).
  */
 
 function Avatar({ info }) {
@@ -73,6 +77,58 @@ function QuickButton({ href, icon: Icon, label, external = false }) {
   );
 }
 
+/*
+ * Where the person belongs. An overseer already knows the small group, so
+ * they see the family only. Everyone else sees the small group and family.
+ */
+function PlacementLine({ placement, mode }) {
+  if (mode === "smallGroup") {
+    return (
+      <div className="flex items-center gap-2">
+        <Home size={14} className="shrink-0 text-slate-300" />
+
+        {placement.family ? (
+          <dd className="min-w-0 truncate font-medium text-slate-600">
+            {placement.family}
+            {placement.familyRole ? ` · ${placement.familyRole}` : ""}
+          </dd>
+        ) : (
+          <dd className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+            Not yet in a family
+          </dd>
+        )}
+      </div>
+    );
+  }
+
+  if (!placement.hasSmallGroup) {
+    return (
+      <div className="flex items-center gap-2">
+        <Users size={14} className="shrink-0 text-slate-300" />
+
+        <dd className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+          Not yet in a small group
+        </dd>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <Users size={14} className="shrink-0 text-slate-300" />
+
+      <dd className="min-w-0 truncate font-medium text-slate-600">
+        {placement.smallGroup}
+        {placement.family ? (
+          ` · ${placement.family} (${placement.familyRole})`
+        ) : (
+          <span className="font-semibold text-amber-600"> · Not yet in a family</span>
+        )}
+      </dd>
+    </div>
+  );
+}
+
 const cleanTelegram = (value) =>
   String(value || "").trim().replace(/^@/, "").replace(/^https?:\/\/t\.me\//i, "");
 
@@ -90,6 +146,11 @@ export default function MemberMobileCard({
     .join(" · ");
 
   const telegram = cleanTelegram(member.telegram_username);
+
+  const positions = info.positions || [];
+
+  const showPlacement =
+    (mode === "manage" || mode === "smallGroup") && Boolean(info.placement);
 
   const top = (
     <div className="flex items-center gap-3">
@@ -118,6 +179,15 @@ export default function MemberMobileCard({
               {info.access.label}
             </span>
           )}
+
+          {positions.map((position) => (
+            <span
+              key={position}
+              className="rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold text-indigo-600"
+            >
+              {position}
+            </span>
+          ))}
         </div>
       </div>
 
@@ -145,7 +215,8 @@ export default function MemberMobileCard({
       {/* Facts */}
       {(academicLine ||
         (isMinistry && info.ministryName) ||
-        (showCampus && info.campus)) && (
+        (showCampus && info.campus) ||
+        showPlacement) && (
         <dl className="space-y-1.5 px-4 pb-3 text-xs text-slate-500">
           {!isMinistry && academicLine && (
             <div className="flex items-center gap-2">
@@ -154,6 +225,10 @@ export default function MemberMobileCard({
                 {academicLine}
               </dd>
             </div>
+          )}
+
+          {showPlacement && (
+            <PlacementLine placement={info.placement} mode={mode} />
           )}
 
           {isMinistry && (

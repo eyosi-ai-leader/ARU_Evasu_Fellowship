@@ -1,7 +1,7 @@
 const model = require("../models/memberAccessModel");
 const { deliverInvitation } = require("./invitationEmailService");
+const { ROLE_IDS, isPrivilegedRole } = require("../constants/roles");
 
-const ROLE_ADMIN = 1;
 const PAGE_SIZE = 20;
 const BULK_LIMIT = 25;
 const COOLDOWN_MINUTES = 10;
@@ -17,22 +17,42 @@ const httpError = (message, statusCode) => {
 
 const fullName = (first, last) => `${first || ""} ${last || ""}`.trim();
 
+/*
+ * "requester" is req.access (from loadAccess). removeAccount may still be
+ * called with the old token user (id, roleId) by memberController, which
+ * checks the campus itself, so both shapes are accepted.
+ */
+const actorId = (requester) =>
+  requester.user ? requester.user.id : requester.id;
+
+// null = every campus (Super Admin); otherwise the campuses this person manages.
+const campusScope = (requester) =>
+  requester.scope && !requester.scope.all
+    ? requester.scope.memberFellowshipIds
+    : null;
+
 const assertCanManage = (requester, target, { allowSelf = false } = {}) => {
   if (!target) {
     throw httpError("Member not found.", 404);
   }
 
   if (
-    Number(target.role_id) === ROLE_ADMIN &&
-    Number(requester.roleId) !== ROLE_ADMIN
+    isPrivilegedRole(target.role_id) &&
+    Number(requester.roleId) !== ROLE_IDS.SUPER_ADMIN
   ) {
     throw httpError(
-      "Only an administrator can manage an administrator account.",
+      "Only a Super Admin can manage Super Admin, Fellowship Admin and Staff accounts.",
       403
     );
   }
 
-  if (!allowSelf && target.user_id === requester.id) {
+  const campuses = campusScope(requester);
+
+  if (campuses && !campuses.includes(Number(target.fellowship_id))) {
+    throw httpError("You can only manage members of your own campus.", 403);
+  }
+
+  if (!allowSelf && target.user_id === actorId(requester)) {
     throw httpError("You can't do this to your own account.", 400);
   }
 };
@@ -71,6 +91,7 @@ const toItem = (row, requester) => ({
   email: row.email,
   roleId: row.role_id,
   role: row.role_name || "",
+  fellowshipId: row.fellowship_id,
   memberNumber: row.member_number || "",
   memberStatus: row.member_status,
   joinedAt: row.joined_at,
@@ -78,9 +99,9 @@ const toItem = (row, requester) => ({
   invitedAt: row.invited_at,
   inviteCount: Number(row.invite_count || 0),
   state: row.access_state,
-  isSelf: row.user_id === requester.id,
+  isSelf: row.user_id === actorId(requester),
   canInvite: !row.last_login_at && row.member_status === "Active",
-  canDelete: !row.last_login_at && row.user_id !== requester.id,
+  canDelete: !row.last_login_at && row.user_id !== actorId(requester),
 });
 
 const toSummary = (counts) => {
@@ -100,6 +121,7 @@ const toSummary = (counts) => {
 const list = async (requester, { filter, search, page }) => {
   const pageNumber = Math.max(1, Number(page) || 1);
   const offset = (pageNumber - 1) * PAGE_SIZE;
+  const campusIds = campusScope(requester);
 
   const [{ rows, total }, counts] = await Promise.all([
     model.listAccess({
@@ -107,8 +129,9 @@ const list = async (requester, { filter, search, page }) => {
       search: String(search || "").trim(),
       limit: PAGE_SIZE,
       offset,
+      campusIds,
     }),
-    model.getSummary(),
+    model.getSummary(campusIds),
   ]);
 
   return {
@@ -125,6 +148,7 @@ const exportRows = async (requester, { filter, search }) => {
     search: String(search || "").trim(),
     limit: 1000,
     offset: 0,
+    campusIds: campusScope(requester),
   });
 
   return rows.map((row) => toItem(row, requester));
@@ -141,7 +165,7 @@ const sendInvite = async (requester, memberId) => {
       userId: target.user_id,
       firstName: target.first_name,
       email: target.email,
-      inviterId: requester.id,
+      inviterId: actorId(requester),
       reminder: Boolean(target.invited_at),
     });
   } catch (error) {
@@ -201,7 +225,7 @@ const sendInvites = async (requester, memberIdsInput) => {
         userId: target.user_id,
         firstName: target.first_name,
         email: target.email,
-        inviterId: requester.id,
+        inviterId: actorId(requester),
         reminder: Boolean(target.invited_at),
       });
 
@@ -238,11 +262,7 @@ const setStatus = async (requester, memberId, status) => {
  *
  * allowSignedIn:
  *   false (default) - the Member Access page: only people who never signed in.
- *   true            - the Members page. The caller (memberController.deleteMember)
- *                     has already checked that the person manages the member's
- *                     campus and may touch that kind of account, so a member who
- *                     HAS signed in can be deleted too (for example a student
- *                     who is not part of the fellowship).
+ *   true            - the Members page (memberController.deleteMember).
  */
 const removeAccount = async (
   requester,
@@ -251,7 +271,8 @@ const removeAccount = async (
 ) => {
   const target = await model.getTarget(memberId);
 
-  // Also stops people from deleting their own account.
+  // Also stops people from deleting their own account, and (when called with
+  // req.access) people from another campus.
   assertCanManage(requester, target);
 
   if (target.last_login_at && !allowSignedIn) {
@@ -264,6 +285,13 @@ const removeAccount = async (
   if (await model.isMinistryLeader(memberId)) {
     throw httpError(
       "This member leads a ministry. Change the ministry leader first.",
+      409
+    );
+  }
+
+  if (await model.isSmallGroupLeader(memberId)) {
+    throw httpError(
+      "This member oversees a small group. Change the overseer first.",
       409
     );
   }

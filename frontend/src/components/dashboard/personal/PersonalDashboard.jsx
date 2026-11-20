@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 
 import PersonalProfileHeader from "./PersonalProfileHeader";
 
+import MyFellowshipCard from "./MyFellowshipCard";
+
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
@@ -23,10 +25,27 @@ function getAuthToken() {
     : null;
 }
 
-export default function PersonalDashboard() {
-  const [member, setMember] = useState(null);
-  const [loading, setLoading] = useState(true);
+export default function PersonalDashboard({
+  member: providedMember,
+  fellowship: providedFellowship,
+} = {}) {
+  // With a member passed in, the page already has the data. Without one,
+  // this component loads it itself (as before).
+  const standalone = providedMember === undefined;
+
+  const [member, setMember] = useState(standalone ? null : providedMember);
+  const [fellowship, setFellowship] = useState(
+    standalone ? null : providedFellowship ?? null
+  );
+  const [loading, setLoading] = useState(standalone);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!standalone) {
+      setMember(providedMember);
+      setFellowship(providedFellowship ?? null);
+    }
+  }, [standalone, providedMember, providedFellowship]);
 
   useEffect(() => {
     async function loadPersonalDashboard() {
@@ -61,7 +80,8 @@ export default function PersonalDashboard() {
           );
         }
 
-        setMember(result?.data?.member || null);
+              setMember(result?.data?.member || null);
+        setFellowship(result?.data?.myFellowship || null);
       } catch (error) {
         console.error(
           "Personal dashboard error:",
@@ -77,8 +97,10 @@ export default function PersonalDashboard() {
       }
     }
 
-    loadPersonalDashboard();
-  }, []);
+      if (standalone) {
+      loadPersonalDashboard();
+    }
+  }, [standalone]);
 
   if (loading) {
     return (
@@ -156,16 +178,24 @@ export default function PersonalDashboard() {
         <MembershipCard member={member} />
       </section>
 
-      {/* Future church features */}
-      <section className="grid gap-6 lg:grid-cols-2">
+           {/* Small group, family and ministries */}
+      <MyFellowshipCard fellowship={fellowship} />
+
+      {/* Future features */}
+      <section className="grid gap-6 lg:grid-cols-3">
         <ComingSoonCard
-          title="My Ministry"
-          description="Your ministry involvement and responsibilities will appear here."
+          title="Attendance"
+          description="Your attendance history will appear here."
         />
 
         <ComingSoonCard
-          title="Attendance"
-          description="Your church attendance history will appear here."
+          title="Events"
+          description="Upcoming fellowship events will appear here."
+        />
+
+        <ComingSoonCard
+          title="Announcements"
+          description="Important announcements will appear here."
         />
       </section>
 

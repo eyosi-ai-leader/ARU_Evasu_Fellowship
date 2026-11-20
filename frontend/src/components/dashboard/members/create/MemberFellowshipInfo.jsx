@@ -19,6 +19,8 @@ export default function MemberFellowshipInfo({
   campusName = "",
   departments = [],
   departmentsLoading = false,
+  smallGroup = "",
+  family = "",
 }) {
   const isStudent = form.academicStatus === "Student";
   const years = getEntryYearOptions(isStudent);
@@ -72,6 +74,26 @@ export default function MemberFellowshipInfo({
           >
             <ReadOnlyBox>{campusName || "—"}</ReadOnlyBox>
           </Field>
+        )}
+
+        {mode === "edit" && (
+          <>
+            <Field
+              id="smallGroup"
+              label="Small group"
+              help="Set from the Small Groups page."
+            >
+              <ReadOnlyBox>{smallGroup || "Not yet in a small group"}</ReadOnlyBox>
+            </Field>
+
+            <Field
+              id="family"
+              label="Family"
+              help="Set by the small group overseer."
+            >
+              <ReadOnlyBox>{family || "Not yet in a family"}</ReadOnlyBox>
+            </Field>
+          </>
         )}
 
         <Field

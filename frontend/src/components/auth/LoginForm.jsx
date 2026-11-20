@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Loader2, Mail } from "lucide-react";
 
@@ -45,6 +45,18 @@ export default function LoginForm() {
   const [inactive, setInactive] = useState(null); // { name, email }
 
   const busy = loading || googleLoading;
+
+    // A signed-in person whose account was made inactive is sent back here.
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem("chms:inactive") === "1") {
+        sessionStorage.removeItem("chms:inactive");
+        setInactive({ name: "", email: "" });
+      }
+    } catch {
+      /* storage can be blocked: ignore */
+    }
+  }, []);
 
   function showInactive(err, fallbackEmail) {
     setError("");

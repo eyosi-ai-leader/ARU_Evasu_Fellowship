@@ -1,6 +1,9 @@
 const db = require("../config/db");
 
-const { getAccessLevelForRole } = require("../constants/roles");
+const {
+  ROLE_IDS,
+  getAccessLevelForRole,
+} = require("../constants/roles");
 
 /**
  * Columns returned for a member.
@@ -28,6 +31,25 @@ const MEMBER_FIELDS = `
 
   m.small_group_id,
   sg.name AS small_group_name,
+
+  fam.id AS family_id,
+  fam.name AS family_name,
+  fm.family_role,
+
+  EXISTS (
+    SELECT 1 FROM small_group_leaders sgl
+    WHERE sgl.member_id = m.id AND sgl.status = 'Active'
+  ) AS is_small_group_leader,
+  EXISTS (
+    SELECT 1 FROM ministry_members mml
+    WHERE mml.member_id = m.id
+      AND mml.assignment_role = 'Ministry Leader'
+      AND mml.status = 'Active'
+  ) AS is_ministry_leader,
+  EXISTS (
+    SELECT 1 FROM fellowship_leaders fl
+    WHERE fl.member_id = m.id AND fl.status = 'Active'
+  ) AS is_main_leader,
 
   m.department_id,
   d.name AS department_name,
@@ -83,6 +105,12 @@ const MEMBER_JOINS = `
 
   LEFT JOIN departments d
     ON m.department_id = d.id
+
+  LEFT JOIN family_members fm
+    ON fm.member_id = m.id
+
+  LEFT JOIN families fam
+    ON fam.id = fm.family_id
 `;
 
 const toTinyInt = (value) =>
@@ -337,6 +365,19 @@ const createMember = async ({
           accessLevel,
           createdBy ?? null,
         ]
+      );
+    }
+
+    // A Main Leader is also listed in fellowship_leaders (campus leaders,
+    // General Fellowship).
+    if (Number(roleId) === ROLE_IDS.MAIN_LEADER) {
+      await connection.execute(
+        `
+          INSERT INTO fellowship_leaders
+            (fellowship_id, member_id, status, started_at)
+          VALUES (?, ?, 'Active', CURDATE())
+        `,
+        [fellowshipId, memberResult.insertId]
       );
     }
 
@@ -649,6 +690,7 @@ const buildMemberFilters = ({
   departmentId,
   academicStatus,
   batch,
+  position,
 }) => {
   const conditions = [];
   const queryParams = [];
@@ -716,6 +758,32 @@ const buildMemberFilters = ({
     queryParams.push(batch);
   }
 
+  if (position === "small_group_leader") {
+    conditions.push(`
+      EXISTS (
+        SELECT 1 FROM small_group_leaders sgx
+        WHERE sgx.member_id = m.id AND sgx.status = 'Active'
+      )
+    `);
+  } else if (position === "ministry_leader") {
+    conditions.push(`
+      EXISTS (
+        SELECT 1 FROM ministry_members mmx
+        WHERE mmx.member_id = m.id
+          AND mmx.assignment_role = 'Ministry Leader'
+          AND mmx.status = 'Active'
+      )
+    `);
+  } else if (position === "no_small_group") {
+    conditions.push("m.small_group_id IS NULL");
+  } else if (position === "no_family") {
+    conditions.push(`
+      NOT EXISTS (
+        SELECT 1 FROM family_members fmx WHERE fmx.member_id = m.id
+      )
+    `);
+  }
+
   return {
     whereClause:
       conditions.length > 0
@@ -745,6 +813,7 @@ const getAllMembers = async ({
   departmentId = "",
   academicStatus = "",
   batch = "",
+  position = "",
   sortBy = "created_at",
   sortOrder = "desc",
 } = {}) => {
@@ -759,6 +828,7 @@ const getAllMembers = async ({
       departmentId,
       academicStatus,
       batch,
+      position,
     });
 
   /**
@@ -840,6 +910,7 @@ const countMembers = async ({
   departmentId = "",
   academicStatus = "",
   batch = "",
+  position = "",
 } = {}) => {
   const { whereClause, queryParams } =
     buildMemberFilters({
@@ -852,6 +923,7 @@ const countMembers = async ({
       departmentId,
       academicStatus,
       batch,
+      position,
     });
 
   const query = `

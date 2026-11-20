@@ -3,7 +3,8 @@ const dashboardService = require("../services/dashboardService");
 async function getDashboardOverview(req, res, next) {
   try {
     const overview = await dashboardService.getDashboardOverview(
-      req.user
+      req.access,
+      { fellowshipId: req.query.fellowshipId }
     );
 
     res.status(200).json({

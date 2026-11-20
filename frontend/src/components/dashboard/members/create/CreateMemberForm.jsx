@@ -22,6 +22,7 @@ import {
   buildMemberFormData,
   emptyMemberForm,
   getAssignableRoles,
+  getRoleHelp,
   validateMemberForm,
 } from "@/lib/memberForm";
 
@@ -85,6 +86,7 @@ export default function CreateMemberForm() {
     : Number(storedRoleId) === 1;
 
   const roleOptions = getAssignableRoles(isSuperAdmin);
+  const roleHelp = getRoleHelp(form.roleId);
 
   // Only people who manage members may open this page.
   useEffect(() => {
@@ -483,6 +485,7 @@ export default function CreateMemberForm() {
           errors={errors}
           onChange={handleChange}
           roleOptions={roleOptions}
+          roleHelp={roleHelp}
         />
 
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:hidden">

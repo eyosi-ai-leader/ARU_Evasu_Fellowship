@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import { AccessProvider } from "@/components/dashboard/access/AccessProvider";
 
 /*
  * The frame of every dashboard page.
@@ -12,6 +13,9 @@ import DashboardHeader from "@/components/dashboard/DashboardHeader";
  * Computers (lg and wider): the sidebar is fixed on the left, like before.
  * Phones and tablets: the sidebar is hidden and slides in over the page
  * when the person taps the menu button in the header.
+ *
+ * AccessProvider loads what the person may do (GET /api/me) once, for the
+ * sidebar and every page inside.
  */
 export default function DashboardShell({ children }) {
   const pathname = usePathname();
@@ -62,30 +66,32 @@ export default function DashboardShell({ children }) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <DashboardSidebar
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+    <AccessProvider>
+      <div className="min-h-screen bg-slate-50">
+        <DashboardSidebar
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
 
-      {/* Dark layer behind the menu on phones */}
-      <div
-        aria-hidden="true"
-        onClick={() => setSidebarOpen(false)}
-        className={`fixed inset-0 z-[45] bg-slate-900/50 transition-opacity duration-200 lg:hidden ${
-          sidebarOpen
-            ? "opacity-100"
-            : "pointer-events-none opacity-0"
-        }`}
-      />
+        {/* Dark layer behind the menu on phones */}
+        <div
+          aria-hidden="true"
+          onClick={() => setSidebarOpen(false)}
+          className={`fixed inset-0 z-[45] bg-slate-900/50 transition-opacity duration-200 lg:hidden ${
+            sidebarOpen
+              ? "opacity-100"
+              : "pointer-events-none opacity-0"
+          }`}
+        />
 
-      <div className="min-h-screen lg:ml-64">
-        <DashboardHeader onMenuClick={() => setSidebarOpen(true)} />
+        <div className="min-h-screen lg:ml-64">
+          <DashboardHeader onMenuClick={() => setSidebarOpen(true)} />
 
-        <main className="min-h-[calc(100vh-4rem)] min-w-0 p-4 sm:p-6">
-          {children}
-        </main>
+          <main className="min-h-[calc(100vh-4rem)] min-w-0 p-4 sm:p-6">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </AccessProvider>
   );
 }

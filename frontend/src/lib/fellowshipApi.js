@@ -158,6 +158,7 @@ export const getMySmallGroupMembers = async (options = {}) =>
       status: options.status,
       sortBy: options.sortBy,
       sortOrder: options.sortOrder,
+            position: options.position,
     },
   });
 

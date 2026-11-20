@@ -49,12 +49,7 @@ const PRIVILEGED_ROLE_IDS = [
  * The roles a Fellowship Admin, Staff member or Main Leader may give to
  * someone in their own fellowship.
  */
-const MANAGER_ASSIGNABLE_ROLE_IDS = [
-  ROLE_IDS.MAIN_LEADER,
-  ROLE_IDS.SMALL_GROUP_LEADER,
-  ROLE_IDS.MINISTRY_LEADER,
-  ROLE_IDS.MEMBER,
-];
+const MANAGER_ASSIGNABLE_ROLE_IDS = [ROLE_IDS.MAIN_LEADER, ROLE_IDS.MEMBER];
 
 const isPrivilegedRole = (roleId) =>
   PRIVILEGED_ROLE_IDS.includes(Number(roleId));

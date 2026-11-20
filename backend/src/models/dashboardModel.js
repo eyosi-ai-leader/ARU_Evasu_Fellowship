@@ -1,610 +1,564 @@
 const db = require("../config/db");
 
-async function getDashboardOverview(user) {
-  console.log("Dashboard user:", user);
+const { ROLE_LABELS } = require("../constants/roles");
 
-  // ==========================================
-  // ADMIN DASHBOARD
-  // roleId = 1
-  // ==========================================
-  if (user.roleId === 1) {
-    // ------------------------------------------
-    // Member Statistics
-    // ------------------------------------------
-    const [memberStats] = await db.query(`
+const num = (value) => Number(value || 0);
+
+const emptyStats = {
+  total: 0,
+  active: 0,
+  inactive: 0,
+  newToday: 0,
+};
+
+/*
+ * Every function that takes campusIds expects a NON-empty list
+ * (the service never calls them with an empty one).
+ */
+
+async function getMemberStats(campusIds) {
+  const [rows] = await db.query(
+    `
       SELECT
-        COUNT(*) AS totalMembers,
-
-        SUM(
-          CASE
-            WHEN status = 'Active' THEN 1
-            ELSE 0
-          END
-        ) AS activeMembers,
-
-        SUM(
-          CASE
-            WHEN status = 'Inactive' THEN 1
-            ELSE 0
-          END
-        ) AS inactiveMembers,
-
-        SUM(
-          CASE
-            WHEN DATE(created_at) = CURDATE() THEN 1
-            ELSE 0
-          END
-        ) AS newMembersToday
-
+        COUNT(*) AS total,
+        SUM(CASE WHEN status = 'Active' THEN 1 ELSE 0 END) AS active,
+        SUM(CASE WHEN status = 'Inactive' THEN 1 ELSE 0 END) AS inactive,
+        SUM(CASE WHEN DATE(created_at) = CURDATE() THEN 1 ELSE 0 END) AS newToday
       FROM members
-    `);
+      WHERE fellowship_id IN (?)
+    `,
+    [campusIds]
+  );
 
-    // ------------------------------------------
-    // Role Distribution
-    // ------------------------------------------
-    const [roleStats] = await db.query(`
-      SELECT
-        r.id AS roleId,
-        r.name AS roleName,
-        COUNT(u.id) AS total
-      FROM roles r
-      LEFT JOIN users u
-        ON u.role_id = r.id
-      GROUP BY r.id, r.name
-      ORDER BY r.id ASC
-    `);
+  const row = rows[0];
 
-    // ------------------------------------------
-    // Recent Registered Users
-    // ------------------------------------------
-    const [recentActivity] = await db.query(`
-      SELECT
-        u.id,
-        'New member registered' AS title,
-        CONCAT(u.first_name, ' ', u.last_name) AS description,
-        u.created_at AS createdAt
-      FROM users u
-      ORDER BY u.created_at DESC
-      LIMIT 3
-    `);
+  if (!row) return emptyStats;
 
-    // ------------------------------------------
-    // Member Growth - Last 8 Months
-    // ------------------------------------------
-    const [growthRows] = await db.query(`
+  return {
+    total: num(row.total),
+    active: num(row.active),
+    inactive: num(row.inactive),
+    newToday: num(row.newToday),
+  };
+}
+
+async function getCampusBreakdown(managedIds) {
+  const [rows] = await db.query(
+    `
       SELECT
-        DATE_FORMAT(months.month_date, '%b') AS month,
+        f.id,
+        f.name,
+        f.code,
+        COUNT(m.id) AS total,
+        SUM(CASE WHEN m.status = 'Active' THEN 1 ELSE 0 END) AS active
+      FROM fellowships f
+      LEFT JOIN members m ON m.fellowship_id = f.id
+      WHERE f.id IN (?)
+      GROUP BY f.id, f.name, f.code
+      ORDER BY f.id ASC
+    `,
+    [managedIds]
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    code: row.code,
+    total: num(row.total),
+    active: num(row.active),
+  }));
+}
+async function getStructureCounts(campusIds) {
+  const [rows] = await db.query(
+    `
+      SELECT
         (
-          SELECT COUNT(*)
-          FROM members m
-          WHERE m.created_at < DATE_ADD(
-            months.month_date,
-            INTERVAL 1 MONTH
-          )
-        ) AS value
-      FROM (
-        SELECT
-          DATE_FORMAT(
-            DATE_SUB(CURDATE(), INTERVAL 7 MONTH),
-            '%Y-%m-01'
-          ) + INTERVAL seq.month_offset MONTH AS month_date
-        FROM (
-          SELECT 0 AS month_offset
-          UNION ALL SELECT 1
-          UNION ALL SELECT 2
-          UNION ALL SELECT 3
-          UNION ALL SELECT 4
-          UNION ALL SELECT 5
-          UNION ALL SELECT 6
-          UNION ALL SELECT 7
-        ) AS seq
-      ) AS months
-      ORDER BY months.month_date ASC
-    `);
-
-    return {
-      role: "Admin",
-
-      members: {
-        total: Number(memberStats[0].totalMembers || 0),
-        active: Number(memberStats[0].activeMembers || 0),
-        inactive: Number(memberStats[0].inactiveMembers || 0),
-        newToday: Number(memberStats[0].newMembersToday || 0),
-      },
-
-      roles: roleStats.map((role) => ({
-        roleId: role.roleId,
-        roleName: role.roleName,
-        total: Number(role.total || 0),
-      })),
-
-      recentActivity: recentActivity.map((activity) => ({
-        id: activity.id,
-        title: activity.title,
-        description: activity.description,
-        createdAt: activity.createdAt,
-      })),
-
-      memberGrowth: growthRows.map((item) => ({
-        month: item.month,
-        value: Number(item.value || 0),
-      })),
-    };
-  }
-
-  // ==========================================
-  // PASTOR DASHBOARD
-  // roleId = 2
-  // ==========================================
-  if (user.roleId === 2) {
-    const [memberStats] = await db.query(`
-      SELECT
-        COUNT(*) AS totalMembers,
-
-        SUM(
-          CASE
-            WHEN status = 'Active' THEN 1
-            ELSE 0
-          END
-        ) AS activeMembers,
-
-        SUM(
-          CASE
-            WHEN status = 'Inactive' THEN 1
-            ELSE 0
-          END
-        ) AS inactiveMembers,
-
-        SUM(
-          CASE
-            WHEN DATE(created_at) = CURDATE() THEN 1
-            ELSE 0
-          END
-        ) AS newMembersToday
-
-      FROM members
-    `);
-
-    const [recentMembers] = await db.query(`
-      SELECT
-        m.id,
-        u.first_name,
-        u.last_name,
-        u.email,
-        m.status,
-        m.created_at AS createdAt
-      FROM members m
-      INNER JOIN users u
-        ON u.id = m.user_id
-      ORDER BY m.created_at DESC
-      LIMIT 3
-    `);
-
-    const [growthRows] = await db.query(`
-      SELECT
-        DATE_FORMAT(months.month_date, '%b') AS month,
+          SELECT COUNT(*) FROM small_groups
+          WHERE fellowship_id IN (?) AND status = 'Active'
+        ) AS smallGroups,
         (
-          SELECT COUNT(*)
-          FROM members m
-          WHERE m.created_at < DATE_ADD(
-            months.month_date,
-            INTERVAL 1 MONTH
-          )
-        ) AS value
-      FROM (
-        SELECT
-          DATE_FORMAT(
-            DATE_SUB(CURDATE(), INTERVAL 7 MONTH),
-            '%Y-%m-01'
-          ) + INTERVAL seq.month_offset MONTH AS month_date
-        FROM (
-          SELECT 0 AS month_offset
-          UNION ALL SELECT 1
-          UNION ALL SELECT 2
-          UNION ALL SELECT 3
-          UNION ALL SELECT 4
-          UNION ALL SELECT 5
-          UNION ALL SELECT 6
-          UNION ALL SELECT 7
-        ) AS seq
-      ) AS months
-      ORDER BY months.month_date ASC
-    `);
-
-    return {
-      role: "Pastor",
-
-      members: {
-        total: Number(memberStats[0].totalMembers || 0),
-        active: Number(memberStats[0].activeMembers || 0),
-        inactive: Number(memberStats[0].inactiveMembers || 0),
-        newToday: Number(memberStats[0].newMembersToday || 0),
-      },
-
-      recentActivity: recentMembers.map((member) => ({
-        id: member.id,
-        title: "Church member",
-        description: `${member.first_name} ${member.last_name}`,
-        email: member.email,
-        status: member.status,
-        createdAt: member.createdAt,
-      })),
-
-      memberGrowth: growthRows.map((item) => ({
-        month: item.month,
-        value: Number(item.value || 0),
-      })),
-    };
-  }
-
-  // ==========================================
-  // CHURCH ELDER DASHBOARD
-  // roleId = 3
-  // ==========================================
-  if (user.roleId === 3) {
-    // ------------------------------------------
-    // Member Statistics
-    // ------------------------------------------
-    const [memberStats] = await db.query(`
-      SELECT
-        COUNT(*) AS totalMembers,
-
-        SUM(
-          CASE
-            WHEN status = 'Active' THEN 1
-            ELSE 0
-          END
-        ) AS activeMembers,
-
-        SUM(
-          CASE
-            WHEN status = 'Inactive' THEN 1
-            ELSE 0
-          END
-        ) AS inactiveMembers,
-
-        SUM(
-          CASE
-            WHEN DATE(created_at) = CURDATE() THEN 1
-            ELSE 0
-          END
-        ) AS newMembersToday
-
-      FROM members
-    `);
-
-    // ------------------------------------------
-    // Recent Members
-    // ------------------------------------------
-    const [recentMembers] = await db.query(`
-      SELECT
-        m.id,
-        u.first_name,
-        u.last_name,
-        u.email,
-        m.status,
-        m.created_at AS createdAt
-      FROM members m
-      INNER JOIN users u
-        ON u.id = m.user_id
-      ORDER BY m.created_at DESC
-      LIMIT 3
-    `);
-
-    // ------------------------------------------
-    // Member Growth - Last 8 Months
-    // ------------------------------------------
-    const [growthRows] = await db.query(`
-      SELECT
-        DATE_FORMAT(months.month_date, '%b') AS month,
+          SELECT COUNT(*) FROM small_groups sg
+          WHERE sg.fellowship_id IN (?) AND sg.status = 'Active'
+            AND NOT EXISTS (
+              SELECT 1 FROM small_group_leaders l
+              WHERE l.small_group_id = sg.id AND l.status = 'Active'
+            )
+        ) AS smallGroupsWithoutLeader,
         (
-          SELECT COUNT(*)
-          FROM members m
-          WHERE m.created_at < DATE_ADD(
-            months.month_date,
-            INTERVAL 1 MONTH
-          )
-        ) AS value
-      FROM (
-        SELECT
-          DATE_FORMAT(
-            DATE_SUB(CURDATE(), INTERVAL 7 MONTH),
-            '%Y-%m-01'
-          ) + INTERVAL seq.month_offset MONTH AS month_date
-        FROM (
-          SELECT 0 AS month_offset
-          UNION ALL SELECT 1
-          UNION ALL SELECT 2
-          UNION ALL SELECT 3
-          UNION ALL SELECT 4
-          UNION ALL SELECT 5
-          UNION ALL SELECT 6
-          UNION ALL SELECT 7
-        ) AS seq
-      ) AS months
-      ORDER BY months.month_date ASC
-    `);
+          SELECT COUNT(*) FROM families
+          WHERE fellowship_id IN (?) AND status = 'Active'
+        ) AS families,
+        (
+          SELECT COUNT(*) FROM members
+          WHERE fellowship_id IN (?) AND status = 'Active'
+            AND small_group_id IS NULL
+        ) AS membersWithoutSmallGroup,
+        (
+          SELECT COUNT(*) FROM ministries
+          WHERE fellowship_id IN (?) AND status = 'Active'
+        ) AS ministries
+    `,
+    [campusIds, campusIds, campusIds, campusIds, campusIds]
+  );
 
-    return {
-      role: "Church Elder",
+  const row = rows[0] || {};
 
-      members: {
-        total: Number(memberStats[0].totalMembers || 0),
-        active: Number(memberStats[0].activeMembers || 0),
-        inactive: Number(memberStats[0].inactiveMembers || 0),
-        newToday: Number(memberStats[0].newMembersToday || 0),
-      },
+  return {
+    smallGroups: num(row.smallGroups),
+    smallGroupsWithoutLeader: num(row.smallGroupsWithoutLeader),
+    families: num(row.families),
+    membersWithoutSmallGroup: num(row.membersWithoutSmallGroup),
+    ministries: num(row.ministries),
+  };
+}
 
-      recentActivity: recentMembers.map((member) => ({
-        id: member.id,
-        title: "Church member",
-        description: `${member.first_name} ${member.last_name}`,
-        email: member.email,
-        status: member.status,
-        createdAt: member.createdAt,
-      })),
-
-      memberGrowth: growthRows.map((item) => ({
-        month: item.month,
-        value: Number(item.value || 0),
-      })),
-    };
-  }
-
-
-  
-  // ==========================================
-  // MINISTRY LEADER DASHBOARD
-  // roleId = 4
-  // ==========================================
-  if (Number(user.roleId) === 4) {
-    // Find only ministries assigned to the authenticated leader.
-    const [ministryRows] = await db.query(
-      `
-        SELECT DISTINCT
-          mi.id,
-          mi.name,
-          mi.description,
-          mi.status
-        FROM members m
-        INNER JOIN ministry_members mm
-          ON mm.member_id = m.id
-        INNER JOIN ministries mi
-          ON mi.id = mm.ministry_id
-        INNER JOIN users u
-          ON u.id = m.user_id
-        WHERE m.user_id = ?
-          AND m.status = 'Active'
-          AND u.is_active = 1
-          AND mm.assignment_role = 'Ministry Leader'
-          AND mm.status = 'Active'
-          AND mi.status = 'Active'
-        ORDER BY mi.name ASC
-      `,
-      [user.id]
-    );
-
-    // A leader may have no active ministry assignments.
-    if (ministryRows.length === 0) {
-      return {
-        role: "Ministry Leader",
-        ministries: [],
-        summary: {
-          totalMinistries: 0,
-          totalMembers: 0,
-        },
-        message: "You do not currently have an active ministry assignment.",
-      };
-    }
-
-    const ministries = [];
-
-    // Fetch the active roster for each ministry the leader manages.
-    for (const ministry of ministryRows) {
-      const [memberRows] = await db.query(
+/*
+ * People per role. Super Admin looking at everything sees every account.
+ * Everyone else sees only people of the campus(es) in view: members of
+ * those campuses, plus Fellowship Admins and Staff assigned to them.
+ */
+async function getRoleDistribution(campusIds, unfiltered) {
+  const [rows] = unfiltered
+    ? await db.query(`
+        SELECT r.id AS roleId, r.name AS roleName, COUNT(u.id) AS total
+        FROM roles r
+        LEFT JOIN users u ON u.role_id = r.id
+        GROUP BY r.id, r.name
+        ORDER BY r.id ASC
+      `)
+    : await db.query(
         `
-          SELECT
-            m.id AS memberId,
-            u.id AS userId,
-            m.member_number AS memberNumber,
-            u.first_name AS firstName,
-            u.middle_name AS middleName,
-            u.last_name AS lastName,
-            u.email,
-            COALESCE(m.phone, u.phone) AS phone,
-            u.profile_image AS profileImage,
-            m.status AS memberStatus,
-            m.created_at AS memberSince,
-            m.updated_at AS updatedAt,
-            CASE
-              WHEN m.date_of_birth IS NOT NULL
-              THEN TIMESTAMPDIFF(
-                YEAR,
-                m.date_of_birth,
-                CURDATE()
-              )
-              ELSE NULL
-            END AS age,
-            mm.assignment_role AS assignmentRole,
-            mm.assigned_at AS assignedAt
-          FROM ministry_members mm
-          INNER JOIN members m
-            ON m.id = mm.member_id
-          INNER JOIN users u
-            ON u.id = m.user_id
-          WHERE mm.ministry_id = ?
-            AND mm.status = 'Active'
-            AND m.status = 'Active'
-            AND u.is_active = 1
-          ORDER BY u.first_name ASC, u.last_name ASC
+          SELECT r.id AS roleId, r.name AS roleName, COUNT(DISTINCT u.id) AS total
+          FROM roles r
+          LEFT JOIN users u
+            ON u.role_id = r.id
+           AND (
+             EXISTS (
+               SELECT 1 FROM members m
+               WHERE m.user_id = u.id AND m.fellowship_id IN (?)
+             )
+             OR EXISTS (
+               SELECT 1 FROM user_fellowship_access a
+               WHERE a.user_id = u.id AND a.fellowship_id IN (?)
+             )
+           )
+          GROUP BY r.id, r.name
+          ORDER BY r.id ASC
         `,
-        [ministry.id]
+        [campusIds, campusIds]
       );
 
-      const members = memberRows.map((member) => ({
-        id: member.memberId,
-        userId: member.userId,
-        memberNumber: member.memberNumber,
-        firstName: member.firstName,
-        middleName: member.middleName,
-        lastName: member.lastName,
-        fullName: [
-          member.firstName,
-          member.middleName,
-          member.lastName,
-        ]
-          .filter(Boolean)
-          .join(" "),
-        email: member.email,
-        phone: member.phone,
-        profileImage: member.profileImage,
-        age:
-          member.age === null || member.age === undefined
-            ? null
-            : Number(member.age),
-        status: member.memberStatus,
-        memberSince: member.memberSince,
-        updatedAt: member.updatedAt,
-        assignmentRole: member.assignmentRole,
-        assignedAt: member.assignedAt,
-      }));
+  return rows.map((row) => ({
+    roleId: row.roleId,
+    roleName: ROLE_LABELS[row.roleId] || row.roleName,
+    total: num(row.total),
+  }));
+}
 
-      ministries.push({
-        id: ministry.id,
-        name: ministry.name,
-        description: ministry.description,
-        status: ministry.status,
-        memberCount: members.length,
-        members,
-      });
-    }
+async function getRecentMembers(campusIds) {
+  const [rows] = await db.query(
+    `
+      SELECT
+        m.id,
+        u.first_name,
+        u.last_name,
+        f.name AS fellowshipName,
+        m.created_at AS createdAt
+      FROM members m
+      INNER JOIN users u ON u.id = m.user_id
+      INNER JOIN fellowships f ON f.id = m.fellowship_id
+      WHERE m.fellowship_id IN (?)
+      ORDER BY m.created_at DESC
+      LIMIT 5
+    `,
+    [campusIds]
+  );
 
-    return {
-      role: "Ministry Leader",
-      ministries,
-      summary: {
-        totalMinistries: ministries.length,
-        totalMembers: ministries.reduce(
-          (total, ministry) => total + ministry.memberCount,
-          0
-        ),
-      },
-    };
+  return rows.map((row) => ({
+    id: row.id,
+    title: "New member registered",
+    description: `${row.first_name} ${row.last_name}`,
+    fellowshipName: row.fellowshipName,
+    createdAt: row.createdAt,
+  }));
+}
+
+async function getMemberGrowth(campusIds) {
+  const [rows] = await db.query(
+    `
+      SELECT
+        DATE_FORMAT(months.month_date, '%b') AS month,
+        (
+          SELECT COUNT(*)
+          FROM members m
+          WHERE m.fellowship_id IN (?)
+            AND m.created_at < DATE_ADD(months.month_date, INTERVAL 1 MONTH)
+        ) AS value
+      FROM (
+        SELECT
+          DATE_FORMAT(
+            DATE_SUB(CURDATE(), INTERVAL 7 MONTH),
+            '%Y-%m-01'
+          ) + INTERVAL seq.month_offset MONTH AS month_date
+        FROM (
+          SELECT 0 AS month_offset
+          UNION ALL SELECT 1
+          UNION ALL SELECT 2
+          UNION ALL SELECT 3
+          UNION ALL SELECT 4
+          UNION ALL SELECT 5
+          UNION ALL SELECT 6
+          UNION ALL SELECT 7
+        ) AS seq
+      ) AS months
+      ORDER BY months.month_date ASC
+    `,
+    [campusIds]
+  );
+
+  return rows.map((row) => ({
+    month: row.month,
+    value: num(row.value),
+  }));
+}
+
+// The campuses for the campus switcher.
+async function getCampuses(managedIds) {
+  const [rows] = await db.query(
+    `
+      SELECT id, name, code
+      FROM fellowships
+      WHERE id IN (?)
+      ORDER BY id ASC
+    `,
+    [managedIds]
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    code: row.code,
+  }));
+}
+
+// Ministries a person leads, with their active rosters.
+async function getMinistriesLed(ministryIds) {
+  const [ministryRows] = await db.query(
+    `
+      SELECT id, name, description, status, fellowship_id
+      FROM ministries
+      WHERE id IN (?)
+        AND status = 'Active'
+      ORDER BY name ASC
+    `,
+    [ministryIds]
+  );
+
+  if (ministryRows.length === 0) return [];
+
+  const [memberRows] = await db.query(
+    `
+      SELECT
+        mm.ministry_id AS ministryId,
+        m.id AS memberId,
+        u.id AS userId,
+        m.member_number AS memberNumber,
+        u.first_name AS firstName,
+        u.middle_name AS middleName,
+        u.last_name AS lastName,
+        u.email,
+        COALESCE(m.phone, u.phone) AS phone,
+        u.profile_image AS profileImage,
+        m.status AS memberStatus,
+        m.created_at AS memberSince,
+        m.updated_at AS updatedAt,
+        CASE
+          WHEN m.date_of_birth IS NOT NULL
+          THEN TIMESTAMPDIFF(YEAR, m.date_of_birth, CURDATE())
+          ELSE NULL
+        END AS age,
+        mm.assignment_role AS assignmentRole,
+        mm.assigned_at AS assignedAt
+      FROM ministry_members mm
+      INNER JOIN members m ON m.id = mm.member_id
+      INNER JOIN users u ON u.id = m.user_id
+      WHERE mm.ministry_id IN (?)
+        AND mm.status = 'Active'
+        AND m.status = 'Active'
+        AND u.is_active = 1
+      ORDER BY u.first_name ASC, u.last_name ASC
+    `,
+    [ministryRows.map((ministry) => ministry.id)]
+  );
+
+  const byMinistry = new Map();
+
+  for (const member of memberRows) {
+    const list = byMinistry.get(member.ministryId) || [];
+
+    list.push({
+      id: member.memberId,
+      userId: member.userId,
+      memberNumber: member.memberNumber,
+      firstName: member.firstName,
+      middleName: member.middleName,
+      lastName: member.lastName,
+      fullName: [member.firstName, member.middleName, member.lastName]
+        .filter(Boolean)
+        .join(" "),
+      email: member.email,
+      phone: member.phone,
+      profileImage: member.profileImage,
+      age:
+        member.age === null || member.age === undefined
+          ? null
+          : Number(member.age),
+      status: member.memberStatus,
+      memberSince: member.memberSince,
+      updatedAt: member.updatedAt,
+      assignmentRole: member.assignmentRole,
+      assignedAt: member.assignedAt,
+    });
+
+    byMinistry.set(member.ministryId, list);
   }
 
+  return ministryRows.map((ministry) => {
+    const members = byMinistry.get(ministry.id) || [];
 
-  // ==========================================
-// MEMBER DASHBOARD
-// roleId = 5
-// ==========================================
-if (user.roleId === 5) {
+    return {
+      id: ministry.id,
+      name: ministry.name,
+      description: ministry.description,
+      status: ministry.status,
+      fellowshipId: ministry.fellowship_id,
+      memberCount: members.length,
+      members,
+    };
+  });
+}
 
-  // ------------------------------------------
-  // Get the authenticated member
-  // ------------------------------------------
-  const [memberRows] = await db.query(
+// The signed-in person's own member profile.
+async function getOwnMember(userId) {
+  const [rows] = await db.query(
     `
       SELECT
         m.id,
         m.user_id,
         m.member_number,
-
         u.first_name,
         u.middle_name,
         u.last_name,
         u.email,
         u.role_id,
-
         r.name AS role_name,
-
         u.phone AS user_phone,
         u.profile_image,
-
         m.gender,
         m.phone,
         m.date_of_birth,
         m.baptism_date,
         m.address,
         m.status,
-
         m.created_at,
         m.updated_at
-
       FROM members m
-
-      INNER JOIN users u
-        ON m.user_id = u.id
-
-      LEFT JOIN roles r
-        ON u.role_id = r.id
-
+      INNER JOIN users u ON m.user_id = u.id
+      LEFT JOIN roles r ON u.role_id = r.id
       WHERE m.user_id = ?
-
       LIMIT 1
     `,
-    [user.id]
+    [userId]
   );
 
-  const member = memberRows[0];
+  const member = rows[0];
 
-  console.log("Member dashboard record:", member);
-
-  // ------------------------------------------
-  // Member record not found
-  // ------------------------------------------
-  if (!member) {
-    return {
-      role: "Member",
-      member: null,
-      message: "Member profile not found.",
-    };
-  }
+  if (!member) return null;
 
   return {
-    role: "Member",
-
-    member: {
-      id: member.id,
-      userId: member.user_id,
-
-      memberNumber: member.member_number,
-
-      firstName: member.first_name,
-      middleName: member.middle_name,
-      lastName: member.last_name,
-
-      email: member.email,
-
-      roleId: member.role_id,
-      roleName: member.role_name,
-
-      phone: member.phone || member.user_phone || null,
-
-      profileImage: member.profile_image,
-
-      gender: member.gender,
-      dateOfBirth: member.date_of_birth,
-      baptismDate: member.baptism_date,
-
-      address: member.address,
-
-      status: member.status,
-
-      memberSince: member.created_at,
-      updatedAt: member.updated_at,
-    },
+    id: member.id,
+    userId: member.user_id,
+    memberNumber: member.member_number,
+    firstName: member.first_name,
+    middleName: member.middle_name,
+    lastName: member.last_name,
+    email: member.email,
+    roleId: member.role_id,
+    roleName: ROLE_LABELS[member.role_id] || member.role_name,
+    phone: member.phone || member.user_phone || null,
+    profileImage: member.profile_image,
+    gender: member.gender,
+    dateOfBirth: member.date_of_birth,
+    baptismDate: member.baptism_date,
+    address: member.address,
+    status: member.status,
+    memberSince: member.created_at,
+    updatedAt: member.updated_at,
   };
 }
 
-// ==========================================
-// OTHER ROLES
-// ==========================================
-return {
-  roleId: user.roleId,
-  message: "Dashboard data for this role is coming soon.",
-};
+
+// Small groups a person oversees, with family numbers.
+async function getSmallGroupsLed(groupIds) {
+  const [rows] = await db.query(
+    `
+      SELECT
+        sg.id,
+        sg.name,
+        sg.fellowship_id,
+        (
+          SELECT COUNT(*) FROM families f
+          WHERE f.small_group_id = sg.id AND f.status = 'Active'
+        ) AS familyCount,
+        (
+          SELECT COUNT(*) FROM members m
+          WHERE m.small_group_id = sg.id AND m.status = 'Active'
+        ) AS memberCount,
+        (
+          SELECT COUNT(*) FROM members m
+          WHERE m.small_group_id = sg.id
+            AND m.status = 'Active'
+            AND NOT EXISTS (
+              SELECT 1 FROM family_members fm WHERE fm.member_id = m.id
+            )
+        ) AS withoutFamily,
+        (
+          SELECT COUNT(*) FROM families f
+          WHERE f.small_group_id = sg.id
+            AND f.status = 'Active'
+            AND NOT EXISTS (
+              SELECT 1 FROM family_members fm
+              WHERE fm.family_id = f.id
+                AND fm.family_role IN ('Father', 'Mother')
+            )
+        ) AS familiesWithoutParent
+      FROM small_groups sg
+      WHERE sg.id IN (?) AND sg.status = 'Active'
+      ORDER BY sg.name ASC
+    `,
+    [groupIds]
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    fellowshipId: row.fellowship_id,
+    familyCount: num(row.familyCount),
+    memberCount: num(row.memberCount),
+    withoutFamily: num(row.withoutFamily),
+    familiesWithoutParent: num(row.familiesWithoutParent),
+  }));
+}
+
+// Where a member belongs: small group, family and ministries.
+async function getMyFellowship(memberId) {
+  const [placement] = await db.execute(
+    `
+      SELECT
+        sg.id AS smallGroupId,
+        sg.name AS smallGroupName,
+        fam.id AS familyId,
+        fam.name AS familyName,
+        fm.family_role
+      FROM members m
+      LEFT JOIN small_groups sg
+        ON sg.id = m.small_group_id AND sg.status = 'Active'
+      LEFT JOIN family_members fm
+        ON fm.member_id = m.id
+      LEFT JOIN families fam
+        ON fam.id = fm.family_id AND fam.status = 'Active'
+      WHERE m.id = ?
+      LIMIT 1
+    `,
+    [memberId]
+  );
+
+  const row = placement[0] || {};
+
+  let overseers = [];
+  let parents = [];
+
+  if (row.smallGroupId) {
+    [overseers] = await db.execute(
+      `
+        SELECT u.first_name, u.last_name
+        FROM small_group_leaders l
+        INNER JOIN members m ON m.id = l.member_id
+        INNER JOIN users u ON u.id = m.user_id
+        WHERE l.small_group_id = ? AND l.status = 'Active'
+        ORDER BY u.first_name ASC
+      `,
+      [row.smallGroupId]
+    );
+  }
+
+  if (row.familyId) {
+    [parents] = await db.execute(
+      `
+        SELECT fm.family_role, u.first_name, u.last_name
+        FROM family_members fm
+        INNER JOIN members m ON m.id = fm.member_id
+        INNER JOIN users u ON u.id = m.user_id
+        WHERE fm.family_id = ? AND fm.family_role IN ('Father', 'Mother')
+      `,
+      [row.familyId]
+    );
+  }
+
+  const [ministries] = await db.execute(
+    `
+      SELECT mi.id, mi.name, mm.assignment_role
+      FROM ministry_members mm
+      INNER JOIN ministries mi ON mi.id = mm.ministry_id
+      WHERE mm.member_id = ?
+        AND mm.status = 'Active'
+        AND mi.status = 'Active'
+      ORDER BY mi.name ASC
+    `,
+    [memberId]
+  );
+
+  const nameOf = (person) =>
+    person ? [person.first_name, person.last_name].filter(Boolean).join(" ") : null;
+
+  const parentName = (role) =>
+    nameOf(parents.find((parent) => parent.family_role === role));
+
+  return {
+    smallGroup: row.smallGroupId
+      ? {
+          id: row.smallGroupId,
+          name: row.smallGroupName,
+          overseers: overseers.map(nameOf),
+        }
+      : null,
+    family: row.familyId
+      ? {
+          id: row.familyId,
+          name: row.familyName,
+          myRole: row.family_role,
+          father: parentName("Father"),
+          mother: parentName("Mother"),
+        }
+      : null,
+    ministries: ministries.map((ministry) => ({
+      id: ministry.id,
+      name: ministry.name,
+      role: ministry.assignment_role,
+    })),
+  };
 }
 
 module.exports = {
-  getDashboardOverview,
+  getMemberStats,
+  getCampusBreakdown,
+  getStructureCounts,
+  getRoleDistribution,
+  getRecentMembers,
+  getMemberGrowth,
+  getCampuses,
+  getMinistriesLed,
+  getOwnMember,
+  getMyFellowship,
+  getSmallGroupsLed,
 };

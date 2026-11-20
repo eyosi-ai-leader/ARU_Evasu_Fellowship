@@ -22,16 +22,14 @@ import {
   listMemberAccess,
   setMemberStatus,
 } from "@/lib/memberAccessApi";
-import { getStoredUser } from "@/lib/userStorage";
+import { useAccess } from "@/components/dashboard/access/AccessProvider";
 
-// Admin and Pastor
-const STAFF_ROLES = [1, 2];
 const BULK_LIMIT = 25;
 
 const plural = (count, one, many) => (count === 1 ? one : many);
 
 export default function MemberAccessPage() {
-  const [user, setUser] = useState(undefined);
+  const { access, loading: accessLoading } = useAccess();
 
   const [filter, setFilter] = useState("never");
   const [search, setSearch] = useState("");
@@ -52,11 +50,7 @@ export default function MemberAccessPage() {
   const [exporting, setExporting] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
-  useEffect(() => {
-    setUser(getStoredUser());
-  }, []);
-
-  const isStaff = Boolean(user) && STAFF_ROLES.includes(Number(user.roleId));
+  const isStaff = Boolean(access?.capabilities?.includes("fellowship:manage"));
 
   // First page, and again when the filter, search or data changes.
   useEffect(() => {
@@ -301,7 +295,7 @@ export default function MemberAccessPage() {
     }
   }
 
-  if (user === undefined) return null;
+  if (accessLoading) return null;
 
   if (!isStaff) {
     return (
@@ -311,7 +305,7 @@ export default function MemberAccessPage() {
           You don&apos;t have access to this page
         </h1>
         <p className="mt-2 text-sm text-slate-500">
-          Member access can be managed by pastors and administrators.
+          Member access can be managed by campus leaders and administrators.
         </p>
       </div>
     );

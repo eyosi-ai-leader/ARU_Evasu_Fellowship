@@ -36,7 +36,7 @@ export default function DashboardWelcome({ currentDate }) {
       </h1>
 
       <p className="mt-2 text-sm leading-6 text-slate-500">
-        Here&apos;s what&apos;s happening with your church community today.
+        Here&apos;s what&apos;s happening in your fellowship today.
       </p>
     </section>
   );

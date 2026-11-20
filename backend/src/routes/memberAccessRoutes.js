@@ -1,10 +1,12 @@
 const express = require("express");
 const rateLimit = require("express-rate-limit");
-
 const router = express.Router();
 
 const authMiddleware = require("../middleware/authMiddleware");
-const roleMiddleware = require("../middleware/roleMiddleware");
+const {
+  loadAccess,
+  requireCapability,
+} = require("../middleware/accessMiddleware");
 
 const controller = require("../controllers/memberAccessController");
 
@@ -34,8 +36,9 @@ const inviteLimiter = perUserLimiter(60 * 60 * 1000, 60);
 const bulkLimiter = perUserLimiter(60 * 60 * 1000, 10);
 const changeLimiter = perUserLimiter(60 * 60 * 1000, 120);
 
-// Admin (1) and Pastor (2) only.
-router.use(authMiddleware, roleMiddleware(1, 2));
+// Super Admin, Staff, Fellowship Admin and Main Leader.
+// The service limits each person to the campuses they manage.
+router.use(authMiddleware, loadAccess, requireCapability("fellowship:manage"));
 
 // Fixed paths first, then the ":memberId" routes.
 router.get("/", readLimiter, listValidator, controller.list);

@@ -547,7 +547,19 @@ export default function MemberDetailsPage() {
                 <InfoItem
                   icon={UsersRound}
                   label="Small group"
-                  value={member.small_group_name}
+                  value={member.small_group_name || "Not yet in a small group"}
+                />
+              )}
+
+              {member.family_name !== undefined && (
+                <InfoItem
+                  icon={Home}
+                  label="Family"
+                  value={
+                    member.family_name
+                      ? `${member.family_name} · ${member.family_role}`
+                      : "Not yet in a family"
+                  }
                 />
               )}
 
@@ -629,6 +641,22 @@ export default function MemberDetailsPage() {
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <InfoItem icon={ShieldCheck} label="User ID" value={String(member.user_id ?? "")} />
               <InfoItem icon={ShieldCheck} label="Role" value={role} />
+
+              {member.is_small_group_leader !== undefined && (
+                <InfoItem
+                  icon={ShieldCheck}
+                  label="Leadership"
+                  value={
+                    [
+                      member.is_small_group_leader && "Small group overseer",
+                      member.is_ministry_leader && "Ministry leader",
+                    ]
+                      .filter(Boolean)
+                      .join(", ") || "None"
+                  }
+                />
+              )}
+
               {member.last_login_at !== undefined && (
                 <InfoItem
                   icon={Clock3}

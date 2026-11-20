@@ -41,6 +41,10 @@ const fellowshipRoutes = require("./routes/fellowshipRoutes");
 
 const accessRoutes = require("./routes/accessRoutes");
 
+const leadershipRoutes = require("./routes/leadershipRoutes");
+
+const smallGroupRoutes = require("./routes/smallGroupRoutes");
+
 
 const app = express();
 
@@ -107,6 +111,9 @@ app.use("/api/public/events", publicEventRoutes);
 
 app.use("/api/me", accessRoutes);
 
+app.use("/api/leadership", leadershipRoutes);
+
+app.use("/api/small-groups", smallGroupRoutes);
 /**
  * Global Error Handler
  *

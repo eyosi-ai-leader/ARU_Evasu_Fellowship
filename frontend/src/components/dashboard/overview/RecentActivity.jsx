@@ -81,7 +81,7 @@ export default function RecentActivity({
           </p>
 
           <h2 className="mt-1 text-lg font-bold text-slate-900">
-            Church Activity
+            Fellowship Activity
           </h2>
         </div>
 
@@ -142,7 +142,7 @@ export default function RecentActivity({
             </p>
 
             <p className="mt-1 text-xs text-slate-400">
-              Recent church activity will appear here.
+              Recent fellowship activity will appear here.
             </p>
           </div>
         )}
@@ -172,8 +172,11 @@ export default function RecentActivity({
                       {activity.title}
                     </p>
 
-                    <p className="mt-0.5 text-xs text-slate-400">
+                                        <p className="mt-0.5 text-xs text-slate-400">
                       {activity.description}
+                      {activity.fellowshipName
+                        ? ` · ${activity.fellowshipName}`
+                        : ""}
                     </p>
 
                     <p className="mt-1 text-[11px] text-slate-300">

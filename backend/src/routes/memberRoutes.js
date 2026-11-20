@@ -5,13 +5,10 @@ const memberController = require("../controllers/memberController");
 const ministryMemberController = require("../controllers/ministryMemberController");
 
 const authMiddleware = require("../middleware/authMiddleware");
-const roleMiddleware = require("../middleware/roleMiddleware");
 const {
   loadAccess,
   requireCapability,
 } = require("../middleware/accessMiddleware");
-
-const { ROLE_IDS } = require("../constants/roles");
 
 const {
   memberIdValidator,
@@ -65,19 +62,21 @@ router.get(
 );
 
 /**
- * Ministry Leader routes (unchanged).
- * Role 4 can access only members assigned to active ministries
- * that the authenticated leader actively leads.
+ * Ministry Leader routes.
+ *
+ * Open to ANYONE who leads a ministry (capability "ministry:lead"), whatever
+ * their role number is. The model only returns members of the active
+ * ministries that this person actively leads.
  */
 router.get(
   "/my-ministry",
-  roleMiddleware(ROLE_IDS.MINISTRY_LEADER),
+  requireCapability("ministry:lead"),
   ministryMemberController.getMyMinistryMembers
 );
 
 router.get(
   "/my-ministry/:id",
-  roleMiddleware(ROLE_IDS.MINISTRY_LEADER),
+  requireCapability("ministry:lead"),
   memberIdValidator,
   validateRequest,
   ministryMemberController.getMyMinistryMemberById
@@ -85,7 +84,7 @@ router.get(
 
 router.put(
   "/my-ministry/:id",
-  roleMiddleware(ROLE_IDS.MINISTRY_LEADER),
+  requireCapability("ministry:lead"),
   uploadProfileImage.single("profileImage"),
   memberIdValidator,
   updateMemberValidator,

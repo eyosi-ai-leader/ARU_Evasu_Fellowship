@@ -98,15 +98,19 @@ const getAccessContext = async (userId) => {
 
   if (memberId) {
     [[smallGroups], [ministries], [leaderRows]] = await Promise.all([
-      db.execute(
+           db.execute(
         `
-          SELECT id, name, fellowship_id
-          FROM small_groups
-          WHERE leader_member_id = ?
-            AND status = 'Active'
+          SELECT sg.id, sg.name, sg.fellowship_id
+          FROM small_group_leaders l
+          INNER JOIN small_groups sg ON sg.id = l.small_group_id
+          WHERE l.member_id = ?
+            AND l.status = 'Active'
+            AND sg.status = 'Active'
         `,
         [memberId]
       ),
+
+
       db.execute(
         `
           SELECT

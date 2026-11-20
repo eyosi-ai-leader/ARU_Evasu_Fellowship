@@ -19,6 +19,7 @@ import {
   getMyMinistryMembers,
   deleteMember,
   updateMember,
+  changeMemberRole,
 } from "@/lib/memberApi";
 
 import {
@@ -62,27 +63,10 @@ const DEFAULT_FILTERS = {
   // get their own pages later, so this is fixed and has no filter button.
   academicStatus: "Student",
   batch: "", // "year:3" (3rd year now) or "batch:2017" (started in 2017 E.C.)
+  position: "", // "" | small_group_leader | ministry_leader | no_small_group | no_family
   sortBy: "created_at",
   sortOrder: "desc",
 };
-
-// Roles a Super Admin can give, and the ones everybody else can give.
-const ALL_ROLE_IDS = [
-  ROLES.PASTOR,
-  ROLES.SMALL_GROUP_LEADER,
-  ROLES.MINISTRY_LEADER,
-  ROLES.MEMBER,
-  ROLES.FELLOWSHIP_ADMIN,
-  ROLES.STAFF,
-  ROLES.ADMIN,
-];
-
-const MANAGER_ROLE_IDS = [
-  ROLES.PASTOR,
-  ROLES.SMALL_GROUP_LEADER,
-  ROLES.MINISTRY_LEADER,
-  ROLES.MEMBER,
-];
 
 const EXPORT_PAGE_SIZE = 100;
 const EXPORT_MAX_PAGES = 50;
@@ -183,6 +167,7 @@ export default function MembersPage() {
 
   const [roleTarget, setRoleTarget] = useState(null);
   const [changingRole, setChangingRole] = useState(false);
+  const [roleError, setRoleError] = useState("");
 
   const [invitingId, setInvitingId] = useState(null);
   const [notice, setNotice] = useState("");
@@ -219,32 +204,46 @@ export default function MembersPage() {
    * a fallback if /api/me could not be reached.
    */
   const capabilities = access?.capabilities || null;
-  const effectiveRoleId = access?.roleId ?? storedRoleId;
 
   const canManage = capabilities
     ? capabilities.includes("fellowship:manage")
     : canManageMembers(storedRoleId);
 
-  const isMinistryLeader =
-    !canManage && Number(effectiveRoleId) === ROLES.MINISTRY_LEADER;
-
-  const isSmallGroupLeader =
+  /*
+   * What the person can see here comes from what they may DO, not from one
+   * role number. A manager sees the members they manage. Anyone else may
+   * lead a ministry and/or oversee a small group, and can switch between
+   * the two lists.
+   */
+  const leadsMinistry =
     !canManage &&
-    !isMinistryLeader &&
-    Boolean(capabilities?.includes("smallgroup:lead"));
+    (capabilities
+      ? capabilities.includes("ministry:lead")
+      : Number(storedRoleId) === ROLES.MINISTRY_LEADER);
 
-  const noAccess =
-    ready && !canManage && !isMinistryLeader && !isSmallGroupLeader;
+  const leadsSmallGroup =
+    !canManage && Boolean(capabilities?.includes("smallgroup:lead"));
 
-  const mode = isMinistryLeader
-    ? "ministry"
-    : isSmallGroupLeader
-      ? "smallGroup"
-      : "manage";
+  const availableModes = canManage
+    ? ["manage"]
+    : [
+        ...(leadsMinistry ? ["ministry"] : []),
+        ...(leadsSmallGroup ? ["smallGroup"] : []),
+      ];
+
+  const [selectedMode, setSelectedMode] = useState("");
+
+  const noAccess = ready && availableModes.length === 0;
+
+  const mode = availableModes.includes(selectedMode)
+    ? selectedMode
+    : availableModes[0] || "manage";
+
+  const isMinistryLeader = mode === "ministry";
+  const isSmallGroupLeader = mode === "smallGroup";
 
   const isSuperAdmin = access ? Boolean(access.isSuperAdmin) : isAdmin(storedRoleId);
   const currentUserId = access?.user?.id ?? null;
-  const assignableRoleIds = isSuperAdmin ? ALL_ROLE_IDS : MANAGER_ROLE_IDS;
 
   // The campus filter and column only make sense for people who manage several.
   const showCampus = mode === "manage" && campuses.length > 1;
@@ -426,6 +425,7 @@ export default function MembersPage() {
       departmentId: filters.departmentId,
       academicStatus: filters.academicStatus,
       batch: batchFromChoice(filters.batch),
+      position: filters.position,
       sortBy: filters.sortBy,
       sortOrder: filters.sortOrder,
       ...overrides,
@@ -440,6 +440,7 @@ export default function MembersPage() {
       filters.departmentId,
       filters.academicStatus,
       filters.batch,
+      filters.position,
       filters.sortBy,
       filters.sortOrder,
     ]
@@ -572,6 +573,24 @@ export default function MembersPage() {
     setFilter({ batch: value });
   }
 
+  function handlePositionChange(value) {
+    setFilter({ position: value });
+  }
+
+  // Someone who leads a ministry AND oversees a small group can switch lists.
+  function handleModeChange(next) {
+    if (next === mode) {
+      return;
+    }
+
+    setSelectedMode(next);
+    setFilters({ ...DEFAULT_FILTERS });
+    setSelectedMinistryId("");
+    setMembers([]);
+    setLoading(true);
+    resetToFirstPage();
+  }
+
   function handleSortChange(sortBy) {
     setFilters((previous) => ({
       ...previous,
@@ -655,29 +674,35 @@ export default function MembersPage() {
     }
 
     setRoleTarget(member);
+    setRoleError("");
     setError("");
   }
 
-  async function handleRoleConfirm(member, selectedRoleId) {
+  async function handleRoleConfirm(member, payload) {
     if (!member || !canManage) {
       return;
     }
 
+    const name =
+      [member.first_name, member.last_name].filter(Boolean).join(" ") ||
+      member.email;
+
     try {
       setChangingRole(true);
-      setError("");
+      setRoleError("");
 
-      await updateMember(member.id, {
-        roleId: Number(selectedRoleId),
-      });
+      await changeMemberRole(member.id, payload);
 
       setRoleTarget(null);
+      setNotice(`The role of ${name} was updated.`);
+      setTimeout(() => setNotice(""), 6000);
 
       await loadMembers(true);
     } catch (error) {
       console.error("Change member role error:", error);
-      setError(error.message || "Failed to change member role.");
-      setRoleTarget(null);
+
+      // The dialog stays open so the person can fix the choice.
+      setRoleError(error.message || "Failed to change the role.");
     } finally {
       setChangingRole(false);
     }
@@ -712,6 +737,7 @@ export default function MembersPage() {
   }
 
   const hasFilters =
+    Boolean(filters.position) ||
     Boolean(filters.search) ||
     Boolean(filters.status) ||
     Boolean(filters.roleId) ||
@@ -937,6 +963,32 @@ export default function MembersPage() {
           )}
         </div>
       </div>
+
+      {/* A person who leads a ministry AND oversees a small group */}
+      {availableModes.length > 1 && (
+        <div
+          role="tablist"
+          aria-label="Choose a member list"
+          className="flex flex-wrap gap-2"
+        >
+          {availableModes.map((item) => (
+            <button
+              key={item}
+              type="button"
+              role="tab"
+              aria-selected={mode === item}
+              onClick={() => handleModeChange(item)}
+              className={`rounded-xl border px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 ${
+                mode === item
+                  ? "border-slate-900 bg-slate-900 text-white"
+                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              {item === "ministry" ? "My ministry" : "My small group"}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Ministry cards — Ministry Leader only */}
       {isMinistryLeader && (
@@ -1165,6 +1217,8 @@ export default function MembersPage() {
 
       {/* Search and filters */}
       <MemberFilters
+        mode={mode}
+        isSuperAdmin={isSuperAdmin}
         filters={filters}
         onSearch={handleSearch}
         onStatusChange={handleStatusChange}
@@ -1172,12 +1226,11 @@ export default function MembersPage() {
         onCampusChange={handleCampusChange}
         onDepartmentChange={handleDepartmentChange}
         onBatchChange={handleBatchChange}
+        onPositionChange={handlePositionChange}
         onClear={handleClearFilters}
         hasFilters={hasFilters}
         campuses={showCampus ? campuses : []}
         departments={departments}
-        hideRoleFilter={isSmallGroupLeader}
-        hideBatchFilter={mode !== "manage"}
       />
 
       {notice && (
@@ -1263,7 +1316,7 @@ export default function MembersPage() {
           member={roleTarget}
           open={Boolean(roleTarget)}
           saving={changingRole}
-          assignableRoleIds={assignableRoleIds}
+          error={roleError}
           onClose={() => setRoleTarget(null)}
           onConfirm={handleRoleConfirm}
         />

@@ -42,9 +42,9 @@ async function getMyMinistryMembers(userId, options = {}) {
     roleId !== "" &&
     (!Number.isInteger(Number(roleId)) ||
       Number(roleId) < 1 ||
-      Number(roleId) > 5)
+      Number(roleId) > 7)
   ) {
-    const error = new Error("Role ID must be between 1 and 5.");
+    const error = new Error("Role ID must be between 1 and 7.");
     error.statusCode = 400;
     throw error;
   }

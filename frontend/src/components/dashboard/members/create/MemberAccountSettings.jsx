@@ -15,6 +15,7 @@ export default function MemberAccountSettings({
   roleOptions = [],
   roleLocked = false,
   roleLockedReason = "",
+  roleHelp = "",
   memberNumber = "",
   showInvitation = true,
 }) {
@@ -45,7 +46,7 @@ export default function MemberAccountSettings({
           label="Role"
           required
           error={errors.roleId}
-          help={roleLocked ? roleLockedReason : undefined}
+          help={roleLocked ? roleLockedReason : roleHelp || undefined}
         >
           <select
             id="roleId"

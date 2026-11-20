@@ -74,28 +74,41 @@ export const emptyMemberForm = {
 };
 
 /**
- * Roles the signed-in person may give. Only a Super Admin can give Super
- * Admin, Fellowship Admin and Staff (the backend enforces the same rule).
+ * Roles the signed-in person may give when ADDING a member.
+ *
+ * Small group overseers and ministry leaders are positions (chosen on their
+ * small group or ministry), so they are not roles here. Only a Super Admin
+ * can give Super Admin, Fellowship Admin and Staff (the backend enforces the
+ * same rule). Later role changes are made with "Change Role" in the members
+ * list, where the campus is chosen too.
  */
 export function getAssignableRoles(isSuperAdmin) {
   const ids = isSuperAdmin
     ? [
         ROLES.MEMBER,
-        ROLES.MINISTRY_LEADER,
-        ROLES.SMALL_GROUP_LEADER,
         ROLES.PASTOR,
-        ROLES.STAFF,
         ROLES.FELLOWSHIP_ADMIN,
+        ROLES.STAFF,
         ROLES.ADMIN,
       ]
-    : [
-        ROLES.MEMBER,
-        ROLES.MINISTRY_LEADER,
-        ROLES.SMALL_GROUP_LEADER,
-        ROLES.PASTOR,
-      ];
+    : [ROLES.MEMBER, ROLES.PASTOR];
 
   return ids.map((id) => ({ value: String(id), label: ROLE_NAMES[id] }));
+}
+
+const ROLE_HELP = {
+  [ROLES.PASTOR]:
+    "A Main Leader leads the campus chosen above. Small group overseers and ministry leaders are chosen on their small group or ministry.",
+  [ROLES.FELLOWSHIP_ADMIN]:
+    "A Fellowship Admin administers the campus chosen above.",
+  [ROLES.STAFF]:
+    "Staff starts with the campus chosen above. More campuses can be added later with Change Role.",
+  [ROLES.ADMIN]: "A Super Admin manages every campus and every account.",
+};
+
+// The short help line shown under the role dropdown.
+export function getRoleHelp(roleId) {
+  return ROLE_HELP[Number(roleId)] || "";
 }
 
 /**

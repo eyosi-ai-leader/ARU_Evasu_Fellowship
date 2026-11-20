@@ -16,32 +16,57 @@ import {
   UserRound,
   ClipboardList,
   Megaphone,
-  Activity,
   ShieldCheck,
   Crown,
   Eye,
   BriefcaseBusiness,
   KeyRound,
   GraduationCap,
+  Home,
   X,
 } from "lucide-react";
 
 import { ROLES } from "@/lib/roles";
-import { getFellowshipRoleName } from "@/lib/fellowshipRoles";
+import { endSession } from "@/lib/accountApi";
 import { getStoredUser } from "@/lib/userStorage";
+import { useAccess } from "@/components/dashboard/access/AccessProvider";
 import SidebarUserMenu from "@/components/dashboard/SidebarUserMenu";
 import BrandLogo from "@/components/shared/BrandLogo/BrandLogo";
 import { BRAND } from "@/data/brand";
 
+const INTELLIGENCE = {
+  label: "Intelligence",
+  items: [
+    {
+      name: "Fellowship AI",
+      href: "/dashboard/ai",
+      icon: Sparkles,
+      badge: "AI",
+    },
+    { name: "Insights", href: "/dashboard/insights", icon: BarChart3 },
+  ],
+};
+
 /*
- * The Dashboard / Overview page is opened from the role card at the
- * top of the sidebar, so it is not repeated as a section here.
+ * The menu is built from what the person may DO (capabilities from
+ * GET /api/me), not from one role number. A member who also leads a
+ * ministry gets both menus.
+ *
+ * Set comingSoon to false when a page is ready.
  */
-const navigationByRole = {
-  [ROLES.ADMIN]: [
-    {
-      label: "Management",
-      items: [
+function buildNavigation(access) {
+  const can = (capability) => access.capabilities.includes(capability);
+
+  const manages = can("fellowship:manage");
+  const managesGeneral = can("general:manage");
+
+  const sections = [];
+
+  if (manages || managesGeneral) {
+    const items = [];
+
+    if (manages) {
+      items.push(
         { name: "Members", href: "/dashboard/members", icon: Users },
         {
           name: "Graduates",
@@ -50,114 +75,62 @@ const navigationByRole = {
           comingSoon: true,
         },
         {
-          name: "Ministries",
-          href: "/dashboard/ministries",
-          icon: HeartHandshake,
-        },
-        { name: "Events", href: "/dashboard/events", icon: CalendarDays },
-        {
-          name: "Announcements",
-          href: "/dashboard/announcements",
-          icon: Megaphone,
-        },
-        {
-          name: "Member Access",
-          href: "/dashboard/account-access",
-          icon: KeyRound,
-        },
-      ],
-    },
-    {
-      label: "Intelligence",
-      items: [
-        {
-          name: "Fellowship AI",
-          href: "/dashboard/ai",
-          icon: Sparkles,
-          badge: "AI",
-        },
-        { name: "Insights", href: "/dashboard/insights", icon: BarChart3 },
-      ],
-    },
-  ],
+          name: "Small Groups",
+          href: "/dashboard/small-groups",
+          icon: Home,
+          comingSoon: true,
+        }
+      );
+    }
 
-  [ROLES.PASTOR]: [
-    {
-      label: "Fellowship Management",
+    items.push(
+      {
+        name: "Ministries",
+        href: "/dashboard/ministries",
+        icon: HeartHandshake,
+      },
+      { name: "Events", href: "/dashboard/events", icon: CalendarDays },
+      {
+        name: "Announcements",
+        href: "/dashboard/announcements",
+        icon: Megaphone,
+      }
+    );
+
+    if (manages) {
+      items.push({
+        name: "Member Access",
+        href: "/dashboard/account-access",
+        icon: KeyRound,
+      });
+    }
+
+    sections.push({
+      label: access.isSuperAdmin ? "Management" : "Fellowship Management",
+      items,
+    });
+
+    sections.push(INTELLIGENCE);
+
+    return sections;
+  }
+
+  if (can("smallgroup:lead")) {
+    sections.push({
+      label: "My Small Group",
       items: [
-        { name: "Members", href: "/dashboard/members", icon: Users },
         {
-          name: "Graduates",
-          href: "/dashboard/graduates",
-          icon: GraduationCap,
+          name: "Families & Members",
+          href: "/dashboard/small-groups",
+          icon: Home,
           comingSoon: true,
         },
-        {
-          name: "Ministries",
-          href: "/dashboard/ministries",
-          icon: HeartHandshake,
-        },
-        { name: "Events", href: "/dashboard/events", icon: CalendarDays },
-        {
-          name: "Announcements",
-          href: "/dashboard/announcements",
-          icon: Megaphone,
-        },
-        {
-          name: "Member Access",
-          href: "/dashboard/account-access",
-          icon: KeyRound,
-        },
       ],
-    },
-    {
-      label: "Intelligence",
-      items: [
-        {
-          name: "Fellowship AI",
-          href: "/dashboard/ai",
-          icon: Sparkles,
-          badge: "AI",
-        },
-        { name: "Insights", href: "/dashboard/insights", icon: BarChart3 },
-      ],
-    },
-  ],
+    });
+  }
 
-  [ROLES.CHURCH_ELDER]: [
-    {
-      label: "Fellowship",
-      items: [
-        { name: "Members", href: "/dashboard/members", icon: Users },
-        {
-          name: "Ministries",
-          href: "/dashboard/ministries",
-          icon: HeartHandshake,
-        },
-        { name: "Events", href: "/dashboard/events", icon: CalendarDays },
-        {
-          name: "Announcements",
-          href: "/dashboard/announcements",
-          icon: Megaphone,
-        },
-      ],
-    },
-    {
-      label: "Intelligence",
-      items: [
-        {
-          name: "Fellowship AI",
-          href: "/dashboard/ai",
-          icon: Sparkles,
-          badge: "AI",
-        },
-        { name: "Insights", href: "/dashboard/insights", icon: BarChart3 },
-      ],
-    },
-  ],
-
-  [ROLES.MINISTRY_LEADER]: [
-    {
+  if (can("ministry:lead")) {
+    sections.push({
       label: "My Ministry",
       items: [
         {
@@ -165,112 +138,53 @@ const navigationByRole = {
           href: "/dashboard/members",
           icon: Users,
         },
-        {
-          name: "Ministry Events",
-          href: "/dashboard/events",
-          icon: CalendarDays,
-        },
-        {
-          name: "Announcements",
-          href: "/dashboard/announcements",
-          icon: Megaphone,
-        },
       ],
-    },
-    {
-      label: "Activity",
-      items: [
-        {
-          name: "Activities",
-          href: "/dashboard/activities",
-          icon: Activity,
-          comingSoon: true,
-        },
-      ],
-    },
-    {
-      label: "Intelligence",
-      items: [
-        {
-          name: "Fellowship AI",
-          href: "/dashboard/ai",
-          icon: Sparkles,
-          badge: "AI",
-        },
-        { name: "Insights", href: "/dashboard/insights", icon: BarChart3 },
-      ],
-    },
-  ],
+    });
+  }
 
-  [ROLES.MEMBER]: [
-    {
-      label: "My Fellowship",
-      items: [
-        {
-          name: "My Ministry",
-          href: "/dashboard/my-ministry",
-          icon: HeartHandshake,
-          comingSoon: true,
-        },
-        { name: "Events", href: "/dashboard/events", icon: CalendarDays },
-        {
-          name: "My Attendance",
-          href: "/dashboard/attendance",
-          icon: ClipboardList,
-          comingSoon: true,
-        },
-      ],
-    },
-    {
-      label: "Communication",
-      items: [
-        {
-          name: "Announcements",
-          href: "/dashboard/announcements",
-          icon: Megaphone,
-        },
-      ],
-    },
-  ],
-};
+  sections.push({
+    label: "My Fellowship",
+    items: [
+      { name: "Events", href: "/dashboard/events", icon: CalendarDays },
+      {
+        name: "My Attendance",
+        href: "/dashboard/attendance",
+        icon: ClipboardList,
+        comingSoon: true,
+      },
+      {
+        name: "Announcements",
+        href: "/dashboard/announcements",
+        icon: Megaphone,
+      },
+    ],
+  });
 
-/*
- * Fellowship Admin and Staff manage members like a Main Leader, so they
- * get the same menu. (Without this they would get the plain Member menu.)
- */
-navigationByRole[ROLES.FELLOWSHIP_ADMIN] = navigationByRole[ROLES.PASTOR];
-navigationByRole[ROLES.STAFF] = navigationByRole[ROLES.PASTOR];
+  return sections;
+}
 
 const roleConfig = {
-  [ROLES.ADMIN]: {
-    title: "SUPER ADMIN",
-    icon: Crown,
-  },
-  [ROLES.FELLOWSHIP_ADMIN]: {
-    title: "FELLOWSHIP ADMIN",
-    icon: ShieldCheck,
-  },
-  [ROLES.STAFF]: {
-    title: "STAFF",
-    icon: BriefcaseBusiness,
-  },
-  [ROLES.PASTOR]: {
-    title: "MAIN LEADER",
-    icon: ShieldCheck,
-  },
-  [ROLES.SMALL_GROUP_LEADER]: {
-    title: "SMALL GROUP LEADER",
-    icon: Eye,
-  },
-  [ROLES.MINISTRY_LEADER]: {
-    title: "MINISTRY LEADER",
-    icon: BriefcaseBusiness,
-  },
-  [ROLES.MEMBER]: {
-    title: "MEMBER DASHBOARD",
-    icon: UserRound,
-  },
+  [ROLES.ADMIN]: { icon: Crown },
+  [ROLES.FELLOWSHIP_ADMIN]: { icon: ShieldCheck },
+  [ROLES.STAFF]: { icon: BriefcaseBusiness },
+  [ROLES.PASTOR]: { icon: ShieldCheck },
+  [ROLES.SMALL_GROUP_LEADER]: { icon: Eye },
+  [ROLES.MINISTRY_LEADER]: { icon: BriefcaseBusiness },
+  [ROLES.MEMBER]: { icon: UserRound },
 };
+
+function NavigationSkeleton() {
+  return (
+    <div className="space-y-3 px-1" aria-hidden="true">
+      {[1, 2, 3, 4, 5].map((item) => (
+        <div
+          key={item}
+          className="h-9 animate-pulse rounded-xl bg-slate-100"
+        />
+      ))}
+    </div>
+  );
+}
 
 /*
  * open / onClose are used on phones and tablets only: the sidebar slides
@@ -278,6 +192,7 @@ const roleConfig = {
  */
 export default function DashboardSidebar({ open = false, onClose }) {
   const pathname = usePathname();
+  const { access, loading } = useAccess();
 
   const [user, setUser] = useState(null);
 
@@ -294,15 +209,12 @@ export default function DashboardSidebar({ open = false, onClose }) {
     return () => window.removeEventListener("chms:user-updated", load);
   }, []);
 
-  const roleId = Number(user?.roleId);
-  const roleName = getFellowshipRoleName(roleId);
+  const roleLabel = access?.roleLabel || "Member";
+  const heldRoles = access?.roles?.length ? access.roles.join(" · ") : roleLabel;
 
-  const navigation =
-    navigationByRole[roleId] || navigationByRole[ROLES.MEMBER];
+  const navigation = access ? buildNavigation(access) : [];
 
-  const currentRole = roleConfig[roleId] || roleConfig[ROLES.MEMBER];
-
-  const RoleIcon = currentRole.icon;
+  const RoleIcon = (roleConfig[Number(access?.roleId)] || roleConfig[ROLES.MEMBER]).icon;
 
   const overviewActive = pathname === "/dashboard";
 
@@ -313,14 +225,6 @@ export default function DashboardSidebar({ open = false, onClose }) {
       ...previous,
       [label]: !previous[label],
     }));
-  };
-
-  const handleLogout = () => {
-    document.cookie = "token=; path=/; max-age=0; SameSite=Lax";
-
-    localStorage.removeItem("user");
-
-    window.location.href = "/login";
   };
 
   return (
@@ -384,11 +288,11 @@ export default function DashboardSidebar({ open = false, onClose }) {
 
           <div className="min-w-0 flex-1">
             <p
-              className={`truncate text-[11px] font-bold tracking-[0.08em] ${
+              className={`truncate text-[11px] font-bold uppercase tracking-[0.08em] ${
                 overviewActive ? "text-white" : "text-slate-900"
               }`}
             >
-              {currentRole.title}
+              {roleLabel}
             </p>
 
             <p
@@ -414,137 +318,140 @@ export default function DashboardSidebar({ open = false, onClose }) {
       {/* Navigation (takes all the remaining space and scrolls if needed) */}
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 [scrollbar-width:thin]">
         <nav aria-label="Dashboard">
-          {navigation.map((section, index) => {
-            const sectionOpen = !collapsed[section.label];
-            const panelId = `section-${section.label
-              .toLowerCase()
-              .replace(/\s+/g, "-")}`;
+          {loading && <NavigationSkeleton />}
 
-            return (
-              <div
-                key={section.label}
-                className={
-                  index > 0 ? "mt-3 border-t border-slate-100 pt-3" : ""
-                }
-              >
-                {/* Section header */}
-                <button
-                  type="button"
-                  onClick={() => toggleSection(section.label)}
-                  aria-expanded={sectionOpen}
-                  aria-controls={panelId}
-                  className="group mb-1 flex w-full items-center justify-between rounded-lg px-2 py-2 text-left transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                >
-                  <span className="flex items-center gap-2">
-                    <span className="text-[11px] font-bold uppercase tracking-[0.13em] text-slate-500 group-hover:text-slate-700">
-                      {section.label}
-                    </span>
+          {!loading &&
+            navigation.map((section, index) => {
+              const sectionOpen = !collapsed[section.label];
+              const panelId = `section-${section.label
+                .toLowerCase()
+                .replace(/\s+/g, "-")}`;
 
-                    <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-400">
-                      {section.items.length}
-                    </span>
-                  </span>
-
-                  <ChevronDown
-                    size={15}
-                    strokeWidth={2}
-                    aria-hidden="true"
-                    className={`text-slate-400 transition-transform duration-200 ${
-                      sectionOpen ? "rotate-0" : "-rotate-90"
-                    }`}
-                  />
-                </button>
-
-                {/* Section items */}
+              return (
                 <div
-                  id={panelId}
-                  className={`grid transition-all duration-200 ${
-                    sectionOpen
-                      ? "grid-rows-[1fr] opacity-100"
-                      : "grid-rows-[0fr] opacity-0"
-                  }`}
+                  key={section.label}
+                  className={
+                    index > 0 ? "mt-3 border-t border-slate-100 pt-3" : ""
+                  }
                 >
-                  <div className="overflow-hidden">
-                    <div className="space-y-1 pb-1">
-                      {section.items.map((item) => {
-                        const Icon = item.icon;
-                        const active = isActive(item.href);
+                  {/* Section header */}
+                  <button
+                    type="button"
+                    onClick={() => toggleSection(section.label)}
+                    aria-expanded={sectionOpen}
+                    aria-controls={panelId}
+                    className="group mb-1 flex w-full items-center justify-between rounded-lg px-2 py-2 text-left transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span className="text-[11px] font-bold uppercase tracking-[0.13em] text-slate-500 group-hover:text-slate-700">
+                        {section.label}
+                      </span>
 
-                        if (item.comingSoon) {
+                      <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-400">
+                        {section.items.length}
+                      </span>
+                    </span>
+
+                    <ChevronDown
+                      size={15}
+                      strokeWidth={2}
+                      aria-hidden="true"
+                      className={`text-slate-400 transition-transform duration-200 ${
+                        sectionOpen ? "rotate-0" : "-rotate-90"
+                      }`}
+                    />
+                  </button>
+
+                  {/* Section items */}
+                  <div
+                    id={panelId}
+                    className={`grid transition-all duration-200 ${
+                      sectionOpen
+                        ? "grid-rows-[1fr] opacity-100"
+                        : "grid-rows-[0fr] opacity-0"
+                    }`}
+                  >
+                    <div className="overflow-hidden">
+                      <div className="space-y-1 pb-1">
+                        {section.items.map((item) => {
+                          const Icon = item.icon;
+                          const active = isActive(item.href);
+
+                          if (item.comingSoon) {
+                            return (
+                              <div
+                                key={item.name}
+                                aria-disabled="true"
+                                className="flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-medium text-slate-300 lg:py-2.5"
+                              >
+                                <Icon
+                                  size={18}
+                                  strokeWidth={1.8}
+                                  aria-hidden="true"
+                                  className="shrink-0 text-slate-300"
+                                />
+
+                                <span className="truncate">{item.name}</span>
+
+                                <span className="ml-auto shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-400">
+                                  Soon
+                                </span>
+                              </div>
+                            );
+                          }
+
                           return (
-                            <div
+                            <Link
                               key={item.name}
-                              aria-disabled="true"
-                              className="flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-medium text-slate-300 lg:py-2.5"
+                              href={item.href}
+                              aria-current={active ? "page" : undefined}
+                              tabIndex={sectionOpen ? 0 : -1}
+                              className={`group relative flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 lg:py-2.5 ${
+                                active
+                                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
+                                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:bg-slate-100"
+                              }`}
                             >
+                              {active && (
+                                <span
+                                  aria-hidden="true"
+                                  className="absolute -left-4 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-indigo-600"
+                                />
+                              )}
+
                               <Icon
-                                size={18}
-                                strokeWidth={1.8}
+                                size={19}
+                                strokeWidth={active ? 2.2 : 1.8}
                                 aria-hidden="true"
-                                className="shrink-0 text-slate-300"
+                                className={`shrink-0 transition-colors ${
+                                  active
+                                    ? "text-white"
+                                    : "text-slate-400 group-hover:text-slate-700"
+                                }`}
                               />
 
                               <span className="truncate">{item.name}</span>
 
-                              <span className="ml-auto shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-400">
-                                Soon
-                              </span>
-                            </div>
+                              {item.badge && (
+                                <span
+                                  className={`ml-auto rounded-full px-2 py-0.5 text-[9px] font-bold ${
+                                    active
+                                      ? "bg-white/20 text-white"
+                                      : "bg-indigo-50 text-indigo-600"
+                                  }`}
+                                >
+                                  {item.badge}
+                                </span>
+                              )}
+                            </Link>
                           );
-                        }
-
-                        return (
-                          <Link
-                            key={item.name}
-                            href={item.href}
-                            aria-current={active ? "page" : undefined}
-                            tabIndex={sectionOpen ? 0 : -1}
-                            className={`group relative flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 lg:py-2.5 ${
-                              active
-                                ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
-                                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:bg-slate-100"
-                            }`}
-                          >
-                            {active && (
-                              <span
-                                aria-hidden="true"
-                                className="absolute -left-4 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-indigo-600"
-                              />
-                            )}
-
-                            <Icon
-                              size={19}
-                              strokeWidth={active ? 2.2 : 1.8}
-                              aria-hidden="true"
-                              className={`shrink-0 transition-colors ${
-                                active
-                                  ? "text-white"
-                                  : "text-slate-400 group-hover:text-slate-700"
-                              }`}
-                            />
-
-                            <span className="truncate">{item.name}</span>
-
-                            {item.badge && (
-                              <span
-                                className={`ml-auto rounded-full px-2 py-0.5 text-[9px] font-bold ${
-                                  active
-                                    ? "bg-white/20 text-white"
-                                    : "bg-indigo-50 text-indigo-600"
-                                }`}
-                              >
-                                {item.badge}
-                              </span>
-                            )}
-                          </Link>
-                        );
-                      })}
+                        })}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
         </nav>
       </div>
 
@@ -552,8 +459,8 @@ export default function DashboardSidebar({ open = false, onClose }) {
       <div className="shrink-0 pb-[env(safe-area-inset-bottom)]">
         <SidebarUserMenu
           user={user}
-          roleName={roleName}
-          onLogout={handleLogout}
+          roleName={heldRoles}
+          onLogout={() => endSession()}
         />
       </div>
     </aside>

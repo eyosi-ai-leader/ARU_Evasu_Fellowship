@@ -1,68 +1,58 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { getFellowships, getMyAccess } from "@/lib/fellowshipApi";
+import { getFellowships } from "@/lib/fellowshipApi";
+import { useAccess } from "@/components/dashboard/access/AccessProvider";
 
 /**
- * Loads, once per page:
- *   access   - what the signed-in person is allowed to be and do (GET /api/me)
+ * Returns, for a dashboard page:
+ *   access   - what the signed-in person is allowed to be and do (GET /api/me,
+ *              loaded once for the whole dashboard by AccessProvider)
  *   campuses - the campus fellowships they manage, with names
- *              (everything for a Super Admin)
+ *              (every campus for a Super Admin)
  *
- * While loading:   { loading: true }
+ * While loading:    { loading: true }
  * If /api/me fails: { access: null, error: "..." } so a page can fall back
  *                   to the role saved at sign-in.
  */
 export default function useMyAccess() {
-  const [state, setState] = useState({
-    access: null,
-    campuses: [],
-    loading: true,
-    error: "",
-  });
+  const { access, loading: accessLoading, error } = useAccess();
+
+  const [fellowships, setFellowships] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function load() {
-      try {
-        const [access, fellowships] = await Promise.all([
-          getMyAccess(),
-          getFellowships().catch(() => []),
-        ]);
-
-        if (cancelled) {
-          return;
-        }
-
-        const manageIds = access?.scope?.memberFellowshipIds || [];
-
-        const campuses = access?.scope?.all
-          ? fellowships
-          : fellowships.filter((fellowship) =>
-              manageIds.includes(Number(fellowship.id))
-            );
-
-        setState({ access, campuses, loading: false, error: "" });
-      } catch (error) {
-        if (!cancelled) {
-          setState({
-            access: null,
-            campuses: [],
-            loading: false,
-            error: error.message || "Could not load your access.",
-          });
-        }
-      }
-    }
-
-    load();
+    getFellowships()
+      .then((list) => {
+        if (!cancelled) setFellowships(list);
+      })
+      .catch(() => {
+        if (!cancelled) setFellowships([]);
+      });
 
     return () => {
       cancelled = true;
     };
   }, []);
 
-  return state;
+  const campuses = useMemo(() => {
+    if (!access || !fellowships) return [];
+
+    if (access.scope?.all) return fellowships;
+
+    const manageIds = access.scope?.memberFellowshipIds || [];
+
+    return fellowships.filter((fellowship) =>
+      manageIds.includes(Number(fellowship.id))
+    );
+  }, [access, fellowships]);
+
+  return {
+    access,
+    campuses,
+    loading: accessLoading || fellowships === null,
+    error,
+  };
 }

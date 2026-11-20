@@ -9,11 +9,10 @@ import { getMemberById, updateMember } from "@/lib/memberApi";
 import { inviteMember } from "@/lib/memberAccessApi";
 import { getDepartments } from "@/lib/fellowshipApi";
 import useMyAccess from "@/lib/useMyAccess";
-import { canManageMembers, isPrivilegedRole } from "@/lib/roles";
+import { canManageMembers, getRoleName, isPrivilegedRole } from "@/lib/roles";
 import {
   buildMemberFormData,
   emptyMemberForm,
-  getAssignableRoles,
   memberToForm,
   validateMemberForm,
 } from "@/lib/memberForm";
@@ -84,8 +83,6 @@ export default function EditMemberPage() {
   const isSuperAdmin = access
     ? Boolean(access.isSuperAdmin)
     : Number(storedUser?.roleId) === 1;
-
-  const currentUserId = access?.user?.id ?? storedUser?.id ?? null;
 
   // Only people who manage members may open this page.
   useEffect(() => {
@@ -344,11 +341,6 @@ export default function EditMemberPage() {
     );
   }
 
-  const isSelf =
-    currentUserId !== null &&
-    currentUserId !== undefined &&
-    Number(member?.user_id) === Number(currentUserId);
-
   const emailChanged =
     form.email.trim().toLowerCase() !==
     String(member?.email || "").trim().toLowerCase();
@@ -432,6 +424,12 @@ export default function EditMemberPage() {
           errors={errors}
           onChange={handleChange}
           campusName={member?.fellowship_name || ""}
+          smallGroup={member?.small_group_name || ""}
+          family={
+            member?.family_name
+              ? `${member.family_name} · ${member.family_role}`
+              : ""
+          }
           departments={departments}
           departmentsLoading={departmentsLoading}
         />
@@ -458,9 +456,14 @@ export default function EditMemberPage() {
           form={form}
           errors={errors}
           onChange={handleChange}
-          roleOptions={getAssignableRoles(isSuperAdmin)}
-          roleLocked={isSelf}
-          roleLockedReason="You can't change your own role."
+          roleOptions={[
+            {
+              value: String(member?.role_id ?? ""),
+              label: getRoleName(member?.role_id),
+            },
+          ]}
+          roleLocked
+          roleLockedReason="To change the role, use Change Role in the members list. That is where the campus is chosen too."
           memberNumber={member?.member_number || ""}
           showInvitation={false}
         />

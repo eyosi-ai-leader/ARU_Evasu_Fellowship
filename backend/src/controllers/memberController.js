@@ -11,6 +11,7 @@ const {
   ACADEMIC_STATUSES,
 } = require("../utils/memberProfileFields");
 const {
+  ROLE_IDS,
   MIN_ROLE_ID,
   MAX_ROLE_ID,
   MANAGER_ASSIGNABLE_ROLE_IDS,
@@ -31,6 +32,14 @@ const httpError = (message, statusCode) => {
   return error;
 };
 
+// The "Show" filter of the members list.
+const LIST_POSITIONS = [
+  "small_group_leader",
+  "ministry_leader",
+  "no_small_group",
+  "no_family",
+];
+
 /* ------------------------------------------------------------------ */
 /* Permission helpers                                                  */
 /*                                                                     */
@@ -43,9 +52,23 @@ const httpError = (message, statusCode) => {
  * Staff roles. Everyone else who manages members may give roles 2 to 5.
  */
 const assertCanAssignRole = (access, roleId) => {
+  const id = Number(roleId);
+
+  // These two are positions (set on the small group or the ministry),
+  // never a role number.
+  if (
+    id === ROLE_IDS.SMALL_GROUP_LEADER ||
+    id === ROLE_IDS.MINISTRY_LEADER
+  ) {
+    throw httpError(
+      "Small Group Leaders and Ministry Leaders are chosen on their small group or ministry, not by role.",
+      400
+    );
+  }
+
   if (access.isSuperAdmin) return;
 
-  if (!MANAGER_ASSIGNABLE_ROLE_IDS.includes(Number(roleId))) {
+  if (!MANAGER_ASSIGNABLE_ROLE_IDS.includes(id)) {
     throw httpError(
       "Only a Super Admin can give the Super Admin, Fellowship Admin or Staff role.",
       403
@@ -105,6 +128,7 @@ const parseListQuery = (req) => {
   const departmentId = number(req.query.departmentId);
   const academicStatus = text(req.query.academicStatus);
   const batch = number(req.query.batch);
+  const position = text(req.query.position);
   const sortBy = text(req.query.sortBy, "created_at");
   const sortOrder = text(req.query.sortOrder, "desc").toLowerCase();
 
@@ -151,6 +175,10 @@ const parseListQuery = (req) => {
     );
   }
 
+  if (position && !LIST_POSITIONS.includes(position)) {
+    throw httpError("Invalid position filter", 400);
+  }
+
   // Batch = the year the student started, in E.C. (for example 2016).
   if (
     batch !== "" &&
@@ -191,6 +219,7 @@ const parseListQuery = (req) => {
     departmentId,
     academicStatus,
     batch,
+    position,
     sortBy,
     sortOrder,
   };
@@ -445,8 +474,8 @@ const getMemberById = async (req, res) => {
  * Update member
  *
  * Only inside the fellowships the person manages. Super Admin, Fellowship
- * Admin and Staff accounts can only be edited by a Super Admin, and nobody
- * can change their own role here.
+ * Admin and Staff accounts can only be edited by a Super Admin. The role
+ * can never be changed here.
  *
  * Moving a member to another campus is not supported yet.
  *
@@ -494,19 +523,18 @@ const updateMember = async (req, res) => {
       );
     }
 
+    // Roles are changed from the Role & Access form (PUT
+    // /api/leadership/members/:memberId/role), where the campus is chosen
+    // too. Editing a member's details never changes the role.
     if (
       roleId !== undefined &&
       Number(roleId) !== Number(existing.role_id)
     ) {
-      if (Number(existing.user_id) === Number(req.user.id)) {
-        return errorResponse(
-          res,
-          "You can't change your own role.",
-          400
-        );
-      }
-
-      assertCanAssignRole(req.access, roleId);
+      return errorResponse(
+        res,
+        "Roles are changed from the Role & Access section, where the campus is chosen as well.",
+        400
+      );
     }
 
     /*
@@ -548,11 +576,6 @@ const updateMember = async (req, res) => {
         phone:
           phone !== undefined
             ? phone
-            : undefined,
-
-        roleId:
-          roleId !== undefined
-            ? Number(roleId)
             : undefined,
 
         gender,
@@ -634,9 +657,10 @@ const deleteMember = async (req, res) => {
 
     assertNotPrivilegedTarget(req.access, existing);
 
-    // The checks above (campus scope, protected accounts) have been done,
-    // so a member who has signed in may be deleted too.
-    await memberAccessService.removeAccount(req.user, Number(id), {
+    // The access object is passed so the campus rules and the protected
+    // accounts also apply inside the service. A member who has signed in
+    // may be deleted too.
+    await memberAccessService.removeAccount(req.access, Number(id), {
       allowSignedIn: true,
     });
 
@@ -669,7 +693,7 @@ const deleteMember = async (req, res) => {
  * refused.
  *
  * Supports: pagination, search, status / role / campus / department /
- * academic-status filters and sorting.
+ * academic-status / position filters and sorting.
  */
 const getAllMembers = async (req, res) => {
   try {
@@ -741,6 +765,9 @@ const SMALL_GROUP_VIEW_FIELDS = [
   "fellowship_name",
   "small_group_id",
   "small_group_name",
+  "family_id",
+  "family_name",
+  "family_role",
   "department_name",
   "department_duration_years",
   "academic_status",
@@ -771,6 +798,7 @@ const getMySmallGroupMembers = async (req, res) => {
         limit: query.limit,
         search: query.search,
         status: query.status,
+        position: query.position,
         sortBy: query.sortBy,
         sortOrder: query.sortOrder,
 

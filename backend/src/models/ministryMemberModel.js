@@ -266,11 +266,10 @@ async function updateLeaderMember(userId, memberId, input = {}) {
       throw error;
     }
 
-    const userFields = [
+      const userFields = [
       "first_name",
       "middle_name",
       "last_name",
-      "email",
       "profile_image",
     ];
 
@@ -279,7 +278,6 @@ async function updateLeaderMember(userId, memberId, input = {}) {
       "date_of_birth",
       "baptism_date",
       "address",
-      "status",
     ];
 
     const userUpdates = {};

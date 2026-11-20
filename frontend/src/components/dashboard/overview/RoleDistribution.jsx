@@ -1,56 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import {
+  BriefcaseBusiness,
+  Crown,
+  Eye,
+  HeartHandshake,
   ShieldCheck,
-  Church,
-  UserCog,
-  Users,
   UserRound,
+  Users,
 } from "lucide-react";
 
-import { getDashboardOverview } from "@/lib/dashboardApi";
+import { ROLES } from "@/lib/roles";
 
-const roleIcons = {
-  Admin: ShieldCheck,
-  Pastor: Church,
-  "Church Elder": UserCog,
-  "Ministry Leader": Users,
-  Member: UserRound,
+const ROLE_ICONS = {
+  [ROLES.ADMIN]: Crown,
+  [ROLES.PASTOR]: ShieldCheck,
+  [ROLES.SMALL_GROUP_LEADER]: Eye,
+  [ROLES.MINISTRY_LEADER]: HeartHandshake,
+  [ROLES.MEMBER]: UserRound,
+  [ROLES.FELLOWSHIP_ADMIN]: ShieldCheck,
+  [ROLES.STAFF]: BriefcaseBusiness,
 };
 
-export default function RoleDistribution() {
-  const [roles, setRoles] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    async function loadRoles() {
-      try {
-        const token = document.cookie
-          .split("; ")
-          .find((cookie) => cookie.startsWith("token="))
-          ?.split("=")[1];
-
-        if (!token) {
-          throw new Error("Authentication token not found");
-        }
-
-        const response = await getDashboardOverview(token);
-
-        setRoles(response?.data?.roles || []);
-      } catch (error) {
-        console.error("Role distribution error:", error);
-        setError(error.message || "Failed to load role distribution.");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadRoles();
-  }, []);
-
-  if (loading) {
+export default function RoleDistribution({ roles, loading }) {
+  if (loading && !roles) {
     return (
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-5">
@@ -58,8 +31,8 @@ export default function RoleDistribution() {
           <div className="mt-2 h-4 w-56 animate-pulse rounded bg-slate-100" />
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {[1, 2, 3, 4, 5].map((item) => (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((item) => (
             <div
               key={item}
               className="h-24 animate-pulse rounded-xl bg-slate-50"
@@ -70,35 +43,28 @@ export default function RoleDistribution() {
     );
   }
 
-  if (error) {
-    return (
-      <section className="rounded-2xl border border-red-200 bg-red-50 p-5">
-        <p className="text-sm font-medium text-red-600">
-          Failed to load role distribution.
-        </p>
+  // Roles nobody holds are not shown (the Member role always is).
+  const visible = (roles || []).filter(
+    (role) => role.total > 0 || Number(role.roleId) === ROLES.MEMBER
+  );
 
-        <p className="mt-1 text-xs text-red-500">
-          {error}
-        </p>
-      </section>
-    );
-  }
+  if (visible.length === 0) return null;
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="mb-5">
         <h2 className="text-lg font-semibold text-slate-900">
-          Role Distribution
+          People by role
         </h2>
 
         <p className="mt-1 text-sm text-slate-500">
-          Overview of users by church role.
+          Accounts in the campuses you are viewing, by system role.
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        {roles.map((role) => {
-          const Icon = roleIcons[role.roleName] || Users;
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {visible.map((role) => {
+          const Icon = ROLE_ICONS[Number(role.roleId)] || Users;
 
           return (
             <div
@@ -107,7 +73,7 @@ export default function RoleDistribution() {
             >
               <div className="flex items-center justify-between">
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-slate-700 shadow-sm">
-                  <Icon size={18} />
+                  <Icon size={18} aria-hidden="true" />
                 </div>
 
                 <span className="text-2xl font-bold text-slate-900">
