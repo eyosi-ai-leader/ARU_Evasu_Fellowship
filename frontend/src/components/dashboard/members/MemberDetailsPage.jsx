@@ -543,7 +543,7 @@ export default function MemberDetailsPage() {
                 }
               />
 
-              {member.small_group_name !== undefined && (
+              {member.fellowship_id && member.small_group_name !== undefined && (
                 <InfoItem
                   icon={UsersRound}
                   label="Small group"
@@ -551,7 +551,7 @@ export default function MemberDetailsPage() {
                 />
               )}
 
-              {member.family_name !== undefined && (
+              {member.fellowship_id && member.family_name !== undefined && (
                 <InfoItem
                   icon={Home}
                   label="Family"

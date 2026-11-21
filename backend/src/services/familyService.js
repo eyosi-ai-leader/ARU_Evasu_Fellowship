@@ -33,9 +33,16 @@ const assertManager = (access, fellowshipId) => {
 const getGroup = async (conn, groupId) => {
   const [rows] = await conn.execute(
     `
-      SELECT id, fellowship_id, name, status
-      FROM small_groups
-      WHERE id = ?
+      SELECT
+        sg.id,
+        sg.fellowship_id,
+        sg.name,
+        sg.description,
+        sg.status,
+        f.name AS fellowship_name
+      FROM small_groups sg
+      INNER JOIN fellowships f ON f.id = sg.fellowship_id
+      WHERE sg.id = ?
       LIMIT 1
     `,
     [groupId]
@@ -90,12 +97,13 @@ const listSmallGroups = async (access) => {
       SELECT
         sg.id,
         sg.fellowship_id,
+        f.name AS fellowship_name,
         sg.name,
         sg.description,
         sg.status,
         (
-          SELECT COUNT(*) FROM families f
-          WHERE f.small_group_id = sg.id AND f.status = 'Active'
+          SELECT COUNT(*) FROM families fa
+          WHERE fa.small_group_id = sg.id AND fa.status = 'Active'
         ) AS familyCount,
         (
           SELECT COUNT(*) FROM members m
@@ -110,6 +118,7 @@ const listSmallGroups = async (access) => {
             )
         ) AS withoutFamily
       FROM small_groups sg
+      INNER JOIN fellowships f ON f.id = sg.fellowship_id
       WHERE sg.fellowship_id IN (?) OR sg.id IN (?)
       ORDER BY sg.fellowship_id ASC, sg.name ASC
     `,
@@ -151,6 +160,7 @@ const listSmallGroups = async (access) => {
   return groups.map((g) => ({
     id: g.id,
     fellowshipId: g.fellowship_id,
+    fellowshipName: g.fellowship_name,
     name: g.name,
     description: g.description,
     status: g.status,
@@ -286,6 +296,9 @@ const toPerson = (row) => ({
   name: fullName(row.first_name, row.middle_name, row.last_name),
   gender: row.gender,
   status: row.status,
+  phone: row.phone || "",
+  academicStatus: row.academic_status || "",
+  department: row.department || "",
 });
 
 const listFamilies = async (access, groupId) => {
@@ -314,13 +327,17 @@ const listFamilies = async (access, groupId) => {
         m.member_number,
         m.gender,
         m.status,
+        m.academic_status,
+        COALESCE(m.phone, u.phone) AS phone,
         u.first_name,
         u.middle_name,
-        u.last_name
+        u.last_name,
+        d.name AS department
       FROM family_members fm
       INNER JOIN families f ON f.id = fm.family_id
       INNER JOIN members m ON m.id = fm.member_id
       INNER JOIN users u ON u.id = m.user_id
+      LEFT JOIN departments d ON d.id = m.department_id
       WHERE f.small_group_id = ?
       ORDER BY FIELD(fm.family_role, 'Father', 'Mother', 'Child'), u.first_name ASC
     `,
@@ -334,6 +351,8 @@ const listFamilies = async (access, groupId) => {
         m.member_number,
         m.gender,
         m.status,
+        m.academic_status,
+        COALESCE(m.phone, u.phone) AS phone,
         u.first_name,
         u.middle_name,
         u.last_name,
@@ -346,6 +365,18 @@ const listFamilies = async (access, groupId) => {
         AND NOT EXISTS (
           SELECT 1 FROM family_members fm WHERE fm.member_id = m.id
         )
+      ORDER BY u.first_name ASC
+    `,
+    [groupId]
+  );
+
+  const [leaders] = await db.execute(
+    `
+      SELECT m.id AS memberId, u.first_name, u.middle_name, u.last_name
+      FROM small_group_leaders l
+      INNER JOIN members m ON m.id = l.member_id
+      INNER JOIN users u ON u.id = m.user_id
+      WHERE l.small_group_id = ? AND l.status = 'Active'
       ORDER BY u.first_name ASC
     `,
     [groupId]
@@ -364,7 +395,15 @@ const listFamilies = async (access, groupId) => {
     group: {
       id: group.id,
       name: group.name,
+      description: group.description,
+      status: group.status,
       fellowshipId: group.fellowship_id,
+      fellowshipName: group.fellowship_name,
+      canManage: isManager(access, group.fellowship_id),
+      overseers: leaders.map((leader) => ({
+        memberId: leader.memberId,
+        name: fullName(leader.first_name, leader.middle_name, leader.last_name),
+      })),
     },
     families: families.map((family) => {
       const list = byFamily.get(family.id) || [];
@@ -384,10 +423,7 @@ const listFamilies = async (access, groupId) => {
         needsParent: !father && !mother,
       };
     }),
-    unassigned: unassigned.map((row) => ({
-      ...toPerson(row),
-      department: row.department,
-    })),
+    unassigned: unassigned.map(toPerson),
   };
 };
 
@@ -651,6 +687,82 @@ const removeFamilyMember = async (access, familyId, memberId) => {
   return { familyId: Number(familyId), memberId: Number(memberId) };
 };
 
+/**
+ * Members who could be added to a family of this small group: active members
+ * of the same campus who have no small group yet, plus members of this small
+ * group who are not in a family. Staff have no campus, so they never appear.
+ */
+const listCandidates = async (access, groupId, search = "") => {
+  const group = await getGroup(db, groupId);
+
+  if (!canWorkOnGroup(access, group)) {
+    throw httpError("You can only work on your own small group.", 403);
+  }
+
+  const params = [group.fellowship_id, group.id];
+
+  let query = `
+    SELECT
+      m.id AS memberId,
+      m.member_number,
+      m.gender,
+      m.academic_status,
+      m.small_group_id,
+      u.first_name,
+      u.middle_name,
+      u.last_name,
+      d.name AS department
+    FROM members m
+    INNER JOIN users u ON u.id = m.user_id
+    LEFT JOIN departments d ON d.id = m.department_id
+    WHERE m.status = 'Active'
+      AND u.is_active = 1
+      AND m.fellowship_id = ?
+      AND (
+        m.small_group_id IS NULL
+        OR (
+          m.small_group_id = ?
+          AND NOT EXISTS (
+            SELECT 1 FROM family_members fm WHERE fm.member_id = m.id
+          )
+        )
+      )
+  `;
+
+  const term = String(search || "").trim();
+
+  if (term) {
+    query += `
+      AND (
+        u.first_name LIKE ?
+        OR u.last_name LIKE ?
+        OR CONCAT(u.first_name, ' ', u.last_name) LIKE ?
+        OR m.member_number LIKE ?
+      )
+    `;
+
+    const like = `%${term}%`;
+    params.push(like, like, like, like);
+  }
+
+  query += `
+    ORDER BY (m.small_group_id IS NULL) ASC, u.first_name ASC, u.last_name ASC
+    LIMIT 50
+  `;
+
+  const [rows] = await db.query(query, params);
+
+  return rows.map((row) => ({
+    memberId: row.memberId,
+    memberNumber: row.member_number,
+    name: fullName(row.first_name, row.middle_name, row.last_name),
+    gender: row.gender,
+    academicStatus: row.academic_status || "",
+    department: row.department || "",
+    inGroup: Boolean(row.small_group_id),
+  }));
+};
+
 module.exports = {
   listSmallGroups,
   createSmallGroup,
@@ -663,4 +775,5 @@ module.exports = {
   deleteFamily,
   saveFamilyMembers,
   removeFamilyMember,
+  listCandidates,
 };

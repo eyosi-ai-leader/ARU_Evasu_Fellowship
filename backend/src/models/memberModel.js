@@ -775,11 +775,16 @@ const buildMemberFilters = ({
       )
     `);
   } else if (position === "no_small_group") {
-    conditions.push("m.small_group_id IS NULL");
+    conditions.push(
+      "(m.small_group_id IS NULL AND m.fellowship_id IS NOT NULL)"
+    );
   } else if (position === "no_family") {
     conditions.push(`
-      NOT EXISTS (
-        SELECT 1 FROM family_members fmx WHERE fmx.member_id = m.id
+      (
+        m.fellowship_id IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM family_members fmx WHERE fmx.member_id = m.id
+        )
       )
     `);
   }

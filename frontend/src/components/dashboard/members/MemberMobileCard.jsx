@@ -150,7 +150,8 @@ export default function MemberMobileCard({
   const positions = info.positions || [];
 
   const showPlacement =
-    (mode === "manage" || mode === "smallGroup") && Boolean(info.placement);
+    (mode === "manage" || mode === "smallGroup") &&
+    Boolean(info.placement?.hasCampus);
 
   const top = (
     <div className="flex items-center gap-3">

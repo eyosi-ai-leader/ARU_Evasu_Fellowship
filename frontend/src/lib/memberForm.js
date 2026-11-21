@@ -78,19 +78,13 @@ export const emptyMemberForm = {
  *
  * Small group overseers and ministry leaders are positions (chosen on their
  * small group or ministry), so they are not roles here. Only a Super Admin
- * can give Super Admin, Fellowship Admin and Staff (the backend enforces the
- * same rule). Later role changes are made with "Change Role" in the members
- * list, where the campus is chosen too.
+ * can give Super Admin and Fellowship Admin (the backend enforces the
+ * same rule). Staff is not created here: it is made later with "Change Role"
+ * in the members list, which removes the campus.
  */
 export function getAssignableRoles(isSuperAdmin) {
   const ids = isSuperAdmin
-    ? [
-        ROLES.MEMBER,
-        ROLES.PASTOR,
-        ROLES.FELLOWSHIP_ADMIN,
-        ROLES.STAFF,
-        ROLES.ADMIN,
-      ]
+    ? [ROLES.MEMBER, ROLES.PASTOR, ROLES.FELLOWSHIP_ADMIN, ROLES.ADMIN]
     : [ROLES.MEMBER, ROLES.PASTOR];
 
   return ids.map((id) => ({ value: String(id), label: ROLE_NAMES[id] }));
@@ -101,8 +95,6 @@ const ROLE_HELP = {
     "A Main Leader leads the campus chosen above. Small group overseers and ministry leaders are chosen on their small group or ministry.",
   [ROLES.FELLOWSHIP_ADMIN]:
     "A Fellowship Admin administers the campus chosen above.",
-  [ROLES.STAFF]:
-    "Staff starts with the campus chosen above. More campuses can be added later with Change Role.",
   [ROLES.ADMIN]: "A Super Admin manages every campus and every account.",
 };
 
@@ -225,8 +217,12 @@ export function memberToForm(member) {
 /**
  * Returns { fieldName: "message" } (empty object when everything is fine).
  *   mode = "create" | "edit"
+ *   student = false skips the entry year check (for people without a campus)
  */
-export function validateMemberForm(form, { mode, hasDepartments = false }) {
+export function validateMemberForm(
+  form,
+  { mode, hasDepartments = false, student = true }
+) {
   const create = mode === "create";
   const errors = {};
 
@@ -290,7 +286,7 @@ export function validateMemberForm(form, { mode, hasDepartments = false }) {
     errors.departmentId = "Please select the department.";
   }
 
-  if (form.academicStatus === "Student" && !form.entryYear) {
+  if (student && form.academicStatus === "Student" && !form.entryYear) {
     errors.entryYear = "Please select the year they started (entry year).";
   }
 

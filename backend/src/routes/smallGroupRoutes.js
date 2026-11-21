@@ -21,6 +21,7 @@ const {
   updateFamilyValidator,
   familyMembersValidator,
   removeFamilyMemberValidator,
+  candidatesValidator,
 } = require("../validators/smallGroupValidator");
 
 // Campus managers and small group overseers. The service then limits each
@@ -56,6 +57,11 @@ router.delete(
   controller.removeLeader
 );
 router.get("/:groupId/families", groupIdValidator, controller.listFamilies);
+router.get(
+  "/:groupId/candidates",
+  candidatesValidator,
+  controller.listCandidates
+);
 router.post("/:groupId/families", createFamilyValidator, controller.createFamily);
 
 module.exports = router;

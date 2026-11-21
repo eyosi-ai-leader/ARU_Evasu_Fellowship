@@ -1,6 +1,6 @@
 "use client";
 
-import { Info, Mail } from "lucide-react";
+import { Info, Mail, ShieldCheck } from "lucide-react";
 
 import { Field, ReadOnlyBox, Section, fieldClass } from "./FormParts";
 
@@ -15,6 +15,9 @@ export default function MemberAccountSettings({
   roleOptions = [],
   roleLocked = false,
   roleLockedReason = "",
+  onChangeRole = null,
+  changeRoleDisabled = false,
+  changeRoleHint = "",
   roleHelp = "",
   memberNumber = "",
   showInvitation = true,
@@ -65,6 +68,26 @@ export default function MemberAccountSettings({
               </option>
             ))}
           </select>
+
+          {onChangeRole && (
+            <>
+              <button
+                type="button"
+                onClick={onChangeRole}
+                disabled={changeRoleDisabled}
+                className="mt-2 inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ShieldCheck size={14} aria-hidden="true" />
+                Change role
+              </button>
+
+              {changeRoleHint && (
+                <p className="mt-1.5 text-xs text-amber-700">
+                  {changeRoleHint}
+                </p>
+              )}
+            </>
+          )}
         </Field>
 
         <Field id="status" label="Status">

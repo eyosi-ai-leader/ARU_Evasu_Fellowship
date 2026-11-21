@@ -152,6 +152,7 @@ function describeMember(member, { mode, canManage, isSuperAdmin, currentUserId }
       ...(member.is_ministry_leader ? ["Ministry Leader"] : []),
     ],
     placement: {
+      hasCampus: Boolean(member.fellowship_id),
       hasSmallGroup: Boolean(member.small_group_id),
       smallGroup: member.small_group_name || "",
       family: member.family_name || "",
@@ -377,6 +378,11 @@ function AttentionChip({ children }) {
  * gets a clear "not yet" label, so leaders can see who still needs a place.
  */
 function PlacementText({ placement, mode }) {
+  // No campus (for example Staff): nothing to show.
+  if (!placement.hasCampus) {
+    return <span className="text-xs text-slate-300">—</span>;
+  }
+
   // An overseer already knows the small group: show the family only.
   if (mode === "smallGroup") {
     return placement.family ? (

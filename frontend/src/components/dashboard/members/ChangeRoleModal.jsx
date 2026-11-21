@@ -7,10 +7,14 @@ import { getRoleOptions } from "@/lib/memberApi";
 
 /*
  * Roles are given together with the campus:
- *   campusMode "none"   Member, Super Admin (no campus to choose)
+ *   campusMode "none"   Member, Super Admin
  *   campusMode "member" Main Leader (leads the campus the member belongs to)
  *   campusMode "one"    Fellowship Admin (exactly one campus)
  *   campusMode "many"   Staff (all campuses, or a chosen list)
+ *
+ * Staff are full-time servants, not students: they belong to no campus.
+ * A person with no campus (for example a former Staff member) is asked
+ * which campus they belong to when they become a Member or Main Leader.
  *
  * What the person may give comes from the server, so nobody sees a role
  * they cannot give.
@@ -20,13 +24,36 @@ const ROLE_ORDER = [2, 6, 7, 1, 5];
 const ROLE_DESCRIPTIONS = {
   2: "Leads the campus fellowship they belong to: members, ministries, small groups and announcements.",
   6: "Administers one campus fellowship: members, ministries, small groups and announcements.",
-  7: "Full-time servant with full access to the campuses you choose.",
+  7: "Full-time servant, not a student. Belongs to no campus and serves the campuses you choose.",
   1: "Manages every campus, all accounts, roles and staff access.",
   5: "Standard fellowship member access. Removes any leadership or admin access.",
 };
 
 const shortCampusName = (name) =>
   String(name || "").replace(/\s+Fellowship$/i, "");
+
+function CampusRadios({ campuses, value, onChange, disabled, name }) {
+  return (
+    <div className="space-y-1.5">
+      {campuses.map((campus) => (
+        <label
+          key={campus.id}
+          className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50"
+        >
+          <input
+            type="radio"
+            name={name}
+            checked={value === String(campus.id)}
+            onChange={() => onChange(String(campus.id))}
+            disabled={disabled}
+            className="h-4 w-4 border-slate-300 text-slate-900 focus:ring-slate-400"
+          />
+          {shortCampusName(campus.name)}
+        </label>
+      ))}
+    </div>
+  );
+}
 
 export default function ChangeRoleModal({
   member,
@@ -41,9 +68,9 @@ export default function ChangeRoleModal({
   const [optionsError, setOptionsError] = useState("");
 
   const [roleId, setRoleId] = useState("");
-  const [campusId, setCampusId] = useState(""); // Fellowship Admin
+  const [campusId, setCampusId] = useState(""); // Fellowship Admin, or the campus of a member who has none
   const [campusIds, setCampusIds] = useState([]); // Staff
-  const [allCampuses, setAllCampuses] = useState(false); // Staff
+  const [allCampuses, setAllCampuses] = useState(true); // Staff
 
   const loadOptions = useCallback(async () => {
     setLoadingOptions(true);
@@ -66,19 +93,18 @@ export default function ChangeRoleModal({
   useEffect(() => {
     if (!open || !member) return;
 
-    const ownCampus =
-      member.fellowship_id !== undefined && member.fellowship_id !== null
-        ? String(member.fellowship_id)
-        : "";
-
     setRoleId(
       member.role_id !== undefined && member.role_id !== null
         ? String(member.role_id)
         : ""
     );
-    setCampusId(ownCampus);
-    setCampusIds(ownCampus ? [ownCampus] : []);
-    setAllCampuses(false);
+    setCampusId(
+      member.fellowship_id !== undefined && member.fellowship_id !== null
+        ? String(member.fellowship_id)
+        : ""
+    );
+    setCampusIds([]);
+    setAllCampuses(true);
   }, [open, member]);
 
   if (!open || !member) {
@@ -88,6 +114,8 @@ export default function ChangeRoleModal({
   const fullName =
     [member.first_name, member.last_name].filter(Boolean).join(" ") ||
     "Unnamed member";
+
+  const hasCampus = Boolean(member.fellowship_id);
 
   const roles = [...(options?.roles || [])].sort(
     (a, b) => ROLE_ORDER.indexOf(a.id) - ROLE_ORDER.indexOf(b.id)
@@ -101,9 +129,14 @@ export default function ChangeRoleModal({
     roles.find((role) => String(role.id) === roleId) || null;
 
   const mode = selectedRole?.campusMode || "none";
+  const isMemberRole = Number(selectedRole?.id) === 5;
+
+  // A person with no campus (for example former Staff) must be placed.
+  const needsCampusPick = !hasCampus && (mode === "member" || isMemberRole);
 
   const unchanged =
     roleId === String(member.role_id) &&
+    !needsCampusPick &&
     (mode === "none" || mode === "member");
 
   // What is still missing, in plain words.
@@ -113,10 +146,11 @@ export default function ChangeRoleModal({
     problem = "Choose a role.";
   } else if (mode === "member" && member.status !== "Active") {
     problem = "Activate this member first. Only an active member can lead.";
-  } else if (mode === "member" && !member.fellowship_id) {
-    problem = "This member has no campus yet.";
-  } else if (mode === "one" && !campusId) {
-    problem = "Choose the campus this person will administer.";
+  } else if ((needsCampusPick || mode === "one") && !campusId) {
+    problem =
+      mode === "one"
+        ? "Choose the campus this person will administer."
+        : "Choose the campus this person belongs to.";
   } else if (mode === "many" && !allCampuses && campusIds.length === 0) {
     problem = 'Choose "All campuses" or at least one campus.';
   }
@@ -137,7 +171,11 @@ export default function ChangeRoleModal({
     const payload = { roleId: Number(roleId) };
 
     if (mode === "member") {
-      payload.fellowshipIds = [Number(member.fellowship_id)];
+      payload.fellowshipIds = [
+        Number(hasCampus ? member.fellowship_id : campusId),
+      ];
+    } else if (isMemberRole && !hasCampus) {
+      payload.fellowshipIds = [Number(campusId)];
     }
 
     if (mode === "one") {
@@ -287,17 +325,38 @@ export default function ChangeRoleModal({
                 </div>
 
                 {/* Campus: what is asked depends on the role */}
-                {mode === "member" && (
+                {mode === "member" && hasCampus && (
                   <div className="rounded-xl bg-slate-50 px-3 py-3 text-xs leading-5 text-slate-600">
                     <p className="font-semibold text-slate-700">Campus</p>
                     <p>
-                      {shortCampusName(member.fellowship_name) ||
-                        "Not set"}{" "}
-                      (the campus {fullName} belongs to). A Main Leader leads
-                      their own campus. To lead another campus, move the
-                      member there first.
+                      {shortCampusName(member.fellowship_name)} (the campus{" "}
+                      {fullName} belongs to). A Main Leader leads their own
+                      campus. To lead another campus, move the member there
+                      first.
                     </p>
                   </div>
+                )}
+
+                {needsCampusPick && (
+                  <fieldset>
+                    <legend className="mb-1 text-xs font-semibold text-slate-700">
+                      Campus they belong to
+                    </legend>
+
+                    <p className="mb-2 text-[11px] leading-4 text-slate-500">
+                      {fullName} has no campus yet (for example a Staff
+                      member). Choose the campus they now belong to. Their
+                      department and entry year can be added in Edit Member.
+                    </p>
+
+                    <CampusRadios
+                      campuses={campuses}
+                      value={campusId}
+                      onChange={setCampusId}
+                      disabled={saving}
+                      name="member-campus"
+                    />
+                  </fieldset>
                 )}
 
                 {mode === "one" && (
@@ -306,32 +365,27 @@ export default function ChangeRoleModal({
                       Campus to administer
                     </legend>
 
-                    <div className="space-y-1.5">
-                      {campuses.map((campus) => (
-                        <label
-                          key={campus.id}
-                          className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50"
-                        >
-                          <input
-                            type="radio"
-                            name="role-campus"
-                            checked={campusId === String(campus.id)}
-                            onChange={() => setCampusId(String(campus.id))}
-                            disabled={saving}
-                            className="h-4 w-4 border-slate-300 text-slate-900 focus:ring-slate-400"
-                          />
-                          {shortCampusName(campus.name)}
-                        </label>
-                      ))}
-                    </div>
+                    <CampusRadios
+                      campuses={campuses}
+                      value={campusId}
+                      onChange={setCampusId}
+                      disabled={saving}
+                      name="admin-campus"
+                    />
                   </fieldset>
                 )}
 
                 {mode === "many" && (
                   <fieldset>
-                    <legend className="mb-2 text-xs font-semibold text-slate-700">
-                      Campuses
+                    <legend className="mb-1 text-xs font-semibold text-slate-700">
+                      Campuses they serve
                     </legend>
+
+                    <p className="mb-2 rounded-xl bg-amber-50 px-3 py-2 text-[11px] leading-4 text-amber-800">
+                      Staff are not students. This removes {fullName}&apos;s
+                      own campus, small group and student details, so they no
+                      longer appear in a campus member list.
+                    </p>
 
                     <div className="space-y-1.5">
                       <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-800 hover:bg-slate-50">

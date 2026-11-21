@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 function Chip({ tone, children }) {
   const tones = {
     attention: "bg-amber-50 text-amber-700",
@@ -29,7 +31,7 @@ function Count({ label, value }) {
 
 /*
  * The small groups a person oversees (the people who look after families).
- * The page to open a small group is added in the small group step.
+ * Each card has a button that opens the small group page.
  */
 export default function SmallGroupsSection({ groups = [] }) {
   if (groups.length === 0) return null;
@@ -82,6 +84,13 @@ export default function SmallGroupsSection({ groups = [] }) {
                   <Chip tone="good">Everyone is placed</Chip>
                 )}
             </div>
+
+            <Link
+              href={`/dashboard/small-groups/${group.id}`}
+              className="mt-4 inline-flex h-10 items-center justify-center rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            >
+              Open small group
+            </Link>
           </article>
         ))}
       </div>

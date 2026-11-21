@@ -1,4 +1,4 @@
-const { body, param } = require("express-validator");
+const { body, param, query } = require("express-validator");
 
 const groupId = param("groupId").isInt({ min: 1 }).withMessage("Invalid small group");
 const familyId = param("familyId").isInt({ min: 1 }).withMessage("Invalid family");
@@ -62,6 +62,15 @@ const familyMembersValidator = [
 
 const removeFamilyMemberValidator = [familyId, memberIdParam];
 
+const candidatesValidator = [
+  groupId,
+  query("search")
+    .optional()
+    .trim()
+    .isLength({ max: 100 })
+    .withMessage("Search is too long"),
+];
+
 module.exports = {
   groupIdValidator,
   createGroupValidator,
@@ -73,4 +82,5 @@ module.exports = {
   updateFamilyValidator,
   familyMembersValidator,
   removeFamilyMemberValidator,
+  candidatesValidator,
 };

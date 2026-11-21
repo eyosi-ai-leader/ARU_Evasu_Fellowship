@@ -5,7 +5,11 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Check, Loader2, Lock, Save } from "lucide-react";
 
-import { getMemberById, updateMember } from "@/lib/memberApi";
+import {
+  changeMemberRole,
+  getMemberById,
+  updateMember,
+} from "@/lib/memberApi";
 import { inviteMember } from "@/lib/memberAccessApi";
 import { getDepartments } from "@/lib/fellowshipApi";
 import useMyAccess from "@/lib/useMyAccess";
@@ -17,6 +21,7 @@ import {
   validateMemberForm,
 } from "@/lib/memberForm";
 
+import ChangeRoleModal from "@/components/dashboard/members/ChangeRoleModal";
 import MemberPhotoEditor from "@/components/dashboard/members/edit/MemberPhotoEditor";
 import AccountInformationForm from "@/components/dashboard/members/edit/AccountInformationForm";
 import MemberPersonalInfo from "@/components/dashboard/members/create/MemberPersonalInfo";
@@ -26,6 +31,7 @@ import MemberHomeInfo from "@/components/dashboard/members/create/MemberHomeInfo
 import MemberEmergencyInfo from "@/components/dashboard/members/create/MemberEmergencyInfo";
 import MemberSpiritualInfo from "@/components/dashboard/members/create/MemberSpiritualInfo";
 import MemberAccountSettings from "@/components/dashboard/members/create/MemberAccountSettings";
+import { Section } from "@/components/dashboard/members/create/FormParts";
 
 const getMemberData = (result) => result?.data || result;
 
@@ -43,6 +49,7 @@ export default function EditMemberPage() {
 
   const [member, setMember] = useState(null);
   const [form, setForm] = useState(emptyMemberForm);
+  const [initialJson, setInitialJson] = useState("");
   const [errors, setErrors] = useState({});
 
   const [departments, setDepartments] = useState([]);
@@ -54,6 +61,10 @@ export default function EditMemberPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [inviting, setInviting] = useState(false);
+
+  const [roleOpen, setRoleOpen] = useState(false);
+  const [changingRole, setChangingRole] = useState(false);
+  const [roleError, setRoleError] = useState("");
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -83,6 +94,8 @@ export default function EditMemberPage() {
   const isSuperAdmin = access
     ? Boolean(access.isSuperAdmin)
     : Number(storedUser?.roleId) === 1;
+
+  const currentUserId = access?.user?.id ?? storedUser?.id ?? null;
 
   // Only people who manage members may open this page.
   useEffect(() => {
@@ -121,6 +134,7 @@ export default function EditMemberPage() {
 
         setMember(data);
         setForm(values);
+        setInitialJson(JSON.stringify(values));
         setImagePreview(data.profile_image || data.profileImage || "");
       } catch (err) {
         if (!cancelled) {
@@ -140,9 +154,10 @@ export default function EditMemberPage() {
     };
   }, [memberId, ready, canManage]);
 
-  // The departments of the member's own campus.
+  // The departments of the member's own campus (Staff have none).
   useEffect(() => {
     if (!member?.fellowship_id) {
+      setDepartments([]);
       return undefined;
     }
 
@@ -220,6 +235,9 @@ export default function EditMemberPage() {
     }
   };
 
+  // A person with no campus (for example Staff) has no student details.
+  const hasCampus = Boolean(member?.fellowship_id);
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
@@ -227,7 +245,10 @@ export default function EditMemberPage() {
       return;
     }
 
-    const validationErrors = validateMemberForm(form, { mode: "edit" });
+    const validationErrors = validateMemberForm(form, {
+      mode: "edit",
+      student: hasCampus,
+    });
 
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -286,6 +307,34 @@ export default function EditMemberPage() {
     }
   }
 
+  /*
+   * Change the role with the same dialog as the members list. The campus is
+   * chosen there too. Afterwards the member is loaded again, because a role
+   * change can change the campus (for example Staff have none).
+   */
+  async function handleRoleConfirm(target, payload) {
+    try {
+      setChangingRole(true);
+      setRoleError("");
+
+      await changeMemberRole(target.id, payload);
+
+      const fresh = getMemberData(await getMemberById(memberId));
+      const values = memberToForm(fresh);
+
+      setMember(fresh);
+      setForm(values);
+      setInitialJson(JSON.stringify(values));
+      setRoleOpen(false);
+      setSuccess("The role was updated.");
+    } catch (err) {
+      // The dialog stays open so the choice can be fixed.
+      setRoleError(err.message || "Failed to change the role.");
+    } finally {
+      setChangingRole(false);
+    }
+  }
+
   if (!ready || (canManage && loading)) {
     return <LoadingState />;
   }
@@ -341,9 +390,22 @@ export default function EditMemberPage() {
     );
   }
 
+  const isSelf =
+    currentUserId !== null &&
+    currentUserId !== undefined &&
+    Number(member?.user_id) === Number(currentUserId);
+
   const emailChanged =
     form.email.trim().toLowerCase() !==
     String(member?.email || "").trim().toLowerCase();
+
+  // Unsaved edits would be lost when the member is loaded again.
+  const originalImage = member?.profile_image || member?.profileImage || "";
+
+  const dirty =
+    JSON.stringify(form) !== initialJson ||
+    Boolean(profileImage) ||
+    imagePreview !== originalImage;
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6 pb-6">
@@ -418,21 +480,35 @@ export default function EditMemberPage() {
           onChange={handleChange}
         />
 
-        <MemberFellowshipInfo
-          mode="edit"
-          form={form}
-          errors={errors}
-          onChange={handleChange}
-          campusName={member?.fellowship_name || ""}
-          smallGroup={member?.small_group_name || ""}
-          family={
-            member?.family_name
-              ? `${member.family_name} · ${member.family_role}`
-              : ""
-          }
-          departments={departments}
-          departmentsLoading={departmentsLoading}
-        />
+        {hasCampus ? (
+          <MemberFellowshipInfo
+            mode="edit"
+            form={form}
+            errors={errors}
+            onChange={handleChange}
+            campusName={member?.fellowship_name || ""}
+            smallGroup={member?.small_group_name || ""}
+            family={
+              member?.family_name
+                ? `${member.family_name} · ${member.family_role}`
+                : ""
+            }
+            departments={departments}
+            departmentsLoading={departmentsLoading}
+          />
+        ) : (
+          <Section
+            title="Campus & Student Information"
+            description="This person belongs to no campus."
+          >
+            <p className="text-sm leading-6 text-slate-500">
+              They have no campus, small group or student details (for example
+              a Staff member, who serves full time and is not a student). To
+              place them in a campus, use <strong>Change role</strong> below
+              and choose Member, Main Leader or Fellowship Admin.
+            </p>
+          </Section>
+        )}
 
         <MemberEmergencyInfo
           form={form}
@@ -463,7 +539,23 @@ export default function EditMemberPage() {
             },
           ]}
           roleLocked
-          roleLockedReason="To change the role, use Change Role in the members list. That is where the campus is chosen too."
+          roleLockedReason={
+            isSelf
+              ? "You can't change your own role."
+              : "Use Change role to change the role. The campus is chosen there too."
+          }
+          onChangeRole={
+            isSelf
+              ? null
+              : () => {
+                  setRoleError("");
+                  setRoleOpen(true);
+                }
+          }
+          changeRoleDisabled={dirty}
+          changeRoleHint={
+            dirty ? "Save your changes first, then change the role." : ""
+          }
           memberNumber={member?.member_number || ""}
           showInvitation={false}
         />
@@ -504,6 +596,15 @@ export default function EditMemberPage() {
           </button>
         </div>
       </form>
+
+      <ChangeRoleModal
+        member={member}
+        open={roleOpen}
+        saving={changingRole}
+        error={roleError}
+        onClose={() => setRoleOpen(false)}
+        onConfirm={handleRoleConfirm}
+      />
     </div>
   );
 }

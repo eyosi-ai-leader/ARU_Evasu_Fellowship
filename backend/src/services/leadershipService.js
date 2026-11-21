@@ -47,6 +47,22 @@ const loadFellowships = async (conn, ids) => {
   return rows;
 };
 
+// A campus a person can be placed in: an active campus fellowship that the
+// requester manages (a Super Admin may pick any).
+const assertPlaceableCampus = async (conn, access, campusId) => {
+  const [found] = await loadFellowships(conn, [campusId]);
+
+  if (!found || found.fellowship_type !== "regular") {
+    throw httpError("Choose a valid campus.", 400);
+  }
+
+  if (!access.isSuperAdmin && !canManageCampus(access, campusId)) {
+    throw httpError("You can only choose a campus you manage.", 403);
+  }
+
+  return Number(campusId);
+};
+
 /**
  * What the requester may assign, and the campuses they can pick from.
  * The form is built from this, so people never see options they can't use.
@@ -78,7 +94,7 @@ const getOptions = async (access) => {
     {
       id: ROLE_IDS.MAIN_LEADER,
       label: ROLE_LABELS[ROLE_IDS.MAIN_LEADER],
-      campusMode: "member", // the campus the member already belongs to
+      campusMode: "member", // the campus the member belongs to
     },
   ];
 
@@ -92,7 +108,7 @@ const getOptions = async (access) => {
       {
         id: ROLE_IDS.STAFF,
         label: ROLE_LABELS[ROLE_IDS.STAFF],
-        campusMode: "many", // or all campuses
+        campusMode: "many", // all campuses or a chosen list
       },
       {
         id: ROLE_IDS.SUPER_ADMIN,
@@ -109,10 +125,14 @@ const getOptions = async (access) => {
  * Give a member a role, with the campus rules:
  *
  *  Main Leader      -> leads the campus the member belongs to
+ *                      (a member with no campus is placed in the chosen one)
  *  Fellowship Admin -> exactly one campus (Super Admin only)
- *  Staff            -> all campuses or a chosen list (Super Admin only)
+ *  Staff            -> full-time servants are not students: their campus and
+ *                      student details are removed, and they serve all
+ *                      campuses or a chosen list (Super Admin only)
  *  Super Admin      -> everything (Super Admin only)
- *  Member           -> no campus; removes any admin/staff access
+ *  Member           -> no admin access; a member with no campus (for example
+ *                      someone who was Staff) must be placed in one
  *
  * Everyone except a Super Admin can only change people of their own campus.
  */
@@ -155,6 +175,8 @@ const assignRole = async (access, memberId, input) => {
     if (!target) throw httpError("Member not found.", 404);
 
     const oldRoleId = Number(target.role_id);
+    const hasCampus =
+      target.fellowship_id !== null && target.fellowship_id !== undefined;
 
     if (target.user_id === access.user.id) {
       throw httpError("You can't change your own role.", 400);
@@ -170,7 +192,11 @@ const assignRole = async (access, memberId, input) => {
       );
     }
 
-    if (!access.isSuperAdmin && !canManageCampus(access, target.fellowship_id)) {
+    // People with no campus (Staff) belong to no campus manager.
+    if (
+      !access.isSuperAdmin &&
+      (!hasCampus || !canManageCampus(access, target.fellowship_id))
+    ) {
       throw httpError(
         "You can only change roles of members in your own campus.",
         403
@@ -193,23 +219,46 @@ const assignRole = async (access, memberId, input) => {
     }
 
     // ---------- campus rules per role ----------
-    let accessFellowshipIds = [];
     const requested = toIds(input.fellowshipIds);
+
+    let accessFellowshipIds = []; // what Fellowship Admin / Staff manage
+    let memberCampusId = hasCampus ? Number(target.fellowship_id) : null;
+    let clearCampus = false;
 
     if (newRoleId === ROLE_IDS.MAIN_LEADER) {
       if (target.member_status !== "Active") {
-        throw httpError("Activate this member before making them a Main Leader.", 400);
-      }
-
-      if (
-        requested.length !== 1 ||
-        requested[0] !== Number(target.fellowship_id)
-      ) {
         throw httpError(
-          "A Main Leader leads the campus they belong to. To lead another campus, move the member to that campus first.",
+          "Activate this member before making them a Main Leader.",
           400
         );
       }
+
+      if (requested.length !== 1) {
+        throw httpError("Choose the campus this Main Leader will lead.", 400);
+      }
+
+      if (hasCampus) {
+        if (requested[0] !== Number(target.fellowship_id)) {
+          throw httpError(
+            "A Main Leader leads the campus they belong to. To lead another campus, move the member to that campus first.",
+            400
+          );
+        }
+      } else {
+        memberCampusId = await assertPlaceableCampus(
+          conn,
+          access,
+          requested[0]
+        );
+      }
+    }
+
+    if (newRoleId === ROLE_IDS.MEMBER && !hasCampus) {
+      if (requested.length !== 1) {
+        throw httpError("Choose the campus this member belongs to.", 400);
+      }
+
+      memberCampusId = await assertPlaceableCampus(conn, access, requested[0]);
     }
 
     if (newRoleId === ROLE_IDS.FELLOWSHIP_ADMIN) {
@@ -224,6 +273,9 @@ const assignRole = async (access, memberId, input) => {
       }
 
       accessFellowshipIds = requested;
+
+      // An administrator with no campus is placed in the one they run.
+      if (!hasCampus) memberCampusId = requested[0];
     }
 
     if (newRoleId === ROLE_IDS.STAFF) {
@@ -245,6 +297,45 @@ const assignRole = async (access, memberId, input) => {
 
         accessFellowshipIds = requested;
       }
+
+      // Staff are not students and belong to no campus. Positions that
+      // belong to a campus must be handed over first.
+      const [overseer] = await conn.execute(
+        `
+          SELECT 1 FROM small_group_leaders
+          WHERE member_id = ? AND status = 'Active'
+          LIMIT 1
+        `,
+        [target.member_id]
+      );
+
+      if (overseer.length > 0) {
+        throw httpError(
+          "This member oversees a small group. Change the overseer first, then make them Staff.",
+          409
+        );
+      }
+
+      const [ministryLeader] = await conn.execute(
+        `
+          SELECT 1 FROM ministry_members
+          WHERE member_id = ?
+            AND assignment_role = 'Ministry Leader'
+            AND status = 'Active'
+          LIMIT 1
+        `,
+        [target.member_id]
+      );
+
+      if (ministryLeader.length > 0) {
+        throw httpError(
+          "This member leads a ministry. Change the ministry leader first, then make them Staff.",
+          409
+        );
+      }
+
+      clearCampus = true;
+      memberCampusId = null;
     }
 
     // ---------- save ----------
@@ -252,6 +343,32 @@ const assignRole = async (access, memberId, input) => {
       "UPDATE users SET role_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
       [newRoleId, target.user_id]
     );
+
+    if (clearCampus) {
+      // Not a student: no campus, small group, family or student details.
+      await conn.execute("DELETE FROM family_members WHERE member_id = ?", [
+        target.member_id,
+      ]);
+
+      await conn.execute(
+        `
+          UPDATE members
+          SET fellowship_id = NULL,
+              small_group_id = NULL,
+              department_id = NULL,
+              student_id = NULL,
+              entry_year = NULL,
+              graduation_year = NULL
+          WHERE id = ?
+        `,
+        [target.member_id]
+      );
+    } else if (!hasCampus && memberCampusId) {
+      await conn.execute("UPDATE members SET fellowship_id = ? WHERE id = ?", [
+        memberCampusId,
+        target.member_id,
+      ]);
+    }
 
     // Access rows always match the new role.
     await conn.execute(
@@ -279,9 +396,8 @@ const assignRole = async (access, memberId, input) => {
       );
     }
 
-    // Main Leaders are also listed in fellowship_leaders (campus leaders page,
+    // Main Leaders are also listed in fellowship_leaders (campus leaders,
     // General Fellowship). Leaving the role ends every leadership row.
-    // This runs AFTER the member (target) and the old role are known.
     if (newRoleId === ROLE_IDS.MAIN_LEADER) {
       await conn.execute(
         `
@@ -290,7 +406,7 @@ const assignRole = async (access, memberId, input) => {
           VALUES (?, ?, 'Active', CURDATE())
           ON DUPLICATE KEY UPDATE status = 'Active', ended_at = NULL
         `,
-        [target.fellowship_id, target.member_id]
+        [memberCampusId, target.member_id]
       );
     } else if (oldRoleId === ROLE_IDS.MAIN_LEADER) {
       await conn.execute(
@@ -309,9 +425,10 @@ const assignRole = async (access, memberId, input) => {
       memberId: Number(target.member_id),
       roleId: newRoleId,
       roleLabel: ROLE_LABELS[newRoleId],
+      memberCampusId,
       fellowshipIds:
         newRoleId === ROLE_IDS.MAIN_LEADER
-          ? [Number(target.fellowship_id)]
+          ? [memberCampusId]
           : accessFellowshipIds,
     };
   } catch (error) {

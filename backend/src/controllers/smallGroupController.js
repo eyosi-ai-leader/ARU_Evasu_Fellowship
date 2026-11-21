@@ -82,6 +82,19 @@ const listFamilies = (req, res) =>
     () => service.listFamilies(req.access, groupId(req))
   );
 
+const listCandidates = (req, res) =>
+  run(
+    req,
+    res,
+    { message: "Members retrieved successfully", fallback: "Failed to load the members." },
+    () =>
+      service.listCandidates(
+        req.access,
+        groupId(req),
+        String(req.query.search || "")
+      )
+  );
+
 const createFamily = (req, res) =>
   run(
     req,
@@ -134,6 +147,7 @@ module.exports = {
   addLeader,
   removeLeader,
   listFamilies,
+  listCandidates,
   createFamily,
   updateFamily,
   deleteFamily,

@@ -78,7 +78,6 @@ function buildNavigation(access) {
           name: "Small Groups",
           href: "/dashboard/small-groups",
           icon: Home,
-          comingSoon: true,
         }
       );
     }
@@ -123,7 +122,6 @@ function buildNavigation(access) {
           name: "Families & Members",
           href: "/dashboard/small-groups",
           icon: Home,
-          comingSoon: true,
         },
       ],
     });
