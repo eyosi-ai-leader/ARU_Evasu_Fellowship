@@ -543,25 +543,21 @@ export default function MemberDetailsPage() {
                 }
               />
 
-              {member.fellowship_id && member.small_group_name !== undefined && (
+                            {member.fellowship_id && member.small_group_names !== undefined && (
                 <InfoItem
                   icon={UsersRound}
-                  label="Small group"
-                  value={member.small_group_name || "Not yet in a small group"}
+                  label="Small groups"
+                  value={member.small_group_names || "Not yet in a small group"}
                 />
               )}
 
-              {member.fellowship_id && member.family_name !== undefined && (
+              {member.fellowship_id && member.family_names !== undefined && (
                 <InfoItem
                   icon={Home}
-                  label="Family"
-                  value={
-                    member.family_name
-                      ? `${member.family_name} · ${member.family_role}`
-                      : "Not yet in a family"
-                  }
+                  label="Families"
+                  value={member.family_names || "Not yet in a family"}
                 />
-              )}
+              )} 
 
               <InfoItem
                 icon={UsersRound}

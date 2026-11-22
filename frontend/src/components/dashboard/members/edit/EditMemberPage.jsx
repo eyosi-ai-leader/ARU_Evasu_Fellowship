@@ -487,12 +487,8 @@ export default function EditMemberPage() {
             errors={errors}
             onChange={handleChange}
             campusName={member?.fellowship_name || ""}
-            smallGroup={member?.small_group_name || ""}
-            family={
-              member?.family_name
-                ? `${member.family_name} · ${member.family_role}`
-                : ""
-            }
+                       smallGroup={member?.small_group_names || ""}
+            family={member?.family_names || ""}
             departments={departments}
             departmentsLoading={departmentsLoading}
           />

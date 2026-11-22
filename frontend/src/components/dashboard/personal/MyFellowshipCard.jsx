@@ -28,7 +28,7 @@ function Notice({ children }) {
 
 function Row({ label, value }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-2.5">
+    <div className="flex items-center justify-between gap-4 py-2">
       <span className="text-sm text-slate-500">{label}</span>
       <span className="text-right text-sm font-medium text-slate-700">
         {value || "Not assigned yet"}
@@ -37,22 +37,33 @@ function Row({ label, value }) {
   );
 }
 
+/*
+ * A member can be in several small groups and several families, or none.
+ */
 export default function MyFellowshipCard({ fellowship }) {
-  const smallGroup = fellowship?.smallGroup ?? null;
-  const family = fellowship?.family ?? null;
+  const smallGroups = fellowship?.smallGroups ?? [];
+  const families = fellowship?.families ?? [];
   const ministries = fellowship?.ministries ?? [];
 
   return (
     <section className="grid gap-6 lg:grid-cols-3">
-      <Card icon={Users} title="My Small Group">
-        {smallGroup ? (
-          <div className="divide-y divide-slate-100">
-            <Row label="Small group" value={smallGroup.name} />
-            <Row
-              label={smallGroup.overseers.length > 1 ? "Overseers" : "Overseer"}
-              value={smallGroup.overseers.join(", ")}
-            />
-          </div>
+      <Card icon={Users} title="My Small Groups">
+        {smallGroups.length > 0 ? (
+          <ul className="divide-y divide-slate-100">
+            {smallGroups.map((group) => (
+              <li key={group.id} className="py-3 first:pt-0 last:pb-0">
+                <p className="text-sm font-semibold text-slate-800">
+                  {group.name}
+                </p>
+
+                <p className="mt-0.5 text-xs text-slate-500">
+                  {group.overseers.length > 0
+                    ? `${group.overseers.length > 1 ? "Overseers" : "Overseer"}: ${group.overseers.join(", ")}`
+                    : "No overseer assigned yet"}
+                </p>
+              </li>
+            ))}
+          </ul>
         ) : (
           <Notice>
             You are not yet in a small group. Your fellowship leaders will
@@ -61,18 +72,34 @@ export default function MyFellowshipCard({ fellowship }) {
         )}
       </Card>
 
-      <Card icon={Home} title="My Family">
-        {family ? (
-          <div className="divide-y divide-slate-100">
-            <Row label="Family" value={family.name} />
-            <Row label="Father" value={family.father} />
-            <Row label="Mother" value={family.mother} />
-            <Row label="My place" value={family.myRole} />
-          </div>
-        ) : smallGroup ? (
+      <Card icon={Home} title="My Families">
+        {families.length > 0 ? (
+          <ul className="divide-y divide-slate-100">
+            {families.map((family) => (
+              <li key={family.id} className="py-3 first:pt-0 last:pb-0">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold text-slate-800">
+                    {family.name}
+                  </p>
+
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                    {family.myRole}
+                  </span>
+                </div>
+
+                <p className="mt-0.5 text-xs text-slate-500">
+                  {family.smallGroupName}
+                </p>
+
+                <Row label="Father" value={family.father} />
+                <Row label="Mother" value={family.mother} />
+              </li>
+            ))}
+          </ul>
+        ) : smallGroups.length > 0 ? (
           <Notice>
             You have not been placed in a family yet. Your small group
-            overseer will connect you soon.
+            overseer will connect you when it is time.
           </Notice>
         ) : (
           <p className="text-sm leading-6 text-slate-500">

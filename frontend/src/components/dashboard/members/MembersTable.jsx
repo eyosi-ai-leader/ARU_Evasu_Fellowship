@@ -151,12 +151,12 @@ function describeMember(member, { mode, canManage, isSuperAdmin, currentUserId }
       ...(member.is_small_group_leader ? ["Small Group Leader"] : []),
       ...(member.is_ministry_leader ? ["Ministry Leader"] : []),
     ],
-    placement: {
+        placement: {
       hasCampus: Boolean(member.fellowship_id),
-      hasSmallGroup: Boolean(member.small_group_id),
-      smallGroup: member.small_group_name || "",
-      family: member.family_name || "",
-      familyRole: member.family_role || "",
+      hasSmallGroup: Number(member.small_group_count || 0) > 0,
+      smallGroup: member.small_group_names || "",
+      family: member.family_names || "",
+      familyRole: "",
     },
     joined: formatEthiopianDate(member.created_at, {
       short: true,
@@ -383,21 +383,15 @@ function PlacementText({ placement, mode }) {
     return <span className="text-xs text-slate-300">—</span>;
   }
 
-  // An overseer already knows the small group: show the family only.
+  // An overseer already knows the small group: show the families only.
   if (mode === "smallGroup") {
     return placement.family ? (
-      <div className="min-w-0">
-        <p
-          title={placement.family}
-          className="truncate text-sm font-medium text-slate-700"
-        >
-          {placement.family}
-        </p>
-
-        <p className="mt-0.5 truncate text-xs text-slate-400">
-          {placement.familyRole}
-        </p>
-      </div>
+      <p
+        title={placement.family}
+        className="truncate text-sm font-medium text-slate-700"
+      >
+        {placement.family}
+      </p>
     ) : (
       <AttentionChip>Not yet in a family</AttentionChip>
     );
@@ -417,8 +411,11 @@ function PlacementText({ placement, mode }) {
       </p>
 
       {placement.family ? (
-        <p className="mt-0.5 truncate text-xs text-slate-400">
-          {placement.family} · {placement.familyRole}
+        <p
+          title={placement.family}
+          className="mt-0.5 truncate text-xs text-slate-400"
+        >
+          {placement.family}
         </p>
       ) : (
         <p className="mt-0.5 truncate text-xs font-medium text-amber-600">

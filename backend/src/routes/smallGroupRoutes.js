@@ -21,7 +21,11 @@ const {
   updateFamilyValidator,
   familyMembersValidator,
   removeFamilyMemberValidator,
+  moveFamilyMemberValidator,
   candidatesValidator,
+  addGroupMembersValidator,
+  removeFromGroupValidator,
+  transferValidator,
 } = require("../validators/smallGroupValidator");
 
 // Campus managers and small group overseers. The service then limits each
@@ -43,6 +47,11 @@ router.put(
   familyMembersValidator,
   controller.saveFamilyMembers
 );
+router.put(
+  "/families/:familyId/members/:memberId/move",
+  moveFamilyMemberValidator,
+  controller.moveFamilyMember
+);
 router.delete(
   "/families/:familyId/members/:memberId",
   removeFamilyMemberValidator,
@@ -50,18 +59,29 @@ router.delete(
 );
 
 router.put("/:groupId", updateGroupValidator, controller.updateGroup);
+
 router.post("/:groupId/leaders", addLeaderValidator, controller.addLeader);
 router.delete(
   "/:groupId/leaders/:memberId",
   removeLeaderValidator,
   controller.removeLeader
 );
-router.get("/:groupId/families", groupIdValidator, controller.listFamilies);
-router.get(
-  "/:groupId/candidates",
-  candidatesValidator,
-  controller.listCandidates
+
+router.get("/:groupId/candidates", candidatesValidator, controller.listCandidates);
+
+router.post("/:groupId/members", addGroupMembersValidator, controller.addGroupMembers);
+router.post(
+  "/:groupId/members/:memberId/transfer",
+  transferValidator,
+  controller.transferMember
 );
+router.delete(
+  "/:groupId/members/:memberId",
+  removeFromGroupValidator,
+  controller.removeFromGroup
+);
+
+router.get("/:groupId/families", groupIdValidator, controller.listFamilies);
 router.post("/:groupId/families", createFamilyValidator, controller.createFamily);
 
 module.exports = router;

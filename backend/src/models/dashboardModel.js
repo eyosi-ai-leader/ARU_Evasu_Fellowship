@@ -68,6 +68,7 @@ async function getCampusBreakdown(managedIds) {
     active: num(row.active),
   }));
 }
+
 async function getStructureCounts(campusIds) {
   const [rows] = await db.query(
     `
@@ -89,9 +90,11 @@ async function getStructureCounts(campusIds) {
           WHERE fellowship_id IN (?) AND status = 'Active'
         ) AS families,
         (
-          SELECT COUNT(*) FROM members
-          WHERE fellowship_id IN (?) AND status = 'Active'
-            AND small_group_id IS NULL
+          SELECT COUNT(*) FROM members m
+          WHERE m.fellowship_id IN (?) AND m.status = 'Active'
+            AND NOT EXISTS (
+              SELECT 1 FROM small_group_members sgm WHERE sgm.member_id = m.id
+            )
         ) AS membersWithoutSmallGroup,
         (
           SELECT COUNT(*) FROM ministries
@@ -411,15 +414,23 @@ async function getSmallGroupsLed(groupIds) {
           WHERE f.small_group_id = sg.id AND f.status = 'Active'
         ) AS familyCount,
         (
-          SELECT COUNT(*) FROM members m
-          WHERE m.small_group_id = sg.id AND m.status = 'Active'
+          SELECT COUNT(*)
+          FROM small_group_members sgm
+          INNER JOIN members m ON m.id = sgm.member_id
+          WHERE sgm.small_group_id = sg.id AND m.status = 'Active'
         ) AS memberCount,
         (
-          SELECT COUNT(*) FROM members m
-          WHERE m.small_group_id = sg.id
+          SELECT COUNT(*)
+          FROM small_group_members sgm
+          INNER JOIN members m ON m.id = sgm.member_id
+          WHERE sgm.small_group_id = sg.id
             AND m.status = 'Active'
             AND NOT EXISTS (
-              SELECT 1 FROM family_members fm WHERE fm.member_id = m.id
+              SELECT 1
+              FROM family_members fm
+              INNER JOIN families fa ON fa.id = fm.family_id
+              WHERE fm.member_id = sgm.member_id
+                AND fa.small_group_id = sg.id
             )
         ) AS withoutFamily,
         (
@@ -450,58 +461,67 @@ async function getSmallGroupsLed(groupIds) {
   }));
 }
 
-// Where a member belongs: small group, family and ministries.
+// Where a member belongs: small groups, families and ministries.
 async function getMyFellowship(memberId) {
-  const [placement] = await db.execute(
+  const [groups] = await db.execute(
     `
-      SELECT
-        sg.id AS smallGroupId,
-        sg.name AS smallGroupName,
-        fam.id AS familyId,
-        fam.name AS familyName,
-        fm.family_role
-      FROM members m
-      LEFT JOIN small_groups sg
-        ON sg.id = m.small_group_id AND sg.status = 'Active'
-      LEFT JOIN family_members fm
-        ON fm.member_id = m.id
-      LEFT JOIN families fam
-        ON fam.id = fm.family_id AND fam.status = 'Active'
-      WHERE m.id = ?
-      LIMIT 1
+      SELECT sg.id, sg.name
+      FROM small_group_members sgm
+      INNER JOIN small_groups sg ON sg.id = sgm.small_group_id
+      WHERE sgm.member_id = ? AND sg.status = 'Active'
+      ORDER BY sg.name ASC
     `,
     [memberId]
   );
 
-  const row = placement[0] || {};
-
   let overseers = [];
-  let parents = [];
 
-  if (row.smallGroupId) {
-    [overseers] = await db.execute(
+  if (groups.length > 0) {
+    [overseers] = await db.query(
       `
-        SELECT u.first_name, u.last_name
+        SELECT l.small_group_id AS groupId, u.first_name, u.last_name
         FROM small_group_leaders l
         INNER JOIN members m ON m.id = l.member_id
         INNER JOIN users u ON u.id = m.user_id
-        WHERE l.small_group_id = ? AND l.status = 'Active'
+        WHERE l.small_group_id IN (?) AND l.status = 'Active'
         ORDER BY u.first_name ASC
       `,
-      [row.smallGroupId]
+      [groups.map((group) => group.id)]
     );
   }
 
-  if (row.familyId) {
-    [parents] = await db.execute(
+  const [families] = await db.execute(
+    `
+      SELECT
+        fa.id,
+        fa.name,
+        sg.name AS smallGroupName,
+        fm.family_role
+      FROM family_members fm
+      INNER JOIN families fa ON fa.id = fm.family_id AND fa.status = 'Active'
+      INNER JOIN small_groups sg ON sg.id = fa.small_group_id
+      WHERE fm.member_id = ?
+      ORDER BY fa.name ASC
+    `,
+    [memberId]
+  );
+
+  let parents = [];
+
+  if (families.length > 0) {
+    [parents] = await db.query(
       `
-        SELECT fm.family_role, u.first_name, u.last_name
+        SELECT
+          fm.family_id AS familyId,
+          fm.family_role,
+          u.first_name,
+          u.last_name
         FROM family_members fm
         INNER JOIN members m ON m.id = fm.member_id
         INNER JOIN users u ON u.id = m.user_id
-        WHERE fm.family_id = ? AND fm.family_role IN ('Father', 'Mother')
+        WHERE fm.family_id IN (?) AND fm.family_role IN ('Father', 'Mother')
       `,
-      [row.familyId]
+      [families.map((family) => family.id)]
     );
   }
 
@@ -521,26 +541,29 @@ async function getMyFellowship(memberId) {
   const nameOf = (person) =>
     person ? [person.first_name, person.last_name].filter(Boolean).join(" ") : null;
 
-  const parentName = (role) =>
-    nameOf(parents.find((parent) => parent.family_role === role));
+  const parentName = (familyId, role) =>
+    nameOf(
+      parents.find(
+        (parent) => parent.familyId === familyId && parent.family_role === role
+      )
+    );
 
   return {
-    smallGroup: row.smallGroupId
-      ? {
-          id: row.smallGroupId,
-          name: row.smallGroupName,
-          overseers: overseers.map(nameOf),
-        }
-      : null,
-    family: row.familyId
-      ? {
-          id: row.familyId,
-          name: row.familyName,
-          myRole: row.family_role,
-          father: parentName("Father"),
-          mother: parentName("Mother"),
-        }
-      : null,
+    smallGroups: groups.map((group) => ({
+      id: group.id,
+      name: group.name,
+      overseers: overseers
+        .filter((overseer) => overseer.groupId === group.id)
+        .map(nameOf),
+    })),
+    families: families.map((family) => ({
+      id: family.id,
+      name: family.name,
+      smallGroupName: family.smallGroupName,
+      myRole: family.family_role,
+      father: parentName(family.id, "Father"),
+      mother: parentName(family.id, "Mother"),
+    })),
     ministries: ministries.map((ministry) => ({
       id: ministry.id,
       name: ministry.name,

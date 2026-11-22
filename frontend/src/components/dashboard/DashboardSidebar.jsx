@@ -236,7 +236,7 @@ export default function DashboardSidebar({ open = false, onClose }) {
       {/* Logo (and the close button on phones) */}
       <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-5">
         <Link
-          href="/dashboard"
+          href="/"
           className="flex items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
           <BrandLogo size={38} priority />

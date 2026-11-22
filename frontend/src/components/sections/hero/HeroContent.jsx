@@ -1,73 +1,102 @@
 "use client";
 
+import clsx from "clsx";
 import { motion, useReducedMotion } from "framer-motion";
-import HeroGreeting from "./HeroGreeting";
-import HeroActions from "./HeroActions";
-import heroContent from "@/data/heroContent";
 
-const HeroContent = () => {
+import Button from "@/components/shared/Button";
+import heroContent from "@/data/heroContent";
+import HeroHighlights from "./HeroHighlights";
+
+function Line({ text, className }) {
+  return (
+    <span className={clsx("block", className)}>
+      {text.split(" ").map((word, index) => (
+        <span
+          key={`${word}-${index}`}
+          className="mr-[0.25em] inline-block overflow-hidden pb-[0.12em] align-bottom"
+        >
+          <motion.span
+            className="inline-block"
+            variants={{
+              hidden: { y: "110%" },
+              show: {
+                y: 0,
+                transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] },
+              },
+            }}
+          >
+            {word}
+          </motion.span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+export default function HeroContent() {
   const reduce = useReducedMotion();
 
-  const container = {
-    hidden: {},
-    show: { transition: { staggerChildren: reduce ? 0 : 0.15, delayChildren: 0.1 } },
-  };
-  const item = {
-    hidden: { opacity: 0, y: reduce ? 0 : 22 },
+  const fade = {
+    hidden: { opacity: 0, y: reduce ? 0 : 18 },
     show: {
       opacity: 1,
       y: 0,
-      transition: { duration: reduce ? 0 : 0.6, ease: [0.22, 1, 0.36, 1] },
+      transition: { duration: reduce ? 0 : 0.7, ease: [0.22, 1, 0.36, 1] },
     },
   };
 
   return (
     <motion.div
-      variants={container}
       initial="hidden"
       animate="show"
-      className="flex h-full max-w-xl flex-col justify-center px-6 py-16 lg:px-16 lg:py-0"
+      transition={{ staggerChildren: reduce ? 0 : 0.07, delayChildren: 0.2 }}
+      className="relative mx-auto w-full max-w-7xl px-6 pb-36 pt-44 lg:px-8 lg:pb-24"
     >
-      <motion.div variants={item}>
-        <HeroGreeting />
-      </motion.div>
-
-      <motion.h1
-        variants={item}
-        className="font-display text-4xl font-medium leading-[1.1] tracking-tight text-ink md:text-5xl lg:text-6xl"
+      <motion.span
+        variants={fade}
+        className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-white ring-1 ring-white/20 backdrop-blur"
       >
-        {heroContent.headline}
-        <br />
-        <span className="text-primary">{heroContent.headlineAccent}</span>
-      </motion.h1>
+        <span
+          aria-hidden="true"
+          className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent"
+        />
+        {heroContent.eyebrow}
+      </motion.span>
 
-      <motion.p variants={item} className="mt-6 text-lg leading-relaxed text-body">
+      <h1 className="mt-6 max-w-4xl font-display text-5xl font-semibold leading-[1.02] tracking-tight text-white sm:text-6xl lg:text-7xl xl:text-[5.5rem]">
+        <Line text={heroContent.headlineTop} />
+        <Line text={heroContent.headlineAccent} className="text-accent" />
+      </h1>
+
+      <motion.p
+        variants={fade}
+        className="mt-7 max-w-xl text-lg leading-relaxed text-white/80"
+      >
         {heroContent.description}
       </motion.p>
 
-      <motion.p variants={item} className="mt-4 text-sm font-medium text-body">
-        {heroContent.meta}
-      </motion.p>
+      <motion.div variants={fade} className="mt-9 flex flex-wrap gap-3">
+        <Button
+          href={heroContent.primaryCta.href}
+          variant="accent"
+          size="lg"
+          arrow
+        >
+          {heroContent.primaryCta.label}
+        </Button>
 
-      <motion.div variants={item}>
-        <HeroActions />
+        <Button
+          href={heroContent.secondaryCta.href}
+          variant="light"
+          size="lg"
+        >
+          {heroContent.secondaryCta.label}
+        </Button>
       </motion.div>
 
-      {heroContent.facts?.length > 0 && (
-        <motion.ul
-          variants={item}
-          className="mt-10 flex flex-wrap gap-x-6 gap-y-2 border-t border-primary/15 pt-5 text-sm text-body"
-        >
-          {heroContent.facts.map((fact) => (
-            <li key={fact} className="flex items-center gap-2">
-              <span className="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden="true" />
-              {fact}
-            </li>
-          ))}
-        </motion.ul>
-      )}
+      <motion.div variants={fade}>
+        <HeroHighlights />
+      </motion.div>
     </motion.div>
   );
-};
-
-export default HeroContent;
+}

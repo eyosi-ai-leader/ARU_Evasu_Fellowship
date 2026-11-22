@@ -6,8 +6,6 @@ export const BRAND = {
   tagline:
     "Students and graduates growing together in faith, love and service.",
 
-  // File inside the /public folder. Change this if your file has a
-  // different name or extension (.jpg, .svg, .webp ...).
   logo: "/images/aru_evasu_fellowship_logo.jpg",
 
   address: {
@@ -18,31 +16,32 @@ export const BRAND = {
     universityUrl: "https://arsiun.edu.et",
   },
 
-  // The fellowship's own contact details. Leave "" to hide them.
-  email: "",
-  phone: "",
+  // PLACEHOLDERS: change to the real contact details later.
+  email: "info@arsievasu.example",
+  phone: "+251 900 000 000",
 
-  // Add the link when you have it; entries with an empty href are hidden.
+  // PLACEHOLDERS: change to the real links later.
   socials: [
-    { name: "Facebook", href: "" },
-    { name: "Telegram", href: "" },
-    { name: "YouTube", href: "" },
-    { name: "Instagram", href: "" },
+    { name: "Facebook", href: "https://facebook.com/your-fellowship" },
+    { name: "Telegram", href: "https://t.me/your-fellowship" },
+    { name: "YouTube", href: "https://youtube.com/@your-fellowship" },
+    { name: "Instagram", href: "https://instagram.com/your-fellowship" },
   ],
 
   campuses: [
     "Main Campus Fellowship",
     "Health Campus Fellowship",
     "Agriculture Campus Fellowship",
+    "Bekoji Campus Fellowship",
+    "General Fellowship",
   ],
 
-  // Shown in the footer so people can contact the developer.
   developer: {
     name: "Eyosiyas H/Michael",
     email: "eyosi4314@gmail.com",
     phone: "0923 078 426",
     phoneLink: "+251923078426",
-    portfolioUrl: "https://eyosiyas-portifolio.vercel.app/", // e.g. "https://your-portfolio.vercel.app"
+    portfolioUrl: "https://eyosiyas-portifolio.vercel.app/",
     pitch: "Need a website like this?",
   },
 };

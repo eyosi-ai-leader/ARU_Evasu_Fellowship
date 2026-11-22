@@ -763,11 +763,9 @@ const SMALL_GROUP_VIEW_FIELDS = [
   "gender",
   "telegram_username",
   "fellowship_name",
-  "small_group_id",
+
   "small_group_name",
-  "family_id",
   "family_name",
-  "family_role",
   "department_name",
   "department_duration_years",
   "academic_status",
@@ -828,11 +826,16 @@ const getMySmallGroupMembers = async (req, res) => {
  */
 const getMySmallGroupMemberById = async (req, res) => {
   try {
-    const member = await memberService.getMemberById(req.params.id);
+        const inGroup = await memberService.isInSmallGroups(
+      req.params.id,
+      getLedSmallGroupIds(req.access)
+    );
 
-    if (!getLedSmallGroupIds(req.access).includes(Number(member.small_group_id))) {
+    if (!inGroup) {
       throw httpError("Member not found.", 404);
     }
+
+    const member = await memberService.getMemberById(req.params.id);
 
     return successResponse(
       res,

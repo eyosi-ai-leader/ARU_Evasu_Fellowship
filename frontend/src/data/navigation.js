@@ -1,9 +1,7 @@
 const navigation = [
   { label: "Home", href: "/" },
   { label: "About", href: "/about" },
-  { label: "Ministries", href: "/ministries" },
-  { label: "Events", href: "/events" },
-  { label: "Sermons", href: "/sermons" },
+  { label: "Events & Gallery", href: "/events" },
   { label: "Contact", href: "/contact" },
 ];
 

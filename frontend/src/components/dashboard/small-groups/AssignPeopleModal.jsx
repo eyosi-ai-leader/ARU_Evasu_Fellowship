@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import { Check, Loader2, Search } from "lucide-react";
 
-import { getCandidates, saveFamilyMembers } from "@/lib/smallGroupApi";
+import {
+  addGroupMembers,
+  getCandidates,
+  saveFamilyMembers,
+} from "@/lib/smallGroupApi";
 import {
   Avatar,
   Chip,
@@ -12,23 +16,30 @@ import {
   secondaryButton,
 } from "./parts";
 
-const MAX_CHILDREN = 50;
+const MAX_PEOPLE = 50;
 
 /*
- * Add a father, a mother or children to a family.
+ * Add people to a small group or to one of its families.
  *
- * role: "Father" | "Mother" | "Child"
- * A father is male and a mother is female (the server checks it too).
+ * family === null            add members to the small group (no family)
+ * role "Father" | "Mother"   choose one person (a father is male, a mother female)
+ * role "Child"               choose one or more
+ *
+ * Adding someone to a family also puts them in the small group. A person can
+ * already be in other families or small groups: that is allowed.
  */
 export default function AssignPeopleModal({
   groupId,
-  family,
-  role,
+  groupName,
+  family = null,
+  role = "Child",
   onClose,
   onSaved,
 }) {
-  const isParent = role !== "Child";
-  const wantedGender = role === "Father" ? "Male" : role === "Mother" ? "Female" : "";
+  const groupMode = !family;
+  const isParent = !groupMode && role !== "Child";
+  const wantedGender =
+    role === "Father" ? "Male" : role === "Mother" ? "Female" : "";
 
   const [search, setSearch] = useState("");
   const [candidates, setCandidates] = useState([]);
@@ -45,7 +56,11 @@ export default function AssignPeopleModal({
     const timer = setTimeout(
       async () => {
         try {
-          const list = await getCandidates(groupId, search.trim());
+          const list = await getCandidates(groupId, {
+            search: search.trim(),
+            familyId: family?.id,
+            scope: groupMode ? "group" : "",
+          });
 
           if (!cancelled) {
             setCandidates(Array.isArray(list) ? list : []);
@@ -64,7 +79,7 @@ export default function AssignPeopleModal({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [groupId, search]);
+  }, [groupId, family?.id, groupMode, search]);
 
   const visible = candidates.filter(
     (person) => !wantedGender || person.gender === wantedGender
@@ -76,7 +91,7 @@ export default function AssignPeopleModal({
 
       if (current.includes(id)) return current.filter((item) => item !== id);
 
-      return current.length >= MAX_CHILDREN ? current : [...current, id];
+      return current.length >= MAX_PEOPLE ? current : [...current, id];
     });
   }
 
@@ -87,31 +102,45 @@ export default function AssignPeopleModal({
       setSaving(true);
       setError("");
 
-      await saveFamilyMembers(
-        family.id,
-        selected.map((memberId) => ({ memberId, familyRole: role }))
-      );
+      if (groupMode) {
+        await addGroupMembers(groupId, selected);
+      } else {
+        await saveFamilyMembers(
+          family.id,
+          selected.map((memberId) => ({ memberId, familyRole: role }))
+        );
+      }
 
       await onSaved?.();
     } catch (err) {
-      setError(err.message || "We couldn't save the family.");
+      setError(err.message || "We couldn't save the change.");
     } finally {
       setSaving(false);
     }
   }
 
-  const title = isParent
-    ? `Add a ${role.toLowerCase()} to ${family.name}`
-    : `Add children to ${family.name}`;
+  const title = groupMode
+    ? `Add members to ${groupName}`
+    : isParent
+      ? `Add a ${role.toLowerCase()} to ${family.name}`
+      : `Add children to ${family.name}`;
+
+  const subtitle = groupMode
+    ? "They join the small group without a family. You can place them in a family later."
+    : isParent
+      ? `Only ${wantedGender === "Male" ? "men" : "women"} are listed. Choose one person.`
+      : "Choose one or more members. They join this small group too.";
+
+  const buttonText = groupMode
+    ? `Add ${selected.length || ""} ${selected.length === 1 ? "member" : "members"}`
+    : isParent
+      ? `Add ${role.toLowerCase()}`
+      : `Add ${selected.length || ""} ${selected.length === 1 ? "child" : "children"}`;
 
   return (
     <ModalShell
       title={title}
-      subtitle={
-        isParent
-          ? `Only ${wantedGender === "Male" ? "men" : "women"} are listed. Choose one person.`
-          : "Choose one or more members. They join this small group as well."
-      }
+      subtitle={subtitle}
       onClose={onClose}
       busy={saving}
       wide
@@ -137,11 +166,7 @@ export default function AssignPeopleModal({
             ) : (
               <Check size={15} />
             )}
-            {isParent
-              ? `Add ${role.toLowerCase()}`
-              : `Add ${selected.length || ""} ${
-                  selected.length === 1 ? "child" : "children"
-                }`.replace("  ", " ")}
+            {buttonText.replace(/\s+/g, " ")}
           </button>
         </>
       }
@@ -180,8 +205,8 @@ export default function AssignPeopleModal({
           </div>
         ) : visible.length === 0 ? (
           <p className="py-6 text-center text-sm text-slate-500">
-            No one to add. Everyone in this campus is already in a family, or
-            nobody matches your search.
+            No one to add. Everyone in this campus is already here, or nobody
+            matches your search.
           </p>
         ) : (
           <ul className="space-y-2">
@@ -219,11 +244,22 @@ export default function AssignPeopleModal({
                       </span>
                     </span>
 
-                    {person.inGroup ? (
-                      <Chip>In this small group</Chip>
-                    ) : (
-                      <Chip tone="attention">No small group yet</Chip>
-                    )}
+                    <span className="flex shrink-0 flex-col items-end gap-1">
+                      {person.inGroup ? (
+                        <Chip>In this small group</Chip>
+                      ) : person.otherGroups ? (
+                        <Chip tone="info">Also in {person.otherGroups}</Chip>
+                      ) : (
+                        <Chip tone="attention">No small group yet</Chip>
+                      )}
+
+                      {person.familyCount > 0 && (
+                        <span className="text-[11px] font-medium text-slate-400">
+                          {person.familyCount}{" "}
+                          {person.familyCount === 1 ? "family" : "families"}
+                        </span>
+                      )}
+                    </span>
                   </label>
                 </li>
               );

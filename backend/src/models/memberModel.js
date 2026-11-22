@@ -29,12 +29,29 @@ const MEMBER_FIELDS = `
   f.name AS fellowship_name,
   f.code AS fellowship_code,
 
-  m.small_group_id,
-  sg.name AS small_group_name,
-
-  fam.id AS family_id,
-  fam.name AS family_name,
-  fm.family_role,
+  (
+    SELECT COUNT(*) FROM small_group_members sgc
+    WHERE sgc.member_id = m.id
+  ) AS small_group_count,
+  (
+    SELECT GROUP_CONCAT(sgn.name ORDER BY sgn.name SEPARATOR ', ')
+    FROM small_group_members sgm
+    INNER JOIN small_groups sgn ON sgn.id = sgm.small_group_id
+    WHERE sgm.member_id = m.id
+  ) AS small_group_names,
+  (
+    SELECT COUNT(*) FROM family_members fmc
+    WHERE fmc.member_id = m.id
+  ) AS family_count,
+  (
+    SELECT GROUP_CONCAT(
+      CONCAT(fan.name, ' (', fmn.family_role, ')')
+      ORDER BY fan.name SEPARATOR ', '
+    )
+    FROM family_members fmn
+    INNER JOIN families fan ON fan.id = fmn.family_id
+    WHERE fmn.member_id = m.id
+  ) AS family_names,
 
   EXISTS (
     SELECT 1 FROM small_group_leaders sgl
@@ -100,17 +117,8 @@ const MEMBER_JOINS = `
   LEFT JOIN fellowships f
     ON m.fellowship_id = f.id
 
-  LEFT JOIN small_groups sg
-    ON m.small_group_id = sg.id
-
   LEFT JOIN departments d
     ON m.department_id = d.id
-
-  LEFT JOIN family_members fm
-    ON fm.member_id = m.id
-
-  LEFT JOIN families fam
-    ON fam.id = fm.family_id
 `;
 
 const toTinyInt = (value) =>
@@ -736,7 +744,18 @@ const buildMemberFilters = ({
   }
 
   if (Array.isArray(smallGroupIds)) {
-    inList("m.small_group_id", smallGroupIds, conditions, queryParams);
+    if (smallGroupIds.length === 0) {
+      conditions.push("1 = 0");
+    } else {
+      conditions.push(`
+        EXISTS (
+          SELECT 1 FROM small_group_members sgf
+          WHERE sgf.member_id = m.id
+            AND sgf.small_group_id IN (${smallGroupIds.map(() => "?").join(", ")})
+        )
+      `);
+      queryParams.push(...smallGroupIds);
+    }
   }
 
   if (departmentId) {
@@ -775,18 +794,37 @@ const buildMemberFilters = ({
       )
     `);
   } else if (position === "no_small_group") {
-    conditions.push(
-      "(m.small_group_id IS NULL AND m.fellowship_id IS NOT NULL)"
-    );
-  } else if (position === "no_family") {
     conditions.push(`
       (
         m.fellowship_id IS NOT NULL
         AND NOT EXISTS (
-          SELECT 1 FROM family_members fmx WHERE fmx.member_id = m.id
+          SELECT 1 FROM small_group_members sgn WHERE sgn.member_id = m.id
         )
       )
     `);
+  } else if (position === "no_family") {
+    if (Array.isArray(smallGroupIds) && smallGroupIds.length > 0) {
+      // An overseer's list: not in any family of the small groups they lead.
+      conditions.push(`
+        NOT EXISTS (
+          SELECT 1
+          FROM family_members fmx
+          INNER JOIN families fax ON fax.id = fmx.family_id
+          WHERE fmx.member_id = m.id
+            AND fax.small_group_id IN (${smallGroupIds.map(() => "?").join(", ")})
+        )
+      `);
+      queryParams.push(...smallGroupIds);
+    } else {
+      conditions.push(`
+        (
+          m.fellowship_id IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM family_members fmx WHERE fmx.member_id = m.id
+          )
+        )
+      `);
+    }
   }
 
   return {
@@ -956,6 +994,24 @@ const countMembers = async ({
   );
 };
 
+/**
+ * Is this member in at least one of the given small groups?
+ */
+const isInSmallGroups = async (memberId, groupIds) => {
+  if (!Array.isArray(groupIds) || groupIds.length === 0) return false;
+
+  const [rows] = await db.query(
+    `
+      SELECT 1 FROM small_group_members
+      WHERE member_id = ? AND small_group_id IN (?)
+      LIMIT 1
+    `,
+    [memberId, groupIds]
+  );
+
+  return rows.length > 0;
+};
+
 module.exports = {
   createMember,
   getMemberById,
@@ -964,4 +1020,5 @@ module.exports = {
   deleteMember,
   getAllMembers,
   countMembers,
+  isInSmallGroups,
 };

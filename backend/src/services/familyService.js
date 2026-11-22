@@ -11,6 +11,27 @@ const idList = (list) => (list.length > 0 ? list : [0]);
 const fullName = (first, middle, last) =>
   [first, middle, last].filter(Boolean).join(" ");
 
+// Optional text: empty becomes NULL.
+const clean = (value) => {
+  if (value === null || value === undefined) return null;
+
+  const text = String(value).trim();
+
+  return text || null;
+};
+
+const capacityOf = (value) => {
+  if (value === null || value === undefined || value === "") return null;
+
+  const number = Number(value);
+
+  if (!Number.isInteger(number) || number < 1 || number > 1000) {
+    throw httpError("Capacity must be a number between 1 and 1000.", 400);
+  }
+
+  return number;
+};
+
 const isManager = (access, fellowshipId) =>
   canManageCampus(access, fellowshipId);
 
@@ -38,6 +59,10 @@ const getGroup = async (conn, groupId) => {
         sg.fellowship_id,
         sg.name,
         sg.description,
+        sg.purpose,
+        sg.meeting_schedule,
+        sg.meeting_place,
+        sg.capacity,
         sg.status,
         f.name AS fellowship_name
       FROM small_groups sg
@@ -56,9 +81,16 @@ const getGroup = async (conn, groupId) => {
 const getFamily = async (conn, familyId, { lock = false } = {}) => {
   const [rows] = await conn.execute(
     `
-      SELECT id, fellowship_id, small_group_id, name, status
-      FROM families
-      WHERE id = ?
+      SELECT
+        f.id,
+        f.fellowship_id,
+        f.small_group_id,
+        f.name,
+        f.status,
+        sg.status AS group_status
+      FROM families f
+      INNER JOIN small_groups sg ON sg.id = f.small_group_id
+      WHERE f.id = ?
       LIMIT 1
       ${lock ? "FOR UPDATE" : ""}
     `,
@@ -78,10 +110,175 @@ const assertCanWorkOnFamily = (access, family) => {
   }
 };
 
+const assertFamilyOpen = (family) => {
+  if (family.status !== "Active" || family.group_status !== "Active") {
+    throw httpError("This family or its small group is not active.", 400);
+  }
+};
+
 const duplicateName = (error, message) => {
   if (error.code === "ER_DUP_ENTRY") throw httpError(message, 409);
 
   throw error;
+};
+
+/* ------------------------------------------------------------------ */
+/* Membership helpers                                                   */
+/* ------------------------------------------------------------------ */
+
+// Puts a member in a small group (nothing happens if they already are).
+const ensureGroupMember = async (conn, groupId, memberId, addedBy) => {
+  await conn.execute(
+    `
+      INSERT IGNORE INTO small_group_members
+        (small_group_id, member_id, joined_at, added_by)
+      VALUES (?, ?, CURDATE(), ?)
+    `,
+    [groupId, memberId, addedBy]
+  );
+};
+
+const loadPlaceableMember = async (conn, memberId, { lock = false } = {}) => {
+  const [rows] = await conn.execute(
+    `
+      SELECT
+        m.id,
+        m.fellowship_id,
+        m.gender,
+        m.status,
+        u.first_name,
+        u.last_name
+      FROM members m
+      INNER JOIN users u ON u.id = m.user_id
+      WHERE m.id = ?
+      LIMIT 1
+      ${lock ? "FOR UPDATE" : ""}
+    `,
+    [memberId]
+  );
+
+  if (!rows[0]) throw httpError("Member not found.", 404);
+
+  return rows[0];
+};
+
+// Active members of the same campus only (Staff have no campus).
+const assertPlaceable = (member, fellowshipId) => {
+  const name = `${member.first_name} ${member.last_name}`.trim();
+
+  if (member.status !== "Active") {
+    throw httpError(`${name} is not an active member.`, 400);
+  }
+
+  if (
+    !member.fellowship_id ||
+    Number(member.fellowship_id) !== Number(fellowshipId)
+  ) {
+    throw httpError(`${name} does not belong to this campus.`, 400);
+  }
+};
+
+/*
+ * Put a member in a family with a role. A member may be in several families.
+ * Father is male, Mother is female, at most one of each per family.
+ * The member also joins the family's small group.
+ */
+const placeInFamily = async (conn, family, member, role, addedBy) => {
+  const name = `${member.first_name} ${member.last_name}`.trim();
+
+  if (role === "Father" && member.gender !== "Male") {
+    throw httpError(`${name} cannot be a Father (the member's gender is not male).`, 400);
+  }
+
+  if (role === "Mother" && member.gender !== "Female") {
+    throw httpError(`${name} cannot be a Mother (the member's gender is not female).`, 400);
+  }
+
+  if (role !== "Child") {
+    const [taken] = await conn.execute(
+      `
+        SELECT member_id FROM family_members
+        WHERE family_id = ? AND family_role = ? AND member_id <> ?
+        LIMIT 1
+      `,
+      [family.id, role, member.id]
+    );
+
+    if (taken[0]) {
+      throw httpError(
+        `${family.name} already has a ${role}. Remove or change them first.`,
+        409
+      );
+    }
+  }
+
+  const [existing] = await conn.execute(
+    "SELECT id FROM family_members WHERE family_id = ? AND member_id = ? LIMIT 1",
+    [family.id, member.id]
+  );
+
+  if (existing[0]) {
+    await conn.execute(
+      "UPDATE family_members SET family_role = ?, assigned_by = ? WHERE id = ?",
+      [role, addedBy, existing[0].id]
+    );
+  } else {
+    await conn.execute(
+      `
+        INSERT INTO family_members (family_id, member_id, family_role, assigned_by)
+        VALUES (?, ?, ?, ?)
+      `,
+      [family.id, member.id, role, addedBy]
+    );
+  }
+
+  await ensureGroupMember(conn, family.small_group_id, member.id, addedBy);
+};
+
+// Takes a member out of a small group and out of its families.
+const removeFromGroupTx = async (conn, groupId, memberId) => {
+  await conn.execute(
+    `
+      DELETE fm FROM family_members fm
+      INNER JOIN families fa ON fa.id = fm.family_id
+      WHERE fm.member_id = ? AND fa.small_group_id = ?
+    `,
+    [memberId, groupId]
+  );
+
+  const [result] = await conn.execute(
+    "DELETE FROM small_group_members WHERE small_group_id = ? AND member_id = ?",
+    [groupId, memberId]
+  );
+
+  return result.affectedRows;
+};
+
+const inTransaction = async (work) => {
+  const conn = await db.getConnection();
+
+  try {
+    await conn.beginTransaction();
+
+    const result = await work(conn);
+
+    await conn.commit();
+
+    return result;
+  } catch (error) {
+    await conn.rollback();
+
+    if (error.code === "ER_DUP_ENTRY") {
+      throw httpError(
+        "The family changed while you were saving. Please refresh and try again.",
+        409
+      );
+    }
+
+    throw error;
+  } finally {
+    conn.release();
+  }
 };
 
 /* ------------------------------------------------------------------ */
@@ -100,21 +297,33 @@ const listSmallGroups = async (access) => {
         f.name AS fellowship_name,
         sg.name,
         sg.description,
+        sg.purpose,
+        sg.meeting_schedule,
+        sg.meeting_place,
+        sg.capacity,
         sg.status,
         (
           SELECT COUNT(*) FROM families fa
           WHERE fa.small_group_id = sg.id AND fa.status = 'Active'
         ) AS familyCount,
         (
-          SELECT COUNT(*) FROM members m
-          WHERE m.small_group_id = sg.id AND m.status = 'Active'
+          SELECT COUNT(*)
+          FROM small_group_members sgm
+          INNER JOIN members m ON m.id = sgm.member_id
+          WHERE sgm.small_group_id = sg.id AND m.status = 'Active'
         ) AS memberCount,
         (
-          SELECT COUNT(*) FROM members m
-          WHERE m.small_group_id = sg.id
+          SELECT COUNT(*)
+          FROM small_group_members sgm
+          INNER JOIN members m ON m.id = sgm.member_id
+          WHERE sgm.small_group_id = sg.id
             AND m.status = 'Active'
             AND NOT EXISTS (
-              SELECT 1 FROM family_members fm WHERE fm.member_id = m.id
+              SELECT 1
+              FROM family_members fm
+              INNER JOIN families fa2 ON fa2.id = fm.family_id
+              WHERE fm.member_id = sgm.member_id
+                AND fa2.small_group_id = sg.id
             )
         ) AS withoutFamily
       FROM small_groups sg
@@ -163,6 +372,10 @@ const listSmallGroups = async (access) => {
     fellowshipName: g.fellowship_name,
     name: g.name,
     description: g.description,
+    purpose: g.purpose,
+    meetingSchedule: g.meeting_schedule,
+    meetingPlace: g.meeting_place,
+    capacity: g.capacity,
     status: g.status,
     familyCount: Number(g.familyCount),
     memberCount: Number(g.memberCount),
@@ -172,16 +385,28 @@ const listSmallGroups = async (access) => {
   }));
 };
 
-const createSmallGroup = async (access, { fellowshipId, name, description }) => {
+const createSmallGroup = async (access, input = {}) => {
+  const fellowshipId = Number(input.fellowshipId);
+
   assertManager(access, fellowshipId);
 
   try {
     const [result] = await db.execute(
       `
-        INSERT INTO small_groups (fellowship_id, name, description)
-        VALUES (?, ?, ?)
+        INSERT INTO small_groups
+          (fellowship_id, name, description, purpose,
+           meeting_schedule, meeting_place, capacity)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
       `,
-      [fellowshipId, name.trim(), description ? description.trim() : null]
+      [
+        fellowshipId,
+        String(input.name || "").trim(),
+        clean(input.description),
+        clean(input.purpose),
+        clean(input.meetingSchedule),
+        clean(input.meetingPlace),
+        capacityOf(input.capacity),
+      ]
     );
 
     return { id: result.insertId };
@@ -193,26 +418,33 @@ const createSmallGroup = async (access, { fellowshipId, name, description }) => 
   }
 };
 
-const updateSmallGroup = async (access, groupId, { name, description, status }) => {
+const updateSmallGroup = async (access, groupId, input = {}) => {
   const group = await getGroup(db, groupId);
 
   assertManager(access, group.fellowship_id);
 
+  const sets = [];
+  const values = [];
+
+  const put = (column, value) => {
+    sets.push(`${column} = ?`);
+    values.push(value);
+  };
+
+  if (input.name !== undefined) put("name", String(input.name).trim());
+  if (input.description !== undefined) put("description", clean(input.description));
+  if (input.purpose !== undefined) put("purpose", clean(input.purpose));
+  if (input.meetingSchedule !== undefined) put("meeting_schedule", clean(input.meetingSchedule));
+  if (input.meetingPlace !== undefined) put("meeting_place", clean(input.meetingPlace));
+  if (input.capacity !== undefined) put("capacity", capacityOf(input.capacity));
+  if (input.status) put("status", input.status);
+
+  if (sets.length === 0) return { id: Number(groupId) };
+
   try {
     await db.execute(
-      `
-        UPDATE small_groups
-        SET name = COALESCE(?, name),
-            description = COALESCE(?, description),
-            status = COALESCE(?, status)
-        WHERE id = ?
-      `,
-      [
-        name ? name.trim() : null,
-        description ? description.trim() : null,
-        status || null,
-        groupId,
-      ]
+      `UPDATE small_groups SET ${sets.join(", ")} WHERE id = ?`,
+      [...values, groupId]
     );
   } catch (error) {
     return duplicateName(
@@ -287,7 +519,7 @@ const removeLeader = async (access, groupId, memberId) => {
 };
 
 /* ------------------------------------------------------------------ */
-/* Families                                                             */
+/* Families (read)                                                      */
 /* ------------------------------------------------------------------ */
 
 const toPerson = (row) => ({
@@ -299,6 +531,8 @@ const toPerson = (row) => ({
   phone: row.phone || "",
   academicStatus: row.academic_status || "",
   department: row.department || "",
+  familyCount: Number(row.familyCount || 0),
+  otherGroups: row.otherGroups || "",
 });
 
 const listFamilies = async (access, groupId) => {
@@ -332,7 +566,10 @@ const listFamilies = async (access, groupId) => {
         u.first_name,
         u.middle_name,
         u.last_name,
-        d.name AS department
+        d.name AS department,
+        (
+          SELECT COUNT(*) FROM family_members fmc WHERE fmc.member_id = m.id
+        ) AS familyCount
       FROM family_members fm
       INNER JOIN families f ON f.id = fm.family_id
       INNER JOIN members m ON m.id = fm.member_id
@@ -344,6 +581,7 @@ const listFamilies = async (access, groupId) => {
     [groupId]
   );
 
+  // Members of this small group who are in none of its families.
   const [unassigned] = await db.execute(
     `
       SELECT
@@ -356,18 +594,31 @@ const listFamilies = async (access, groupId) => {
         u.first_name,
         u.middle_name,
         u.last_name,
-        d.name AS department
-      FROM members m
+        d.name AS department,
+        (
+          SELECT GROUP_CONCAT(sgn.name ORDER BY sgn.name SEPARATOR ', ')
+          FROM small_group_members sgx
+          INNER JOIN small_groups sgn ON sgn.id = sgx.small_group_id
+          WHERE sgx.member_id = m.id AND sgx.small_group_id <> ?
+        ) AS otherGroups,
+        (
+          SELECT COUNT(*) FROM family_members fmc WHERE fmc.member_id = m.id
+        ) AS familyCount
+      FROM small_group_members sgm
+      INNER JOIN members m ON m.id = sgm.member_id
       INNER JOIN users u ON u.id = m.user_id
       LEFT JOIN departments d ON d.id = m.department_id
-      WHERE m.small_group_id = ?
+      WHERE sgm.small_group_id = ?
         AND m.status = 'Active'
         AND NOT EXISTS (
-          SELECT 1 FROM family_members fm WHERE fm.member_id = m.id
+          SELECT 1
+          FROM family_members fm
+          INNER JOIN families fa ON fa.id = fm.family_id
+          WHERE fm.member_id = m.id AND fa.small_group_id = ?
         )
       ORDER BY u.first_name ASC
     `,
-    [groupId]
+    [groupId, groupId, groupId]
   );
 
   const [leaders] = await db.execute(
@@ -378,6 +629,16 @@ const listFamilies = async (access, groupId) => {
       INNER JOIN users u ON u.id = m.user_id
       WHERE l.small_group_id = ? AND l.status = 'Active'
       ORDER BY u.first_name ASC
+    `,
+    [groupId]
+  );
+
+  const [[{ memberCount }]] = await db.execute(
+    `
+      SELECT COUNT(*) AS memberCount
+      FROM small_group_members sgm
+      INNER JOIN members m ON m.id = sgm.member_id
+      WHERE sgm.small_group_id = ? AND m.status = 'Active'
     `,
     [groupId]
   );
@@ -396,9 +657,14 @@ const listFamilies = async (access, groupId) => {
       id: group.id,
       name: group.name,
       description: group.description,
+      purpose: group.purpose,
+      meetingSchedule: group.meeting_schedule,
+      meetingPlace: group.meeting_place,
+      capacity: group.capacity,
       status: group.status,
       fellowshipId: group.fellowship_id,
       fellowshipName: group.fellowship_name,
+      memberCount: Number(memberCount),
       canManage: isManager(access, group.fellowship_id),
       overseers: leaders.map((leader) => ({
         memberId: leader.memberId,
@@ -427,6 +693,117 @@ const listFamilies = async (access, groupId) => {
   };
 };
 
+/**
+ * People who could be added. Active members of the small group's campus
+ * (Staff have no campus, so they never appear).
+ *
+ *   familyId  leaves out people already in that family
+ *   scope     "group" leaves out people already in this small group
+ */
+const listCandidates = async (
+  access,
+  groupId,
+  { search = "", familyId = "", scope = "" } = {}
+) => {
+  const group = await getGroup(db, groupId);
+
+  if (!canWorkOnGroup(access, group)) {
+    throw httpError("You can only work on your own small group.", 403);
+  }
+
+  const params = [group.id, group.id, group.fellowship_id];
+
+  let query = `
+    SELECT
+      m.id AS memberId,
+      m.member_number,
+      m.gender,
+      m.academic_status,
+      u.first_name,
+      u.middle_name,
+      u.last_name,
+      d.name AS department,
+      EXISTS (
+        SELECT 1 FROM small_group_members sgm
+        WHERE sgm.member_id = m.id AND sgm.small_group_id = ?
+      ) AS inGroup,
+      (
+        SELECT GROUP_CONCAT(sgn.name ORDER BY sgn.name SEPARATOR ', ')
+        FROM small_group_members sgx
+        INNER JOIN small_groups sgn ON sgn.id = sgx.small_group_id
+        WHERE sgx.member_id = m.id AND sgx.small_group_id <> ?
+      ) AS otherGroups,
+      (
+        SELECT COUNT(*) FROM family_members fmc WHERE fmc.member_id = m.id
+      ) AS familyCount
+    FROM members m
+    INNER JOIN users u ON u.id = m.user_id
+    LEFT JOIN departments d ON d.id = m.department_id
+    WHERE m.status = 'Active'
+      AND u.is_active = 1
+      AND m.fellowship_id = ?
+  `;
+
+  if (familyId) {
+    query += `
+      AND NOT EXISTS (
+        SELECT 1 FROM family_members fx
+        WHERE fx.member_id = m.id AND fx.family_id = ?
+      )
+    `;
+    params.push(Number(familyId));
+  }
+
+  if (scope === "group") {
+    query += `
+      AND NOT EXISTS (
+        SELECT 1 FROM small_group_members sgy
+        WHERE sgy.member_id = m.id AND sgy.small_group_id = ?
+      )
+    `;
+    params.push(group.id);
+  }
+
+  const term = String(search || "").trim();
+
+  if (term) {
+    query += `
+      AND (
+        u.first_name LIKE ?
+        OR u.last_name LIKE ?
+        OR CONCAT(u.first_name, ' ', u.last_name) LIKE ?
+        OR m.member_number LIKE ?
+      )
+    `;
+
+    const like = `%${term}%`;
+    params.push(like, like, like, like);
+  }
+
+  query += `
+    ORDER BY inGroup DESC, u.first_name ASC, u.last_name ASC
+    LIMIT 50
+  `;
+
+  const [rows] = await db.query(query, params);
+
+  return rows.map((row) => ({
+    memberId: row.memberId,
+    memberNumber: row.member_number,
+    name: fullName(row.first_name, row.middle_name, row.last_name),
+    gender: row.gender,
+    academicStatus: row.academic_status || "",
+    department: row.department || "",
+    inGroup: Boolean(row.inGroup),
+    otherGroups: row.otherGroups || "",
+    familyCount: Number(row.familyCount || 0),
+  }));
+};
+
+/* ------------------------------------------------------------------ */
+/* Families (change)                                                    */
+/* ------------------------------------------------------------------ */
+
 const createFamily = async (access, groupId, { name, description }) => {
   const group = await getGroup(db, groupId);
 
@@ -448,8 +825,8 @@ const createFamily = async (access, groupId, { name, description }) => {
       [
         group.fellowship_id,
         group.id,
-        name.trim(),
-        description ? description.trim() : null,
+        String(name).trim(),
+        clean(description),
         access.user.id,
       ]
     );
@@ -477,12 +854,7 @@ const updateFamily = async (access, familyId, { name, description, status }) => 
             status = COALESCE(?, status)
         WHERE id = ?
       `,
-      [
-        name ? name.trim() : null,
-        description ? description.trim() : null,
-        status || null,
-        familyId,
-      ]
+      [name ? String(name).trim() : null, clean(description), status || null, familyId]
     );
   } catch (error) {
     return duplicateName(
@@ -495,12 +867,8 @@ const updateFamily = async (access, familyId, { name, description, status }) => 
 };
 
 // The people stay in the small group; they just have no family any more.
-const deleteFamily = async (access, familyId) => {
-  const conn = await db.getConnection();
-
-  try {
-    await conn.beginTransaction();
-
+const deleteFamily = async (access, familyId) =>
+  inTransaction(async (conn) => {
     const family = await getFamily(conn, familyId, { lock: true });
 
     assertCanWorkOnFamily(access, family);
@@ -508,24 +876,13 @@ const deleteFamily = async (access, familyId) => {
     await conn.execute("DELETE FROM family_members WHERE family_id = ?", [familyId]);
     await conn.execute("DELETE FROM families WHERE id = ?", [familyId]);
 
-    await conn.commit();
-
     return { id: Number(familyId) };
-  } catch (error) {
-    await conn.rollback();
-    throw error;
-  } finally {
-    conn.release();
-  }
-};
+  });
 
 /**
  * Put members in a family as Father, Mother or Child (one request can add
- * many children). A member already in another family is moved.
- *
- * Rules: active members of the same campus; a Father is male and a Mother
- * is female; at most one of each per family; someone who belongs to another
- * small group can only be moved by a campus manager.
+ * many children). A member may already be in other families: that is fine.
+ * The member also joins the family's small group.
  */
 const saveFamilyMembers = async (access, familyId, entries) => {
   const list = Array.isArray(entries) ? entries : [];
@@ -548,128 +905,27 @@ const saveFamilyMembers = async (access, familyId, entries) => {
     seen.add(Number(entry.memberId));
   }
 
-  const conn = await db.getConnection();
-
-  try {
-    await conn.beginTransaction();
-
+  return inTransaction(async (conn) => {
     const family = await getFamily(conn, familyId, { lock: true });
 
     assertCanWorkOnFamily(access, family);
-
-    if (family.status !== "Active") {
-      throw httpError("This family is not active.", 400);
-    }
+    assertFamilyOpen(family);
 
     for (const entry of list) {
-      const [rows] = await conn.execute(
-        `
-          SELECT
-            m.id,
-            m.fellowship_id,
-            m.small_group_id,
-            m.gender,
-            m.status,
-            u.first_name,
-            u.last_name
-          FROM members m
-          INNER JOIN users u ON u.id = m.user_id
-          WHERE m.id = ?
-          LIMIT 1
-          FOR UPDATE
-        `,
-        [entry.memberId]
-      );
+      const member = await loadPlaceableMember(conn, entry.memberId, {
+        lock: true,
+      });
 
-      const member = rows[0];
+      assertPlaceable(member, family.fellowship_id);
 
-      if (!member) throw httpError("Member not found.", 404);
-
-      const name = `${member.first_name} ${member.last_name}`.trim();
-
-      if (member.status !== "Active") {
-        throw httpError(`${name} is not an active member.`, 400);
-      }
-
-      if (Number(member.fellowship_id) !== Number(family.fellowship_id)) {
-        throw httpError(`${name} belongs to a different campus.`, 400);
-      }
-
-      if (
-        member.small_group_id &&
-        Number(member.small_group_id) !== Number(family.small_group_id) &&
-        !isManager(access, family.fellowship_id)
-      ) {
-        throw httpError(
-          `${name} belongs to another small group. Ask the Main Leader or Fellowship Admin to move them.`,
-          403
-        );
-      }
-
-      if (entry.familyRole === "Father" && member.gender !== "Male") {
-        throw httpError(`${name} cannot be a Father (the member's gender is not male).`, 400);
-      }
-
-      if (entry.familyRole === "Mother" && member.gender !== "Female") {
-        throw httpError(`${name} cannot be a Mother (the member's gender is not female).`, 400);
-      }
-
-      if (entry.familyRole !== "Child") {
-        const [taken] = await conn.execute(
-          `
-            SELECT member_id FROM family_members
-            WHERE family_id = ? AND family_role = ? AND member_id <> ?
-            LIMIT 1
-          `,
-          [familyId, entry.familyRole, entry.memberId]
-        );
-
-        if (taken[0]) {
-          throw httpError(
-            `This family already has a ${entry.familyRole}. Remove or change them first.`,
-            409
-          );
-        }
-      }
-
-      // A member is in one family only: moving replaces the old place.
-      await conn.execute("DELETE FROM family_members WHERE member_id = ?", [
-        entry.memberId,
-      ]);
-
-      await conn.execute(
-        `
-          INSERT INTO family_members (family_id, member_id, family_role, assigned_by)
-          VALUES (?, ?, ?, ?)
-        `,
-        [familyId, entry.memberId, entry.familyRole, access.user.id]
-      );
-
-      await conn.execute(
-        "UPDATE members SET small_group_id = ? WHERE id = ?",
-        [family.small_group_id, entry.memberId]
-      );
+      await placeInFamily(conn, family, member, entry.familyRole, access.user.id);
     }
-
-    await conn.commit();
 
     return { familyId: Number(familyId), saved: list.length };
-  } catch (error) {
-    await conn.rollback();
-
-    if (error.code === "ER_DUP_ENTRY") {
-      throw httpError(
-        "The family changed while you were saving. Please refresh and try again.",
-        409
-      );
-    }
-
-    throw error;
-  } finally {
-    conn.release();
-  }
+  });
 };
 
+// Takes the member out of this family only. They stay in the small group.
 const removeFamilyMember = async (access, familyId, memberId) => {
   const family = await getFamily(db, familyId);
 
@@ -687,80 +943,208 @@ const removeFamilyMember = async (access, familyId, memberId) => {
   return { familyId: Number(familyId), memberId: Number(memberId) };
 };
 
+// Moves a member from one family to another (same campus).
+const moveFamilyMember = async (
+  access,
+  fromFamilyId,
+  memberId,
+  { toFamilyId, familyRole }
+) => {
+  fromFamilyId = Number(fromFamilyId);
+  toFamilyId = Number(toFamilyId);
+
+  if (fromFamilyId === toFamilyId) {
+    throw httpError("Choose a different family.", 400);
+  }
+
+  if (familyRole && !FAMILY_ROLES.includes(familyRole)) {
+    throw httpError("Choose Father, Mother or Child.", 400);
+  }
+
+  return inTransaction(async (conn) => {
+    // Lock the lower id first so two moves can't wait on each other.
+    const [firstId, secondId] =
+      fromFamilyId < toFamilyId
+        ? [fromFamilyId, toFamilyId]
+        : [toFamilyId, fromFamilyId];
+
+    const first = await getFamily(conn, firstId, { lock: true });
+    const second = await getFamily(conn, secondId, { lock: true });
+
+    const from = first.id === fromFamilyId ? first : second;
+    const to = first.id === toFamilyId ? first : second;
+
+    assertCanWorkOnFamily(access, from);
+    assertCanWorkOnFamily(access, to);
+    assertFamilyOpen(to);
+
+    if (Number(from.fellowship_id) !== Number(to.fellowship_id)) {
+      throw httpError("Families must be in the same campus.", 400);
+    }
+
+    const member = await loadPlaceableMember(conn, memberId, { lock: true });
+
+    assertPlaceable(member, to.fellowship_id);
+
+    const [current] = await conn.execute(
+      `
+        SELECT family_role FROM family_members
+        WHERE family_id = ? AND member_id = ?
+        LIMIT 1
+        FOR UPDATE
+      `,
+      [from.id, member.id]
+    );
+
+    if (!current[0]) throw httpError("This member is not in that family.", 404);
+
+    await conn.execute(
+      "DELETE FROM family_members WHERE family_id = ? AND member_id = ?",
+      [from.id, member.id]
+    );
+
+    await placeInFamily(
+      conn,
+      to,
+      member,
+      familyRole || current[0].family_role,
+      access.user.id
+    );
+
+    return { memberId: member.id, fromFamilyId: from.id, toFamilyId: to.id };
+  });
+};
+
+/* ------------------------------------------------------------------ */
+/* Small group membership (a family is optional)                        */
+/* ------------------------------------------------------------------ */
+
+// Add members to a small group without putting them in a family.
+const addGroupMembers = async (access, groupId, memberIds) => {
+  const ids = [
+    ...new Set(
+      (Array.isArray(memberIds) ? memberIds : [])
+        .map(Number)
+        .filter((id) => Number.isInteger(id) && id > 0)
+    ),
+  ];
+
+  if (ids.length === 0 || ids.length > MAX_BATCH) {
+    throw httpError(`Choose between 1 and ${MAX_BATCH} members.`, 400);
+  }
+
+  return inTransaction(async (conn) => {
+    const group = await getGroup(conn, groupId);
+
+    if (!canWorkOnGroup(access, group)) {
+      throw httpError("You can only add people to your own small group.", 403);
+    }
+
+    if (group.status !== "Active") {
+      throw httpError("This small group is not active.", 400);
+    }
+
+    for (const memberId of ids) {
+      const member = await loadPlaceableMember(conn, memberId, { lock: true });
+
+      assertPlaceable(member, group.fellowship_id);
+
+      await ensureGroupMember(conn, group.id, member.id, access.user.id);
+    }
+
+    return { groupId: group.id, added: ids.length };
+  });
+};
+
+// Remove a member from a small group (and from its families).
+const removeFromSmallGroup = async (access, groupId, memberId) =>
+  inTransaction(async (conn) => {
+    const group = await getGroup(conn, groupId);
+
+    if (!canWorkOnGroup(access, group)) {
+      throw httpError("You can only change your own small group.", 403);
+    }
+
+    const removed = await removeFromGroupTx(conn, group.id, memberId);
+
+    if (removed === 0) {
+      throw httpError("This member is not in this small group.", 404);
+    }
+
+    return { groupId: group.id, memberId: Number(memberId) };
+  });
+
 /**
- * Members who could be added to a family of this small group: active members
- * of the same campus who have no small group yet, plus members of this small
- * group who are not in a family. Staff have no campus, so they never appear.
+ * Move a member to another small group of the same campus, optionally into
+ * one of its families. The person must be allowed to work on both groups.
  */
-const listCandidates = async (access, groupId, search = "") => {
-  const group = await getGroup(db, groupId);
+const transferMember = async (
+  access,
+  fromGroupId,
+  memberId,
+  { toGroupId, toFamilyId, familyRole }
+) => {
+  toGroupId = Number(toGroupId);
 
-  if (!canWorkOnGroup(access, group)) {
-    throw httpError("You can only work on your own small group.", 403);
+  if (Number(fromGroupId) === toGroupId) {
+    throw httpError("Choose a different small group.", 400);
   }
 
-  const params = [group.fellowship_id, group.id];
+  const role = familyRole || "Child";
 
-  let query = `
-    SELECT
-      m.id AS memberId,
-      m.member_number,
-      m.gender,
-      m.academic_status,
-      m.small_group_id,
-      u.first_name,
-      u.middle_name,
-      u.last_name,
-      d.name AS department
-    FROM members m
-    INNER JOIN users u ON u.id = m.user_id
-    LEFT JOIN departments d ON d.id = m.department_id
-    WHERE m.status = 'Active'
-      AND u.is_active = 1
-      AND m.fellowship_id = ?
-      AND (
-        m.small_group_id IS NULL
-        OR (
-          m.small_group_id = ?
-          AND NOT EXISTS (
-            SELECT 1 FROM family_members fm WHERE fm.member_id = m.id
-          )
-        )
-      )
-  `;
-
-  const term = String(search || "").trim();
-
-  if (term) {
-    query += `
-      AND (
-        u.first_name LIKE ?
-        OR u.last_name LIKE ?
-        OR CONCAT(u.first_name, ' ', u.last_name) LIKE ?
-        OR m.member_number LIKE ?
-      )
-    `;
-
-    const like = `%${term}%`;
-    params.push(like, like, like, like);
+  if (!FAMILY_ROLES.includes(role)) {
+    throw httpError("Choose Father, Mother or Child.", 400);
   }
 
-  query += `
-    ORDER BY (m.small_group_id IS NULL) ASC, u.first_name ASC, u.last_name ASC
-    LIMIT 50
-  `;
+  return inTransaction(async (conn) => {
+    const from = await getGroup(conn, fromGroupId);
+    const to = await getGroup(conn, toGroupId);
 
-  const [rows] = await db.query(query, params);
+    if (!canWorkOnGroup(access, from) || !canWorkOnGroup(access, to)) {
+      throw httpError(
+        "You can only move people between small groups you manage or oversee.",
+        403
+      );
+    }
 
-  return rows.map((row) => ({
-    memberId: row.memberId,
-    memberNumber: row.member_number,
-    name: fullName(row.first_name, row.middle_name, row.last_name),
-    gender: row.gender,
-    academicStatus: row.academic_status || "",
-    department: row.department || "",
-    inGroup: Boolean(row.small_group_id),
-  }));
+    if (Number(from.fellowship_id) !== Number(to.fellowship_id)) {
+      throw httpError("Small groups must be in the same campus.", 400);
+    }
+
+    if (to.status !== "Active") {
+      throw httpError("The chosen small group is not active.", 400);
+    }
+
+    const member = await loadPlaceableMember(conn, memberId, { lock: true });
+
+    assertPlaceable(member, to.fellowship_id);
+
+    const [inFrom] = await conn.execute(
+      "SELECT id FROM small_group_members WHERE small_group_id = ? AND member_id = ? LIMIT 1",
+      [from.id, member.id]
+    );
+
+    if (!inFrom[0]) {
+      throw httpError("This member is not in this small group.", 404);
+    }
+
+    await removeFromGroupTx(conn, from.id, member.id);
+    await ensureGroupMember(conn, to.id, member.id, access.user.id);
+
+    if (toFamilyId) {
+      const family = await getFamily(conn, Number(toFamilyId), { lock: true });
+
+      if (Number(family.small_group_id) !== to.id) {
+        throw httpError("That family is not in the chosen small group.", 400);
+      }
+
+      assertFamilyOpen(family);
+
+      await placeInFamily(conn, family, member, role, access.user.id);
+    }
+
+    return { memberId: member.id, fromGroupId: from.id, toGroupId: to.id };
+  });
 };
 
 module.exports = {
@@ -770,10 +1154,14 @@ module.exports = {
   addLeader,
   removeLeader,
   listFamilies,
+  listCandidates,
   createFamily,
   updateFamily,
   deleteFamily,
   saveFamilyMembers,
   removeFamilyMember,
-  listCandidates,
+  moveFamilyMember,
+  addGroupMembers,
+  removeFromSmallGroup,
+  transferMember,
 };

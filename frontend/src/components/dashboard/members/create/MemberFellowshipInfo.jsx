@@ -80,7 +80,7 @@ export default function MemberFellowshipInfo({
           <>
             <Field
               id="smallGroup"
-              label="Small group"
+              label="Small groups"
               help="Set from the Small Groups page."
             >
               <ReadOnlyBox>{smallGroup || "Not yet in a small group"}</ReadOnlyBox>
@@ -88,7 +88,7 @@ export default function MemberFellowshipInfo({
 
             <Field
               id="family"
-              label="Family"
+              label="Families"
               help="Set by the small group overseer."
             >
               <ReadOnlyBox>{family || "Not yet in a family"}</ReadOnlyBox>

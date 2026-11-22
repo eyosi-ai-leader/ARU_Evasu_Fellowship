@@ -90,7 +90,6 @@ function PlacementLine({ placement, mode }) {
         {placement.family ? (
           <dd className="min-w-0 truncate font-medium text-slate-600">
             {placement.family}
-            {placement.familyRole ? ` · ${placement.familyRole}` : ""}
           </dd>
         ) : (
           <dd className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
@@ -120,7 +119,7 @@ function PlacementLine({ placement, mode }) {
       <dd className="min-w-0 truncate font-medium text-slate-600">
         {placement.smallGroup}
         {placement.family ? (
-          ` · ${placement.family} (${placement.familyRole})`
+          ` · ${placement.family}`
         ) : (
           <span className="font-semibold text-amber-600"> · Not yet in a family</span>
         )}

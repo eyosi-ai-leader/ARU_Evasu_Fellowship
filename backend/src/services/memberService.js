@@ -753,10 +753,14 @@ const getAllMembers = async (
   };
 };
 
+const isInSmallGroups = async (memberId, groupIds) =>
+  memberModel.isInSmallGroups(memberId, groupIds);
+
 module.exports = {
   createMember,
   getMemberById,
   updateMember,
   deleteMember,
+  isInSmallGroups,
   getAllMembers,
 };

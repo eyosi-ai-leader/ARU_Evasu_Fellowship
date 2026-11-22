@@ -350,6 +350,9 @@ const assignRole = async (access, memberId, input) => {
         target.member_id,
       ]);
 
+       await conn.execute("DELETE FROM small_group_members WHERE member_id = ?", [
+        target.member_id,
+      ]);
       await conn.execute(
         `
           UPDATE members

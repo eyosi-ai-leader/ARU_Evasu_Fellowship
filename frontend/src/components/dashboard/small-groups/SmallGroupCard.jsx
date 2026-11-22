@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { Pencil } from "lucide-react";
+import { CalendarClock, Pencil } from "lucide-react";
 
 import { Chip, shortCampusName } from "./parts";
 
 export default function SmallGroupCard({ group, showCampus = false, onEdit }) {
   const overseers = group.overseers || [];
+  const full = group.capacity && group.memberCount >= group.capacity;
 
   return (
     <article className="flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md">
@@ -30,9 +31,16 @@ export default function SmallGroupCard({ group, showCampus = false, onEdit }) {
           {group.status !== "Active" && <Chip>Inactive</Chip>}
         </div>
 
-        {group.description && (
+        {(group.purpose || group.description) && (
           <p className="mt-2 line-clamp-2 text-sm text-slate-500">
-            {group.description}
+            {group.purpose || group.description}
+          </p>
+        )}
+
+        {group.meetingSchedule && (
+          <p className="mt-2 inline-flex items-center gap-1.5 text-xs text-slate-500">
+            <CalendarClock size={13} aria-hidden="true" />
+            {group.meetingSchedule}
           </p>
         )}
 
@@ -52,6 +60,12 @@ export default function SmallGroupCard({ group, showCampus = false, onEdit }) {
             </dt>
             <dd className="mt-0.5 text-xl font-bold text-slate-900">
               {group.memberCount}
+              {group.capacity ? (
+                <span className="text-sm font-medium text-slate-400">
+                  {" "}
+                  / {group.capacity}
+                </span>
+              ) : null}
             </dd>
           </div>
 
@@ -75,9 +89,11 @@ export default function SmallGroupCard({ group, showCampus = false, onEdit }) {
             </p>
           )}
 
+          {full && <Chip tone="attention">Full</Chip>}
+
           {group.withoutFamily > 0 && (
             <Chip tone="attention">
-              {group.withoutFamily} not yet in a family
+              {group.withoutFamily} without a family yet
             </Chip>
           )}
         </div>

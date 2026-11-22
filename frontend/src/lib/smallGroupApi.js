@@ -73,6 +73,43 @@ export const removeOverseer = (groupId, memberId) =>
     method: "DELETE",
   });
 
+/* People of a small group (a family is optional) */
+export const addGroupMembers = (groupId, memberIds) =>
+  request(`/small-groups/${groupId}/members`, {
+    method: "POST",
+    body: { memberIds },
+  });
+
+export const removeFromSmallGroup = (groupId, memberId) =>
+  request(`/small-groups/${groupId}/members/${memberId}`, {
+    method: "DELETE",
+  });
+
+// body: { toGroupId, toFamilyId?, familyRole? }
+export const transferToSmallGroup = (groupId, memberId, body) =>
+  request(`/small-groups/${groupId}/members/${memberId}/transfer`, {
+    method: "POST",
+    body,
+  });
+
+// People who could be added: { search, familyId, scope: "group" | "" }
+export const getCandidates = (
+  groupId,
+  { search = "", familyId = "", scope = "" } = {}
+) => {
+  const params = new URLSearchParams();
+
+  if (search) params.set("search", search);
+  if (familyId) params.set("familyId", String(familyId));
+  if (scope) params.set("scope", scope);
+
+  const query = params.toString();
+
+  return request(
+    `/small-groups/${groupId}/candidates${query ? `?${query}` : ""}`
+  );
+};
+
 /* Families */
 export const getFamilies = (groupId) =>
   request(`/small-groups/${groupId}/families`);
@@ -98,8 +135,9 @@ export const removeFamilyMember = (familyId, memberId) =>
     method: "DELETE",
   });
 
-// People who could be added to a family of this small group.
-export const getCandidates = (groupId, search = "") =>
-  request(
-    `/small-groups/${groupId}/candidates?search=${encodeURIComponent(search)}`
-  );
+// body: { toFamilyId, familyRole? }
+export const moveToFamily = (familyId, memberId, body) =>
+  request(`/small-groups/families/${familyId}/members/${memberId}/move`, {
+    method: "PUT",
+    body,
+  });

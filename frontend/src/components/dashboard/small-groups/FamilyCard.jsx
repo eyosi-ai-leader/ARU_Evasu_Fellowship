@@ -2,11 +2,22 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Loader2, Pencil, Phone, Plus, Trash2, X } from "lucide-react";
+import {
+  ArrowRightLeft,
+  Loader2,
+  LogOut,
+  Pencil,
+  Phone,
+  Plus,
+  Trash2,
+  UserMinus,
+  Users,
+} from "lucide-react";
 
+import PersonMenu from "./PersonMenu";
 import { Avatar, Chip } from "./parts";
 
-function PersonRow({ person, label, linkable, busy, disabled, onRemove }) {
+function PersonRow({ person, label, linkable, busy, disabled, items }) {
   return (
     <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/60 p-2.5">
       <Avatar name={person.name} />
@@ -38,18 +49,23 @@ function PersonRow({ person, label, linkable, busy, disabled, onRemove }) {
             {person.phone}
           </a>
         )}
+
+        {person.familyCount > 1 && (
+          <p className="text-[11px] font-medium text-indigo-600">
+            In {person.familyCount} families
+          </p>
+        )}
       </div>
 
-      <button
-        type="button"
-        onClick={onRemove}
-        disabled={disabled || busy}
-        aria-label={`Take ${person.name} out of this family`}
-        title="Take out of this family"
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-      >
-        {busy ? <Loader2 size={14} className="animate-spin" /> : <X size={15} />}
-      </button>
+      {busy ? (
+        <Loader2 size={16} className="animate-spin text-slate-400" />
+      ) : (
+        <PersonMenu
+          items={items}
+          label={`Actions for ${person.name}`}
+          disabled={disabled}
+        />
+      )}
     </div>
   );
 }
@@ -72,17 +88,67 @@ function EmptySlot({ label, disabled, onClick }) {
 
 export default function FamilyCard({
   family,
+  // How many families this small group has (a move needs a second one).
+  familyTotal = 1,
   linkable = false,
   disabled = false,
   busyKey = "",
   onEdit,
   onDelete,
   onAdd,
-  onRemove,
+  onPersonAction,
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const deleting = busyKey === `delete-${family.id}`;
+
+  const itemsFor = (person, role) => [
+    {
+      key: "move",
+      label: "Move to another family...",
+      icon: ArrowRightLeft,
+      disabled: familyTotal < 2,
+      onClick: () => onPersonAction("move", family, person, role),
+    },
+    {
+      key: "also",
+      label: "Also add to another family...",
+      icon: Plus,
+      disabled: familyTotal < 2,
+      onClick: () => onPersonAction("also", family, person, role),
+    },
+    {
+      key: "out",
+      label: "Take out of this family",
+      icon: UserMinus,
+      onClick: () => onPersonAction("out", family, person, role),
+    },
+    { key: "divider", divider: true },
+    {
+      key: "transfer",
+      label: "Move to another small group...",
+      icon: Users,
+      onClick: () => onPersonAction("transfer", family, person, role),
+    },
+    {
+      key: "leave",
+      label: "Remove from this small group",
+      icon: LogOut,
+      danger: true,
+      onClick: () => onPersonAction("leave", family, person, role),
+    },
+  ];
+
+  const row = (person, role, label) => (
+    <PersonRow
+      person={person}
+      label={label}
+      linkable={linkable}
+      disabled={disabled}
+      busy={busyKey === `remove-${person.memberId}`}
+      items={itemsFor(person, role)}
+    />
+  );
 
   return (
     <article className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -139,8 +205,8 @@ export default function FamilyCard({
           </p>
 
           <p className="mt-1 text-xs text-red-800">
-            Its people stay in the small group and appear under &quot;Not yet
-            in a family&quot;.
+            Its people stay in the small group and appear under &quot;Members
+            without a family yet&quot;.
           </p>
 
           <div className="mt-3 flex gap-2">
@@ -171,14 +237,7 @@ export default function FamilyCard({
 
       <div className="mt-4 space-y-2">
         {family.father ? (
-          <PersonRow
-            person={family.father}
-            label="Father"
-            linkable={linkable}
-            disabled={disabled}
-            busy={busyKey === `remove-${family.father.memberId}`}
-            onRemove={() => onRemove(family, family.father)}
-          />
+          row(family.father, "Father", "Father")
         ) : (
           <EmptySlot
             label="Add a father"
@@ -188,14 +247,7 @@ export default function FamilyCard({
         )}
 
         {family.mother ? (
-          <PersonRow
-            person={family.mother}
-            label="Mother"
-            linkable={linkable}
-            disabled={disabled}
-            busy={busyKey === `remove-${family.mother.memberId}`}
-            onRemove={() => onRemove(family, family.mother)}
-          />
+          row(family.mother, "Mother", "Mother")
         ) : (
           <EmptySlot
             label="Add a mother"
@@ -226,16 +278,7 @@ export default function FamilyCard({
       ) : (
         <ul className="mt-2 space-y-2">
           {family.children.map((child) => (
-            <li key={child.memberId}>
-              <PersonRow
-                person={child}
-                label="Child"
-                linkable={linkable}
-                disabled={disabled}
-                busy={busyKey === `remove-${child.memberId}`}
-                onRemove={() => onRemove(family, child)}
-              />
-            </li>
+            <li key={child.memberId}>{row(child, "Child", "Child")}</li>
           ))}
         </ul>
       )}

@@ -16,10 +16,9 @@ import { BRAND } from "@/data/brand";
 const QUICK_LINKS = [
   { name: "Home", href: "/" },
   { name: "About", href: "/about" },
-  { name: "Ministries", href: "/ministries" },
-  { name: "Events", href: "/events" },
-  { name: "Sermons", href: "/sermons" },
+  { name: "Events & Gallery", href: "/events" },
   { name: "Contact", href: "/contact" },
+  { name: "Member login", href: "/login" },
 ];
 
 const SOCIAL_ICONS = {

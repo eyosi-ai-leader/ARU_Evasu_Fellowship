@@ -37,10 +37,18 @@ const giving = {
       accountNumber: "",
     },
     {
+      id: "bekoji",
+      name: "Bekoji Campus",
+      description: "Supports the Bekoji Campus fellowship and its ministries.",
+      bank: "",
+      accountName: "",
+      accountNumber: "",
+    },
+    {
       id: "general",
       name: "General Fellowship",
       description:
-        "Supports work shared by all three campuses, such as conferences and outreach.",
+        "Supports work shared by all the campus fellowships, such as conferences and outreach.",
       bank: "",
       accountName: "",
       accountNumber: "",
