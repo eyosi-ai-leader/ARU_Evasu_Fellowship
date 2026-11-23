@@ -235,6 +235,12 @@ navigationByRole[ROLES.STAFF] = navigationByRole[ROLES.PASTOR];
 quickActionsByRole[ROLES.FELLOWSHIP_ADMIN] = quickActionsByRole[ROLES.PASTOR];
 quickActionsByRole[ROLES.STAFF] = quickActionsByRole[ROLES.PASTOR];
 
+const menuItemClass =
+  "flex items-center gap-2.5 rounded-2xl px-3 py-3 text-sm font-medium text-body transition hover:bg-primary/5 hover:text-primary sm:py-2.5";
+
+const menuLabelClass =
+  "text-[10px] font-bold uppercase tracking-[0.14em] text-body";
+
 /*
  * onMenuClick opens the sidebar on phones and tablets.
  */
@@ -360,7 +366,7 @@ export default function DashboardHeader({ onMenuClick }) {
   return (
     <header
       ref={headerRef}
-      className="sticky top-0 z-40 flex h-16 items-center justify-between gap-2 border-b border-slate-200 bg-white/90 px-4 backdrop-blur-xl sm:px-6"
+      className="sticky top-0 z-40 flex h-16 items-center justify-between gap-2 border-b border-line bg-white/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8"
     >
       {/* Left: menu button (phones), name (phones), search (computers) */}
       <div className="relative flex min-w-0 items-center gap-2">
@@ -369,22 +375,22 @@ export default function DashboardHeader({ onMenuClick }) {
           onClick={onMenuClick}
           aria-label="Open menu"
           aria-controls="dashboard-sidebar"
-          className="-ml-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 active:bg-slate-100 lg:hidden"
+          className="-ml-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-body transition hover:bg-surface-muted hover:text-ink active:bg-surface-muted lg:hidden"
         >
           <Menu size={21} />
         </button>
 
         <Link
           href="/dashboard"
-          className="truncate text-[15px] font-bold tracking-tight text-slate-900 md:hidden"
+          className="truncate font-display text-base font-semibold tracking-tight text-ink md:hidden"
         >
           {BRAND.shortName}
         </Link>
 
-        <div className="relative hidden w-80 md:block">
+        <div className="relative hidden w-80 md:block lg:w-96">
           <Search
             size={17}
-            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+            className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-body/60"
           />
 
           <input
@@ -395,22 +401,20 @@ export default function DashboardHeader({ onMenuClick }) {
             onFocus={handleSearchFocus}
             onKeyDown={handleSearchKeyDown}
             placeholder={`Search ${roleName.toLowerCase()} dashboard...`}
-            className="h-10 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-16 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
+            className="h-10 w-full rounded-full border border-line bg-surface-muted pl-11 pr-16 text-sm text-ink outline-none transition placeholder:text-body/60 focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/10"
           />
 
-          <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-sans text-[10px] font-medium text-slate-400">
+          <kbd className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-md border border-line bg-white px-1.5 py-0.5 font-sans text-[10px] font-medium text-body">
             Ctrl K
           </kbd>
         </div>
 
         {activeMenu === "search" && search.trim() && (
-          <div className="absolute left-0 top-12 hidden w-80 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl md:block">
+          <div className="absolute left-0 top-12 hidden w-80 overflow-hidden rounded-3xl bg-white p-2 shadow-soft ring-1 ring-line md:block lg:w-96">
             {searchResults.length > 0 ? (
               <>
                 <div className="px-3 py-2">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
-                    Dashboard Navigation
-                  </p>
+                  <p className={menuLabelClass}>Dashboard Navigation</p>
                 </div>
 
                 {searchResults.map((item) => {
@@ -424,13 +428,13 @@ export default function DashboardHeader({ onMenuClick }) {
                         setSearch("");
                         setActiveMenu(null);
                       }}
-                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-indigo-50 hover:text-indigo-700"
+                      className="flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-body transition hover:bg-primary/5 hover:text-primary"
                     >
-                      <Icon size={17} className="text-slate-400" />
+                      <Icon size={17} className="text-primary/70" />
 
                       <span>{item.name}</span>
 
-                      <span className="ml-auto text-[10px] text-slate-300">
+                      <span className="ml-auto text-[10px] text-body/50">
                         Enter
                       </span>
                     </Link>
@@ -439,13 +443,13 @@ export default function DashboardHeader({ onMenuClick }) {
               </>
             ) : (
               <div className="px-3 py-5 text-center">
-                <Search size={20} className="mx-auto text-slate-300" />
+                <Search size={20} className="mx-auto text-body/40" />
 
-                <p className="mt-2 text-sm font-medium text-slate-600">
+                <p className="mt-2 text-sm font-medium text-ink">
                   No results found
                 </p>
 
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-body">
                   Try another dashboard section.
                 </p>
               </div>
@@ -462,10 +466,10 @@ export default function DashboardHeader({ onMenuClick }) {
           onClick={handleMobileSearchToggle}
           aria-label="Search"
           aria-expanded={activeMenu === "mobileSearch"}
-          className={`flex h-10 w-10 items-center justify-center rounded-xl transition md:hidden ${
+          className={`flex h-10 w-10 items-center justify-center rounded-full transition md:hidden ${
             activeMenu === "mobileSearch"
-              ? "bg-indigo-50 text-indigo-700"
-              : "text-slate-600 hover:bg-slate-100 active:bg-slate-100"
+              ? "bg-primary/10 text-primary"
+              : "text-body hover:bg-surface-muted active:bg-surface-muted"
           }`}
         >
           {activeMenu === "mobileSearch" ? (
@@ -476,8 +480,12 @@ export default function DashboardHeader({ onMenuClick }) {
         </button>
 
         {/* Role */}
-        <div className="hidden items-center rounded-full bg-indigo-50 px-3.5 py-1.5 lg:flex">
-          <span className="text-xs font-semibold text-indigo-700">
+        <div className="hidden items-center gap-2 rounded-full bg-primary/10 px-3.5 py-1.5 lg:flex">
+          <span
+            aria-hidden="true"
+            className="h-1.5 w-1.5 rounded-full bg-accent"
+          />
+          <span className="text-xs font-semibold text-primary">
             {roleName}
           </span>
         </div>
@@ -489,10 +497,10 @@ export default function DashboardHeader({ onMenuClick }) {
             onClick={handleQuickActionToggle}
             aria-label="Quick action"
             aria-expanded={activeMenu === "quickAction"}
-            className={`flex h-10 items-center justify-center gap-2 rounded-xl border px-3 text-xs font-semibold transition sm:px-3.5 ${
+            className={`flex h-10 items-center justify-center gap-2 rounded-full px-3 text-xs font-semibold text-white shadow-sm transition active:scale-[0.97] sm:px-4 ${
               activeMenu === "quickAction"
-                ? "border-indigo-200 bg-indigo-50 text-indigo-700"
-                : "border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                ? "bg-primary-dark"
+                : "bg-primary hover:bg-primary-dark"
             }`}
           >
             <Plus size={16} />
@@ -508,11 +516,9 @@ export default function DashboardHeader({ onMenuClick }) {
           </button>
 
           {activeMenu === "quickAction" && (
-            <div className="absolute right-0 top-full mt-2 w-60 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
+            <div className="absolute right-0 top-full mt-2 w-64 rounded-3xl bg-white p-2 shadow-soft ring-1 ring-line">
               <div className="px-3 py-2">
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
-                  {roleName} Actions
-                </p>
+                <p className={menuLabelClass}>{roleName} Actions</p>
               </div>
 
               {quickActions.map((action) => {
@@ -523,9 +529,9 @@ export default function DashboardHeader({ onMenuClick }) {
                     key={action.name}
                     href={action.href}
                     onClick={() => setActiveMenu(null)}
-                    className="flex items-center gap-2.5 rounded-lg px-3 py-3 text-sm font-medium text-slate-600 transition hover:bg-indigo-50 hover:text-indigo-700 sm:py-2.5"
+                    className={menuItemClass}
                   >
-                    <Icon size={16} className="text-slate-400" />
+                    <Icon size={16} className="text-primary/70" />
 
                     <span>{action.name}</span>
                   </Link>
@@ -545,19 +551,19 @@ export default function DashboardHeader({ onMenuClick }) {
             onClick={handleProfileToggle}
             aria-label="Account menu"
             aria-expanded={activeMenu === "profile"}
-            className="flex items-center rounded-full transition hover:ring-2 hover:ring-indigo-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            className="flex items-center rounded-full transition hover:ring-2 hover:ring-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <UserAvatar user={user} className="h-9 w-9 text-xs" />
           </button>
 
           {activeMenu === "profile" && (
-            <div className="absolute right-0 top-full mt-2 w-60 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
-              <div className="border-b border-slate-100 px-3 py-2.5">
-                <p className="truncate text-sm font-bold text-slate-900">
+            <div className="absolute right-0 top-full mt-2 w-64 rounded-3xl bg-white p-2 shadow-soft ring-1 ring-line">
+              <div className="border-b border-line px-3 py-2.5">
+                <p className="truncate font-display text-sm font-semibold text-ink">
                   {`${user?.firstName || ""} ${user?.lastName || ""}`.trim() ||
                     "User"}
                 </p>
-                <p className="truncate text-xs text-slate-400">
+                <p className="truncate text-xs text-body">
                   {user?.email || roleName}
                 </p>
               </div>
@@ -566,34 +572,34 @@ export default function DashboardHeader({ onMenuClick }) {
                 <Link
                   href="/dashboard/profile"
                   onClick={() => setActiveMenu(null)}
-                  className="flex items-center gap-2.5 rounded-lg px-3 py-3 text-sm font-medium text-slate-600 transition hover:bg-indigo-50 hover:text-indigo-700 sm:py-2.5"
+                  className={menuItemClass}
                 >
-                  <UserRound size={16} className="text-slate-400" />
+                  <UserRound size={16} className="text-primary/70" />
                   My Profile
                 </Link>
 
                 <Link
                   href="/dashboard/settings"
                   onClick={() => setActiveMenu(null)}
-                  className="flex items-center gap-2.5 rounded-lg px-3 py-3 text-sm font-medium text-slate-600 transition hover:bg-indigo-50 hover:text-indigo-700 sm:py-2.5"
+                  className={menuItemClass}
                 >
-                  <Settings size={16} className="text-slate-400" />
+                  <Settings size={16} className="text-primary/70" />
                   Settings
                 </Link>
 
                 <Link
                   href="/dashboard/help"
                   onClick={() => setActiveMenu(null)}
-                  className="flex items-center gap-2.5 rounded-lg px-3 py-3 text-sm font-medium text-slate-600 transition hover:bg-indigo-50 hover:text-indigo-700 sm:py-2.5"
+                  className={menuItemClass}
                 >
-                  <HelpCircle size={16} className="text-slate-400" />
+                  <HelpCircle size={16} className="text-primary/70" />
                   Help & Support
                 </Link>
 
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-3 text-sm font-medium text-red-600 transition hover:bg-red-50 sm:py-2.5"
+                  className="flex w-full items-center gap-2.5 rounded-2xl px-3 py-3 text-sm font-medium text-danger transition hover:bg-danger/10 sm:py-2.5"
                 >
                   <LogOut size={16} />
                   Sign out
@@ -606,11 +612,11 @@ export default function DashboardHeader({ onMenuClick }) {
 
       {/* Search panel (phones only) */}
       {activeMenu === "mobileSearch" && (
-        <div className="absolute inset-x-0 top-full border-b border-slate-200 bg-white p-3 shadow-lg md:hidden">
+        <div className="absolute inset-x-0 top-full border-b border-line bg-white p-3 shadow-soft md:hidden">
           <div className="relative">
             <Search
               size={17}
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-body/60"
             />
 
             <input
@@ -620,7 +626,7 @@ export default function DashboardHeader({ onMenuClick }) {
               onChange={(event) => setSearch(event.target.value)}
               onKeyDown={handleSearchKeyDown}
               placeholder={`Search ${roleName.toLowerCase()} dashboard...`}
-              className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
+              className="h-12 w-full rounded-full border border-line bg-surface-muted pl-11 pr-4 text-sm text-ink outline-none transition placeholder:text-body/60 focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/10"
             />
           </div>
 
@@ -638,16 +644,16 @@ export default function DashboardHeader({ onMenuClick }) {
                         setSearch("");
                         setActiveMenu(null);
                       }}
-                      className="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-slate-600 transition active:bg-indigo-50 active:text-indigo-700"
+                      className="flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium text-body transition active:bg-primary/5 active:text-primary"
                     >
-                      <Icon size={17} className="text-slate-400" />
+                      <Icon size={17} className="text-primary/70" />
 
                       <span>{item.name}</span>
                     </Link>
                   );
                 })
               ) : (
-                <p className="px-3 py-4 text-center text-sm text-slate-400">
+                <p className="px-3 py-4 text-center text-sm text-body">
                   No results found
                 </p>
               )}
@@ -658,3 +664,4 @@ export default function DashboardHeader({ onMenuClick }) {
     </header>
   );
 }
+

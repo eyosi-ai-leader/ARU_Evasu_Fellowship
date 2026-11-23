@@ -74,8 +74,8 @@ export default function RoleBasedDashboard() {
   if (accessLoading) {
     return (
       <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center">
-        <div className="flex items-center gap-3 text-sm text-slate-500">
-          <span className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" />
+        <div className="flex items-center gap-3 text-sm text-body">
+          <span className="h-5 w-5 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
           Loading dashboard...
         </div>
       </div>
@@ -86,16 +86,16 @@ export default function RoleBasedDashboard() {
     return (
       <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4">
         <div className="max-w-sm text-center">
-          <h2 className="text-lg font-semibold text-slate-900">
+          <h2 className="font-display text-xl font-semibold text-ink">
             We couldn&apos;t load your dashboard
           </h2>
 
-          <p className="mt-1 text-sm text-red-600">{accessError}</p>
+          <p className="mt-1 text-sm text-danger">{accessError}</p>
 
           <button
             type="button"
             onClick={reload}
-            className="mt-5 inline-flex rounded-xl bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-indigo-600"
+            className="mt-5 inline-flex rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:bg-primary-dark active:scale-[0.97]"
           >
             Try again
           </button>
@@ -127,7 +127,7 @@ export default function RoleBasedDashboard() {
       {!isManager && error && (
         <div
           role="alert"
-          className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-600"
+          className="rounded-3xl border border-danger/30 bg-danger/10 p-5 text-sm text-danger"
         >
           {error}
         </div>

@@ -182,7 +182,7 @@ function NavigationSkeleton() {
       {[1, 2, 3, 4, 5].map((item) => (
         <div
           key={item}
-          className="h-9 animate-pulse rounded-xl bg-slate-100"
+          className="h-10 animate-pulse rounded-2xl bg-surface-muted"
         />
       ))}
     </div>
@@ -234,24 +234,28 @@ export default function DashboardSidebar({ open = false, onClose }) {
     <aside
       id="dashboard-sidebar"
       aria-label="Sidebar"
-      className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-slate-200 bg-white shadow-2xl transition-transform duration-200 ease-out lg:w-64 lg:max-w-none lg:translate-x-0 lg:shadow-none ${
+      className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-line bg-white shadow-soft transition-transform duration-200 ease-out lg:w-64 lg:max-w-none lg:translate-x-0 lg:shadow-none ${
         open ? "translate-x-0" : "-translate-x-full"
       }`}
     >
       {/* Logo (and the close button on phones) */}
-      <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-5">
+      <div className="flex h-16 shrink-0 items-center justify-between border-b border-line px-5">
         <Link
           href="/"
-          className="flex items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          className="flex items-center gap-3 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <BrandLogo size={38} priority />
 
           <div className="leading-tight">
-            <p className="text-[15px] font-bold tracking-tight text-slate-900">
+            <p className="font-display text-[15px] font-semibold tracking-tight text-ink">
               {BRAND.shortName}
             </p>
 
-            <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-slate-400">
+            <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">
+              <span
+                aria-hidden="true"
+                className="h-0.5 w-3 rounded-full bg-accent"
+              />
               Management Portal
             </p>
           </div>
@@ -261,7 +265,7 @@ export default function DashboardSidebar({ open = false, onClose }) {
           type="button"
           onClick={onClose}
           aria-label="Close menu"
-          className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-900 lg:hidden"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-body transition hover:bg-surface-muted hover:text-ink lg:hidden"
         >
           <X size={20} />
         </button>
@@ -273,17 +277,17 @@ export default function DashboardSidebar({ open = false, onClose }) {
           href="/dashboard"
           aria-label="Overview dashboard"
           aria-current={overviewActive ? "page" : undefined}
-          className={`group flex items-center gap-3 rounded-2xl border px-3 py-2.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+          className={`group flex items-center gap-3 rounded-3xl border px-3 py-2.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
             overviewActive
-              ? "border-indigo-600 bg-indigo-600 shadow-md shadow-indigo-600/20"
-              : "border-slate-200 bg-slate-50 hover:-translate-y-px hover:border-slate-300 hover:bg-slate-100 hover:shadow-sm"
+              ? "border-transparent bg-gradient-to-br from-primary to-primary-dark shadow-soft"
+              : "border-line bg-surface-muted hover:-translate-y-px hover:border-primary/30 hover:bg-white hover:shadow-card"
           }`}
         >
           <div
-            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl shadow-sm ${
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl ${
               overviewActive
-                ? "bg-white/20 text-white"
-                : "bg-slate-950 text-white"
+                ? "bg-white/15 text-accent"
+                : "bg-primary text-white"
             }`}
           >
             <RoleIcon size={17} strokeWidth={2} aria-hidden="true" />
@@ -291,8 +295,8 @@ export default function DashboardSidebar({ open = false, onClose }) {
 
           <div className="min-w-0 flex-1">
             <p
-              className={`truncate text-[11px] font-bold uppercase tracking-[0.08em] ${
-                overviewActive ? "text-white" : "text-slate-900"
+              className={`truncate text-[11px] font-bold uppercase tracking-[0.1em] ${
+                overviewActive ? "text-white" : "text-ink"
               }`}
             >
               {roleLabel}
@@ -300,7 +304,7 @@ export default function DashboardSidebar({ open = false, onClose }) {
 
             <p
               className={`mt-0.5 flex items-center gap-1.5 text-xs font-medium ${
-                overviewActive ? "text-white/75" : "text-slate-400"
+                overviewActive ? "text-white/75" : "text-body"
               }`}
             >
               <LayoutDashboard size={12} aria-hidden="true" />
@@ -312,7 +316,7 @@ export default function DashboardSidebar({ open = false, onClose }) {
             size={16}
             aria-hidden="true"
             className={`shrink-0 transition-transform group-hover:translate-x-0.5 ${
-              overviewActive ? "text-white/75" : "text-slate-400"
+              overviewActive ? "text-white/75" : "text-body"
             }`}
           />
         </Link>
@@ -334,7 +338,7 @@ export default function DashboardSidebar({ open = false, onClose }) {
                 <div
                   key={section.label}
                   className={
-                    index > 0 ? "mt-3 border-t border-slate-100 pt-3" : ""
+                    index > 0 ? "mt-3 border-t border-line pt-3" : ""
                   }
                 >
                   {/* Section header */}
@@ -343,14 +347,14 @@ export default function DashboardSidebar({ open = false, onClose }) {
                     onClick={() => toggleSection(section.label)}
                     aria-expanded={sectionOpen}
                     aria-controls={panelId}
-                    className="group mb-1 flex w-full items-center justify-between rounded-lg px-2 py-2 text-left transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    className="group mb-1 flex w-full items-center justify-between rounded-xl px-2 py-2 text-left transition hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                   >
                     <span className="flex items-center gap-2">
-                      <span className="text-[11px] font-bold uppercase tracking-[0.13em] text-slate-500 group-hover:text-slate-700">
+                      <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-body group-hover:text-ink">
                         {section.label}
                       </span>
 
-                      <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-400">
+                      <span className="rounded-full bg-surface-muted px-1.5 py-0.5 text-[10px] font-semibold text-body ring-1 ring-line">
                         {section.items.length}
                       </span>
                     </span>
@@ -359,7 +363,7 @@ export default function DashboardSidebar({ open = false, onClose }) {
                       size={15}
                       strokeWidth={2}
                       aria-hidden="true"
-                      className={`text-slate-400 transition-transform duration-200 ${
+                      className={`text-body transition-transform duration-200 ${
                         sectionOpen ? "rotate-0" : "-rotate-90"
                       }`}
                     />
@@ -385,18 +389,18 @@ export default function DashboardSidebar({ open = false, onClose }) {
                               <div
                                 key={item.name}
                                 aria-disabled="true"
-                                className="flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-medium text-slate-300 lg:py-2.5"
+                                className="flex cursor-not-allowed items-center gap-3 rounded-2xl px-3 py-3 text-[14px] font-medium text-body/40 lg:py-2.5"
                               >
                                 <Icon
                                   size={18}
                                   strokeWidth={1.8}
                                   aria-hidden="true"
-                                  className="shrink-0 text-slate-300"
+                                  className="shrink-0 text-body/40"
                                 />
 
                                 <span className="truncate">{item.name}</span>
 
-                                <span className="ml-auto shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-400">
+                                <span className="ml-auto shrink-0 rounded-full bg-surface-muted px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-body">
                                   Soon
                                 </span>
                               </div>
@@ -409,16 +413,16 @@ export default function DashboardSidebar({ open = false, onClose }) {
                               href={item.href}
                               aria-current={active ? "page" : undefined}
                               tabIndex={sectionOpen ? 0 : -1}
-                              className={`group relative flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 lg:py-2.5 ${
+                              className={`group relative flex items-center gap-3 rounded-2xl px-3 py-3 text-[14px] font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary lg:py-2.5 ${
                                 active
-                                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20"
-                                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 active:bg-slate-100"
+                                  ? "bg-primary text-white shadow-soft"
+                                  : "text-body hover:bg-surface-muted hover:text-ink active:bg-surface-muted"
                               }`}
                             >
                               {active && (
                                 <span
                                   aria-hidden="true"
-                                  className="absolute -left-4 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-indigo-600"
+                                  className="absolute -left-4 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-accent"
                                 />
                               )}
 
@@ -428,8 +432,8 @@ export default function DashboardSidebar({ open = false, onClose }) {
                                 aria-hidden="true"
                                 className={`shrink-0 transition-colors ${
                                   active
-                                    ? "text-white"
-                                    : "text-slate-400 group-hover:text-slate-700"
+                                    ? "text-accent"
+                                    : "text-body group-hover:text-primary"
                                 }`}
                               />
 
@@ -440,7 +444,7 @@ export default function DashboardSidebar({ open = false, onClose }) {
                                   className={`ml-auto rounded-full px-2 py-0.5 text-[9px] font-bold ${
                                     active
                                       ? "bg-white/20 text-white"
-                                      : "bg-indigo-50 text-indigo-600"
+                                      : "bg-primary/10 text-primary"
                                   }`}
                                 >
                                   {item.badge}

@@ -66,29 +66,27 @@ export default function SidebarUserMenu({ user, roleName, onLogout }) {
   const isActive = (href) => href !== "/" && pathname.startsWith(href);
 
   return (
-    <div className="border-t border-slate-200 p-3">
+    <div className="border-t border-line p-3">
       <div ref={wrapperRef} className="relative">
         {open && (
           <div
             role="menu"
             aria-label="Account menu"
-            className="absolute bottom-full left-0 right-0 mb-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl"
+            className="absolute bottom-full left-0 right-0 mb-2 overflow-hidden rounded-3xl bg-white shadow-soft ring-1 ring-line"
           >
-            <div className="flex items-center gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3.5">
+            <div className="flex items-center gap-3 border-b border-line bg-surface-muted px-4 py-3.5">
               <UserAvatar user={user} className="h-11 w-11 text-sm" />
 
               <div className="min-w-0">
-                <p className="truncate text-sm font-bold text-slate-900">
+                <p className="truncate font-display text-sm font-semibold text-ink">
                   {displayName}
                 </p>
 
                 {user?.email && (
-                  <p className="truncate text-xs text-slate-500">
-                    {user.email}
-                  </p>
+                  <p className="truncate text-xs text-body">{user.email}</p>
                 )}
 
-                <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-indigo-600">
+                <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wide text-primary">
                   {roleName}
                 </p>
               </div>
@@ -105,15 +103,15 @@ export default function SidebarUserMenu({ user, roleName, onLogout }) {
                     href={item.href}
                     role="menuitem"
                     aria-current={active ? "page" : undefined}
-                    className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                    className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                       active
-                        ? "bg-indigo-600 text-white"
-                        : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                        ? "bg-primary text-white"
+                        : "text-body hover:bg-surface-muted hover:text-ink"
                     }`}
                   >
                     <Icon
                       size={17}
-                      className={active ? "text-white" : "text-slate-400"}
+                      className={active ? "text-accent" : "text-primary/70"}
                       aria-hidden="true"
                     />
                     {item.name}
@@ -122,12 +120,12 @@ export default function SidebarUserMenu({ user, roleName, onLogout }) {
               })}
             </div>
 
-            <div className="border-t border-slate-100 p-1.5">
+            <div className="border-t border-line p-1.5">
               <button
                 type="button"
                 role="menuitem"
                 onClick={onLogout}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium text-danger transition hover:bg-danger/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger"
               >
                 <LogOut size={17} aria-hidden="true" />
                 Sign out
@@ -142,18 +140,18 @@ export default function SidebarUserMenu({ user, roleName, onLogout }) {
           onClick={() => setOpen((current) => !current)}
           aria-haspopup="menu"
           aria-expanded={open}
-          className={`flex w-full items-center gap-3 rounded-xl p-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-            open ? "bg-slate-100" : "hover:bg-slate-100"
+          className={`flex w-full items-center gap-3 rounded-2xl p-2.5 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+            open ? "bg-surface-muted" : "hover:bg-surface-muted"
           }`}
         >
           <UserAvatar user={user} className="h-10 w-10 text-xs" />
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold text-slate-900">
+            <p className="truncate font-display text-sm font-semibold text-ink">
               {displayName}
             </p>
 
-            <p className="truncate text-xs font-medium text-slate-400">
+            <p className="truncate text-xs font-medium text-body">
               {roleName}
             </p>
           </div>
@@ -161,7 +159,7 @@ export default function SidebarUserMenu({ user, roleName, onLogout }) {
           <ChevronUp
             size={16}
             aria-hidden="true"
-            className={`shrink-0 text-slate-400 transition-transform duration-200 ${
+            className={`shrink-0 text-body transition-transform duration-200 ${
               open ? "rotate-180" : ""
             }`}
           />

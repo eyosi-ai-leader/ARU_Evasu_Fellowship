@@ -58,6 +58,47 @@
   --shadow-soft: 0 10px 34px -8px rgba(140, 63, 16, 0.22);
 }
 
+/* Dashboard re-color: remaps Tailwind's default blue, indigo and slate
+   to the fellowship palette. No component code changes. */
+@theme {
+  /* Neutrals (slate): warm instead of cold gray-blue */
+  --color-slate-50: #faf8f6;
+  --color-slate-100: #f5f3f1;
+  --color-slate-200: #e8e4df;
+  --color-slate-300: #d6d0c9;
+  --color-slate-400: #9b918a;
+  --color-slate-500: #6a5e59;
+  --color-slate-600: #574c47;
+  --color-slate-700: #40352f;
+  --color-slate-800: #2a1912;
+  --color-slate-900: #1b100c;
+  --color-slate-950: #120a07;
+
+  /* Brand (indigo): maroon from the logo */
+  --color-indigo-50: #fdf3f1;
+  --color-indigo-100: #fbe4e0;
+  --color-indigo-200: #f5c8c0;
+  --color-indigo-300: #ea9c90;
+  --color-indigo-400: #d4685a;
+  --color-indigo-500: #a63a2c;
+  --color-indigo-600: #6b1f17;
+  --color-indigo-700: #4a140f;
+  --color-indigo-800: #3a100c;
+  --color-indigo-900: #2a0b08;
+
+  /* Brand (blue): same maroon family */
+  --color-blue-50: #fdf3f1;
+  --color-blue-100: #fbe4e0;
+  --color-blue-200: #f5c8c0;
+  --color-blue-300: #ea9c90;
+  --color-blue-400: #d4685a;
+  --color-blue-500: #a63a2c;
+  --color-blue-600: #6b1f17;
+  --color-blue-700: #4a140f;
+  --color-blue-800: #3a100c;
+  --color-blue-900: #2a0b08;
+}
+
 /* --------------------------------------------------
    Base Styles
 -------------------------------------------------- */
@@ -83,6 +124,11 @@
   ::selection {
     background: var(--color-accent);
     color: var(--color-ink);
+  }
+
+    h1,
+  h2 {
+    font-family: var(--font-display), var(--font-sans), sans-serif;
   }
 
   img,
