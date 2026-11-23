@@ -127,10 +127,15 @@ function buildNavigation(access) {
     });
   }
 
-  if (can("ministry:lead")) {
+   if (can("ministry:lead")) {
     sections.push({
       label: "My Ministry",
       items: [
+        {
+          name: "My Ministry",
+          href: "/dashboard/ministries",
+          icon: HeartHandshake,
+        },
         {
           name: "Ministry Members",
           href: "/dashboard/members",

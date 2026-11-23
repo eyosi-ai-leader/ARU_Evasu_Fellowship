@@ -4,6 +4,7 @@ const router = express.Router();
 
 const ministryController = require("../controllers/ministryController");
 const authMiddleware = require("../middleware/authMiddleware");
+const ministryImageUpload = require("../middleware/ministryImageUpload");
 const {
   loadAccess,
   requireCapability,
@@ -20,7 +21,12 @@ const leads = requireCapability("ministry:lead");
 
 router.get("/my-ministries", leads, ministryController.getMyMinistries);
 router.get("/:id/leader-members", leads, ministryController.getLeaderMembers);
-router.patch("/:id/leader-details", leads, ministryController.updateLeaderMinistry);
+router.patch(
+  "/:id/leader-details",
+  leads,
+  ministryImageUpload,
+  ministryController.updateLeaderMinistry
+);
 router.post("/:id/leader-members", leads, ministryController.assignLeaderMember);
 router.patch(
   "/:id/leader-members/:memberId/status",
@@ -47,14 +53,22 @@ router.get(
  */
 router.use(requireCapability("fellowship:manage", "general:manage"));
 
+router.get("/campuses", ministryController.listCampuses);
+
 router.get("/", ministryController.list);
-router.post("/", ministryController.create);
+router.post("/", ministryImageUpload, ministryController.create);
 router.get("/:id", ministryController.getById);
-router.put("/:id", ministryController.update);
+router.put("/:id", ministryImageUpload, ministryController.update);
+router.delete("/:id", ministryController.remove);
 router.patch("/:id/status", ministryController.updateStatus);
 
 router.get("/:id/members", ministryController.getMembers);
 router.post("/:id/members", ministryController.assignMember);
+
+router.patch(
+  "/:id/members/:memberId/status",
+  ministryController.updateMemberStatus
+);
 
 router.delete(
   "/:id/members/:memberId",

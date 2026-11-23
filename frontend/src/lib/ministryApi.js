@@ -1,42 +1,55 @@
+import { getToken } from "@/lib/authToken";
+import { endSession } from "@/lib/accountApi";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
-function getAuthToken() {
-  if (typeof document === "undefined") return null;
+const enc = encodeURIComponent;
 
-  const cookie = document.cookie
-    .split("; ")
-    .find((item) => item.startsWith("token="));
-
-  return cookie
-    ? decodeURIComponent(cookie.substring("token=".length))
-    : null;
-}
-
-async function request(url, options = {}) {
-  const token = getAuthToken();
+async function request(path, { method = "GET", body } = {}) {
+  const token = getToken();
 
   if (!token) {
-    throw new Error("Authentication token not found. Please log in again.");
+    throw new Error("Your session has expired. Please sign in again.");
   }
 
-  const headers = {
-    Authorization: `Bearer ${token}`,
-    ...options.headers,
-  };
+  // A FormData body (a ministry with a cover image) is sent as it is, and the
+  // browser adds the multipart header. Anything else is sent as JSON.
+  const isForm = typeof FormData !== "undefined" && body instanceof FormData;
 
-  if (options.body !== undefined) {
-    headers["Content-Type"] = "application/json";
+  let response;
+
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        ...(body !== undefined && !isForm
+          ? { "Content-Type": "application/json" }
+          : {}),
+      },
+      body: body !== undefined ? (isForm ? body : JSON.stringify(body)) : undefined,
+      cache: "no-store",
+    });
+  } catch {
+    throw new Error(
+      "We couldn't reach the server. Check your connection and try again."
+    );
   }
 
-  const response = await fetch(url, {
-    ...options,
-    headers,
-    cache: "no-store",
-  });
+  let result = null;
 
-  const result = await response.json().catch(() => null);
+  try {
+    result = await response.json();
+  } catch {
+    /* non-JSON response */
+  }
+
+  // The account was made inactive (or the session ended) while signed in.
+  if (response.status === 401 || result?.code === "ACCOUNT_INACTIVE") {
+    endSession({ inactive: result?.code === "ACCOUNT_INACTIVE" });
+    throw new Error(result?.message || "Please sign in again.");
+  }
 
   if (!response.ok) {
     throw new Error(
@@ -47,159 +60,153 @@ async function request(url, options = {}) {
   return result;
 }
 
+/*
+ * Ministry details travel as a form so a cover image can come with them.
+ *   imageFile:   a File (new or replacement cover image)
+ *   removeImage: true to delete the current cover image
+ */
+function toMinistryForm(data = {}) {
+  const form = new FormData();
+
+  Object.entries(data).forEach(([key, value]) => {
+    if (key === "imageFile") {
+      if (value) form.append("image", value);
+      return;
+    }
+
+    if (value === undefined || value === null) return;
+
+    form.append(key, typeof value === "boolean" ? String(value) : value);
+  });
+
+  return form;
+}
+
 // =====================================================
-// ADMIN / PASTOR / CHURCH ELDER MINISTRY API
+// CAMPUS MANAGERS (Super Admin, Staff, Fellowship Admin, Main Leader)
 // =====================================================
 
-export async function getMinistries({ search = "", status = "" } = {}) {
+export function getMinistries({ search = "", status = "", fellowshipId = "" } = {}) {
   const params = new URLSearchParams();
 
   if (search.trim()) params.set("search", search.trim());
+  if (status) params.set("status", status);
+  if (fellowshipId) params.set("fellowshipId", String(fellowshipId));
+
+  const query = params.toString();
+
+  return request(`/ministries${query ? `?${query}` : ""}`);
+}
+
+// The campuses (and the General Fellowship) the person can manage.
+export const getMinistryCampuses = () => request("/ministries/campuses");
+
+export const getMinistryById = (id) => request(`/ministries/${enc(id)}`);
+
+// data: { fellowshipId, name, purpose, verseReference, verseText,
+//         meetingSchedule, meetingPlace, contactPhone, description,
+//         imageFile?, removeImage? }
+export const createMinistry = (data) =>
+  request("/ministries", { method: "POST", body: toMinistryForm(data) });
+
+export const updateMinistry = (id, data) =>
+  request(`/ministries/${enc(id)}`, {
+    method: "PUT",
+    body: toMinistryForm(data),
+  });
+
+export const updateMinistryStatus = (id, status) =>
+  request(`/ministries/${enc(id)}/status`, {
+    method: "PATCH",
+    body: { status },
+  });
+
+// Permanently deletes a ministry and its assignments.
+export const deleteMinistry = (id) =>
+  request(`/ministries/${enc(id)}`, { method: "DELETE" });
+
+// role: "" | "Member" | "Ministry Leader"   status: "" | "Active" | "Inactive" | "All"
+export function getMinistryMembers(id, role = "", status = "") {
+  const params = new URLSearchParams();
+
+  if (role) params.set("role", role);
   if (status) params.set("status", status);
 
   const query = params.toString();
 
   return request(
-    `${API_URL}/ministries${query ? `?${query}` : ""}`
+    `/ministries/${enc(id)}/members${query ? `?${query}` : ""}`
   );
 }
 
-export async function getMinistryById(id) {
-  return request(`${API_URL}/ministries/${encodeURIComponent(id)}`);
-}
+// Active members of the ministry's campus who are not in it yet.
+export const getMinistryCandidates = (id, search = "") =>
+  request(`/ministries/${enc(id)}/candidates?search=${enc(search)}`);
 
-export async function createMinistry(data) {
-  return request(`${API_URL}/ministries`, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
-}
-
-export async function updateMinistry(id, data) {
-  return request(`${API_URL}/ministries/${encodeURIComponent(id)}`, {
-    method: "PUT",
-    body: JSON.stringify(data),
-  });
-}
-
-export async function updateMinistryStatus(id, status) {
-  return request(`${API_URL}/ministries/${encodeURIComponent(id)}/status`, {
-    method: "PATCH",
-    body: JSON.stringify({ status }),
-  });
-}
-
-export async function getMinistryMembers(id, role = "") {
-  const params = new URLSearchParams();
-
-  if (role) params.set("role", role);
-
-  const query = params.toString();
-
-  return request(
-    `${API_URL}/ministries/${encodeURIComponent(id)}/members${
-      query ? `?${query}` : ""
-    }`
-  );
-}
-
-export async function assignMinistryMember(
+// Add a member, appoint a leader, or promote / change a person's role.
+export const assignMinistryMember = (
   ministryId,
   { memberId, assignmentRole = "Member" }
-) {
-  return request(
-    `${API_URL}/ministries/${encodeURIComponent(ministryId)}/members`,
-    {
-      method: "POST",
-      body: JSON.stringify({ memberId, assignmentRole }),
-    }
-  );
-}
+) =>
+  request(`/ministries/${enc(ministryId)}/members`, {
+    method: "POST",
+    body: { memberId, assignmentRole },
+  });
 
-export async function removeMinistryMember(ministryId, memberId) {
-  return request(
-    `${API_URL}/ministries/${encodeURIComponent(ministryId)}/members/${encodeURIComponent(memberId)}`,
-    {
-      method: "DELETE",
-    }
-  );
-}
+// Deactivate or reactivate a person's place in a ministry.
+export const updateMinistryMemberStatus = (ministryId, memberId, status) =>
+  request(`/ministries/${enc(ministryId)}/members/${enc(memberId)}/status`, {
+    method: "PATCH",
+    body: { status },
+  });
 
-export async function moveMinistryMember(
-  ministryId,
-  memberId,
-  toMinistryId
-) {
-  return request(
-    `${API_URL}/ministries/${encodeURIComponent(ministryId)}/members/${encodeURIComponent(memberId)}/move`,
-    {
-      method: "POST",
-      body: JSON.stringify({ toMinistryId }),
-    }
-  );
-}
+// Removes the person from the ministry for good.
+export const removeMinistryMember = (ministryId, memberId) =>
+  request(`/ministries/${enc(ministryId)}/members/${enc(memberId)}`, {
+    method: "DELETE",
+  });
+
+export const moveMinistryMember = (ministryId, memberId, toMinistryId) =>
+  request(`/ministries/${enc(ministryId)}/members/${enc(memberId)}/move`, {
+    method: "POST",
+    body: { toMinistryId },
+  });
 
 // =====================================================
-// MINISTRY LEADER API — RESTRICTED TO OWN MINISTRY
+// MINISTRY LEADERS (only the ministries they lead)
 // =====================================================
 
-export async function getMyMinistries() {
-  return request(`${API_URL}/ministries/my-ministries`);
-}
+export const getMyMinistries = () => request("/ministries/my-ministries");
 
-export async function getLeaderMinistryMembers(
-  ministryId,
-  status = "Active"
-) {
-  const params = new URLSearchParams({ status });
-
-  return request(
-    `${API_URL}/ministries/${encodeURIComponent(ministryId)}/leader-members?${params.toString()}`
+export const getLeaderMinistryMembers = (ministryId, status = "Active") =>
+  request(
+    `/ministries/${enc(ministryId)}/leader-members?status=${enc(status)}`
   );
-}
 
-export async function updateLeaderMinistryDetails(ministryId, data) {
-  return request(
-    `${API_URL}/ministries/${encodeURIComponent(ministryId)}/leader-details`,
-    {
-      method: "PATCH",
-      body: JSON.stringify({
-        name: data.name,
-        description: data.description,
-      }),
-    }
-  );
-}
+export const updateLeaderMinistryDetails = (ministryId, data) =>
+  request(`/ministries/${enc(ministryId)}/leader-details`, {
+    method: "PATCH",
+    body: toMinistryForm(data),
+  });
 
-export async function addLeaderMinistryMember(ministryId, memberId) {
-  return request(
-    `${API_URL}/ministries/${encodeURIComponent(ministryId)}/leader-members`,
-    {
-      method: "POST",
-      body: JSON.stringify({ memberId }),
-    }
-  );
-}
+export const addLeaderMinistryMember = (ministryId, memberId) =>
+  request(`/ministries/${enc(ministryId)}/leader-members`, {
+    method: "POST",
+    body: { memberId },
+  });
 
-export async function updateLeaderMemberAssignmentStatus(
+export const updateLeaderMemberAssignmentStatus = (
   ministryId,
   memberId,
   status
-) {
-  return request(
-    `${API_URL}/ministries/${encodeURIComponent(ministryId)}/leader-members/${encodeURIComponent(memberId)}/status`,
-    {
-      method: "PATCH",
-      body: JSON.stringify({ status }),
-    }
+) =>
+  request(
+    `/ministries/${enc(ministryId)}/leader-members/${enc(memberId)}/status`,
+    { method: "PATCH", body: { status } }
   );
-}
 
-export async function removeLeaderMinistryMember(ministryId, memberId) {
-  return request(
-    `${API_URL}/ministries/${encodeURIComponent(ministryId)}/leader-members/${encodeURIComponent(memberId)}`,
-    {
-      method: "DELETE",
-    }
+export const removeLeaderMinistryMember = (ministryId, memberId) =>
+  request(
+    `/ministries/${enc(ministryId)}/leader-members/${enc(memberId)}`,
+    { method: "DELETE" }
   );
-}

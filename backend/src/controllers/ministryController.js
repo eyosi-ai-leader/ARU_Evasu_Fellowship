@@ -49,13 +49,22 @@ const getById = respond(
   { message: "Ministry retrieved successfully." }
 );
 
-const create = respond((req) => ministryService.createMinistry(req.access, req.body), {
-  message: "Ministry created successfully.",
-  status: 201,
-});
+const create = respond(
+  (req) => ministryService.createMinistry(req.access, req.body, req.file),
+  {
+    message: "Ministry created successfully.",
+    status: 201,
+  }
+);
 
 const update = respond(
-  (req) => ministryService.updateMinistry(req.access, req.params.id, req.body),
+  (req) =>
+    ministryService.updateMinistry(
+      req.access,
+      req.params.id,
+      req.body,
+      req.file
+    ),
   { message: "Ministry updated successfully." }
 );
 
@@ -70,7 +79,8 @@ const getMembers = respond(
     ministryService.getMembers(
       req.access,
       req.params.id,
-      String(req.query.role || "")
+      String(req.query.role || ""),
+      String(req.query.status || "Active")
     ),
   { message: "Ministry assignments retrieved successfully." }
 );
@@ -137,7 +147,12 @@ const getLeaderMembers = respond(
 
 const updateLeaderMinistry = respond(
   (req) =>
-    ministryService.updateLeaderMinistry(req.params.id, req.access, req.body),
+    ministryService.updateLeaderMinistry(
+      req.params.id,
+      req.access,
+      req.body,
+      req.file
+    ),
   { message: "Your ministry details updated successfully." }
 );
 
@@ -172,6 +187,27 @@ const updateLeaderAssignmentStatus = respond(
   { message: "Member assignment status updated successfully." }
 );
 
+const listCampuses = respond(
+  (req) => ministryService.listCampuses(req.access),
+  { message: "Campuses retrieved successfully." }
+);
+
+const remove = respond(
+  (req) => ministryService.deleteMinistry(req.access, req.params.id),
+  { message: "Ministry deleted successfully." }
+);
+
+const updateMemberStatus = respond(
+  (req) =>
+    ministryService.updateMemberStatus(
+      req.access,
+      req.params.id,
+      req.params.memberId,
+      req.body.status
+    ),
+  { message: "Assignment status updated successfully." }
+);
+
 module.exports = {
   list,
   getById,
@@ -189,4 +225,7 @@ module.exports = {
   assignLeaderMember,
   removeLeaderAssignment,
   updateLeaderAssignmentStatus,
+  listCampuses,
+  remove,
+  updateMemberStatus,
 };

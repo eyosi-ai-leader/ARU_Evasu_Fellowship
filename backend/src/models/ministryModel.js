@@ -14,6 +14,9 @@ const listMinistries = async ({
       f.fellowship_type,
       m.name,
       m.description,
+      m.purpose,
+      m.verse_reference,
+      m.verse_text,
       m.meeting_schedule,
       m.meeting_place,
       m.contact_phone,
@@ -34,7 +37,19 @@ const listMinistries = async ({
         WHERE mm.ministry_id = m.id
           AND mm.status = 'Active'
           AND mm.assignment_role = 'Ministry Leader'
-      ) AS leader_count
+      ) AS leader_count,
+      (
+        SELECT GROUP_CONCAT(
+          CONCAT_WS(' ', lu.first_name, lu.last_name)
+          ORDER BY lu.first_name SEPARATOR ', '
+        )
+        FROM ministry_members lm
+        INNER JOIN members lmem ON lmem.id = lm.member_id
+        INNER JOIN users lu ON lu.id = lmem.user_id
+        WHERE lm.ministry_id = m.id
+          AND lm.status = 'Active'
+          AND lm.assignment_role = 'Ministry Leader'
+      ) AS leader_names
     FROM ministries m
     LEFT JOIN fellowships f ON f.id = m.fellowship_id
     WHERE 1 = 1
@@ -49,8 +64,8 @@ const listMinistries = async ({
   }
 
   if (search) {
-    query += " AND (m.name LIKE ? OR m.description LIKE ?)";
-    params.push(`%${search}%`, `%${search}%`);
+    query += " AND (m.name LIKE ? OR m.description LIKE ? OR m.purpose LIKE ?)";
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
   }
 
   if (status) {
@@ -96,6 +111,9 @@ const createMinistry = async ({
   fellowshipId,
   name,
   description,
+  purpose,
+  verseReference,
+  verseText,
   imageUrl,
   meetingSchedule,
   meetingPlace,
@@ -103,13 +121,16 @@ const createMinistry = async ({
 }) => {
   const [result] = await db.execute(
     `INSERT INTO ministries
-       (fellowship_id, name, description, image_url,
-        meeting_schedule, meeting_place, contact_phone)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+       (fellowship_id, name, description, purpose, verse_reference, verse_text,
+        image_url, meeting_schedule, meeting_place, contact_phone)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       fellowshipId,
       name,
       description || null,
+      purpose || null,
+      verseReference || null,
+      verseText || null,
       imageUrl || null,
       meetingSchedule || null,
       meetingPlace || null,
@@ -122,16 +143,31 @@ const createMinistry = async ({
 
 const updateMinistry = async (
   id,
-  { name, description, imageUrl, meetingSchedule, meetingPlace, contactPhone }
+  {
+    name,
+    description,
+    purpose,
+    verseReference,
+    verseText,
+    imageUrl,
+    meetingSchedule,
+    meetingPlace,
+    contactPhone,
+  }
 ) => {
   await db.execute(
     `UPDATE ministries
-     SET name = ?, description = ?, image_url = ?,
+     SET name = ?, description = ?, purpose = ?,
+         verse_reference = ?, verse_text = ?,
+         image_url = COALESCE(?, image_url),
          meeting_schedule = ?, meeting_place = ?, contact_phone = ?
      WHERE id = ?`,
     [
       name,
       description || null,
+      purpose || null,
+      verseReference || null,
+      verseText || null,
       imageUrl || null,
       meetingSchedule || null,
       meetingPlace || null,
@@ -143,19 +179,33 @@ const updateMinistry = async (
   return getMinistryById(id);
 };
 
-// Ministry Leaders can edit the name, description and meeting details.
+// Ministry Leaders can edit everything about their ministry except its
+// campus and status.
 const updateLeaderMinistry = async (
   id,
-  { name, description, meetingSchedule, meetingPlace, contactPhone }
+  {
+    name,
+    description,
+    purpose,
+    verseReference,
+    verseText,
+    meetingSchedule,
+    meetingPlace,
+    contactPhone,
+  }
 ) => {
   await db.execute(
     `UPDATE ministries
-     SET name = ?, description = ?,
+     SET name = ?, description = ?, purpose = ?,
+         verse_reference = ?, verse_text = ?,
          meeting_schedule = ?, meeting_place = ?, contact_phone = ?
      WHERE id = ?`,
     [
       name,
       description || null,
+      purpose || null,
+      verseReference || null,
+      verseText || null,
       meetingSchedule || null,
       meetingPlace || null,
       contactPhone || null,
@@ -164,6 +214,46 @@ const updateLeaderMinistry = async (
   );
 
   return getMinistryById(id);
+};
+
+// Permanently deletes a ministry and its assignments.
+const deleteMinistry = async (id) => {
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    await connection.execute(
+      "DELETE FROM ministry_members WHERE ministry_id = ?",
+      [id]
+    );
+    await connection.execute("DELETE FROM ministries WHERE id = ?", [id]);
+
+    await connection.commit();
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+};
+
+// Permanently deletes a person's place in a ministry. Returns rows removed.
+const deleteAssignment = async (ministryId, memberId) => {
+  const [result] = await db.execute(
+    "DELETE FROM ministry_members WHERE ministry_id = ? AND member_id = ?",
+    [ministryId, memberId]
+  );
+
+  return result.affectedRows;
+};
+
+// Sets (or clears, with null) the cover image of a ministry.
+const updateMinistryImage = async (id, imageUrl) => {
+  await db.execute("UPDATE ministries SET image_url = ? WHERE id = ?", [
+    imageUrl || null,
+    id,
+  ]);
 };
 
 const updateMinistryStatus = async (id, status) => {
@@ -362,11 +452,14 @@ const getLeaderMinistries = async (userId) => {
     `SELECT DISTINCT
        mi.id,
        mi.fellowship_id,
+       mi.name,
+       mi.description,
+       mi.purpose,
+       mi.verse_reference,
+       mi.verse_text,
        mi.meeting_schedule,
        mi.meeting_place,
        mi.contact_phone,
-       mi.name,
-       mi.description,
        mi.image_url,
        mi.status
      FROM ministries mi
@@ -455,6 +548,9 @@ module.exports = {
   updateMinistry,
   updateLeaderMinistry,
   updateMinistryStatus,
+  updateMinistryImage,
+  deleteMinistry,
+  deleteAssignment,
   isLeaderOfMinistry,
   getMinistryMembers,
   getMinistryAssignment,

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Camera, Info, Loader2, Trash2 } from "lucide-react";
 import UserAvatar from "@/components/shared/Avatar/UserAvatar";
+import useConfirm from "@/components/dashboard/ministries/useConfirm";
 import { updateMyProfile } from "@/lib/profileApi";
 import { updateStoredUser } from "@/lib/userStorage";
 
@@ -38,6 +39,8 @@ function Field({ id, label, required, children }) {
 }
 
 export default function ProfileForm({ profile, onSaved, onCancel }) {
+  const { confirm, confirmDialog } = useConfirm();
+
   const [form, setForm] = useState(toForm(profile));
   const [photo, setPhoto] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -110,11 +113,19 @@ export default function ProfileForm({ profile, onSaved, onCancel }) {
     setRemovePhoto(Boolean(profile.profileImage));
   }
 
-  function handleCancel() {
+  async function handleCancel() {
     if (saving) return;
 
-    if (dirty && !window.confirm("Discard your changes?")) {
-      return;
+    if (dirty) {
+      const discard = await confirm({
+        title: "Discard your changes?",
+        message: "The changes you made to your profile will be lost.",
+        confirmLabel: "Discard",
+        cancelLabel: "Keep editing",
+        tone: "warning",
+      });
+
+      if (!discard) return;
     }
 
     onCancel();
@@ -334,7 +345,7 @@ export default function ProfileForm({ profile, onSaved, onCancel }) {
       <p className="flex items-start gap-2 text-sm text-slate-500">
         <Info size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
         Your email, role, member number and baptism date are managed by the
-        church office, so they can&apos;t be edited here.
+        fellowship office, so they can&apos;t be edited here.
       </p>
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -356,6 +367,8 @@ export default function ProfileForm({ profile, onSaved, onCancel }) {
           {saving ? "Saving..." : "Save changes"}
         </button>
       </div>
+
+      {confirmDialog}
     </form>
   );
 }

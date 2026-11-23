@@ -12,9 +12,11 @@ import {
   Pencil,
   Plus,
   Search,
+  UserMinus,
   UserPlus,
 } from "lucide-react";
 
+import useConfirm from "@/components/dashboard/ministries/useConfirm";
 import {
   deleteFamily,
   getFamilies,
@@ -110,6 +112,8 @@ export default function SmallGroupDetailPage() {
   const params = useParams();
   const groupId = params?.groupId;
 
+  const { confirm, confirmDialog } = useConfirm();
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -183,14 +187,16 @@ export default function SmallGroupDetailPage() {
       `${person.name} was added to the family.`
     );
 
-  const handleRemoveOverseer = (overseer) => {
-    if (
-      !window.confirm(
-        `Remove ${overseer.name} as an overseer of ${data.group.name}? They stay a member of the fellowship.`
-      )
-    ) {
-      return;
-    }
+  const handleRemoveOverseer = async (overseer) => {
+    const confirmed = await confirm({
+      title: `Remove ${overseer.name}?`,
+      message: `${overseer.name} will no longer be an overseer of ${data.group.name}. They stay a member of the fellowship.`,
+      confirmLabel: "Remove overseer",
+      tone: "danger",
+      icon: UserMinus,
+    });
+
+    if (!confirmed) return;
 
     run(
       `overseer-${overseer.memberId}`,
@@ -199,14 +205,16 @@ export default function SmallGroupDetailPage() {
     );
   };
 
-  const handleLeaveGroup = (person) => {
-    if (
-      !window.confirm(
-        `Remove ${person.name} from ${data.group.name}? They are taken out of its families too, but stay a member of the fellowship.`
-      )
-    ) {
-      return;
-    }
+  const handleLeaveGroup = async (person) => {
+    const confirmed = await confirm({
+      title: `Remove ${person.name}?`,
+      message: `${person.name} will be taken out of ${data.group.name} and its families. They stay a member of the fellowship.`,
+      confirmLabel: "Remove",
+      tone: "danger",
+      icon: UserMinus,
+    });
+
+    if (!confirmed) return;
 
     run(
       `remove-${person.memberId}`,
@@ -597,6 +605,8 @@ export default function SmallGroupDetailPage() {
           onSaved={() => afterModal("The small group was updated.")}
         />
       )}
+
+      {confirmDialog}
     </div>
   );
 }

@@ -1,7 +1,52 @@
 const db = require("../config/db");
 const ministryModel = require("../models/ministryModel");
+const cloudinary = require("../config/cloudinary");
 
 const ASSIGNMENT_ROLES = ["Member", "Ministry Leader"];
+
+const MINISTRY_IMAGE_FOLDER = "chms/ministries";
+
+/* ------------------------------------------------------------------ */
+/* Ministry cover image (Cloudinary)                                    */
+/* ------------------------------------------------------------------ */
+
+// ".../upload/v123/chms/ministries/abc.jpg" -> "chms/ministries/abc"
+const publicIdFromUrl = (url) => {
+  const match = String(url || "").match(
+    /\/upload\/(?:[^/]+\/)*?(?:v\d+\/)?(.+?)\.[a-z0-9]+(?:\?.*)?$/i
+  );
+
+  return match ? match[1] : null;
+};
+
+// Best effort: a failed cleanup never breaks the request. Only images this
+// feature uploaded (inside the ministries folder) are ever deleted.
+const removeStoredImage = async (url) => {
+  const publicId = publicIdFromUrl(url);
+
+  if (!publicId || !publicId.startsWith(`${MINISTRY_IMAGE_FOLDER}/`)) return;
+
+  try {
+    await cloudinary.uploader.destroy(publicId);
+  } catch (error) {
+    console.error("Ministry image cleanup failed:", error.message);
+  }
+};
+
+const uploadMinistryImage = async (file) => {
+  if (!file) return null;
+
+  const result = await new Promise((resolve, reject) => {
+    cloudinary.uploader
+      .upload_stream(
+        { folder: MINISTRY_IMAGE_FOLDER, resource_type: "image" },
+        (error, uploaded) => (error ? reject(error) : resolve(uploaded))
+      )
+      .end(file.buffer);
+  });
+
+  return result.secure_url;
+};
 
 const httpError = (message, statusCode = 400) => {
   const error = new Error(message);
@@ -107,8 +152,11 @@ const readMinistryInput = (input = {}) => {
 
   return {
     name,
-    description: cleanText(input.description, 2000, "Description"),
-    imageUrl: cleanText(input.imageUrl, 500, "Image link"),
+    description: cleanText(input.description, 2000, "Notes"),
+    purpose: cleanText(input.purpose, 255, "Purpose"),
+    verseReference: cleanText(input.verseReference, 100, "Verse reference"),
+    verseText: cleanText(input.verseText, 600, "Verse text"),
+    imageUrl: input.imageUrl ? cleanText(input.imageUrl, 500, "Image link") : "",
     meetingSchedule: cleanText(input.meetingSchedule, 150, "Meeting schedule"),
     meetingPlace: cleanText(input.meetingPlace, 150, "Meeting place"),
     contactPhone: cleanText(input.contactPhone, 30, "Contact phone"),
@@ -163,7 +211,7 @@ const getMinistry = async (access, id) => {
   return ministry;
 };
 
-const createMinistry = async (access, input = {}) => {
+const createMinistry = async (access, input = {}, file = null) => {
   const fellowshipId = validateId(input.fellowshipId, "Campus");
   const data = readMinistryInput(input);
 
@@ -180,13 +228,50 @@ const createMinistry = async (access, input = {}) => {
 
   if (!rows[0]) throw httpError("Campus not found.", 404);
 
-  return ministryModel.createMinistry({ fellowshipId, ...data });
+  const uploadedUrl = await uploadMinistryImage(file);
+
+  try {
+    return await ministryModel.createMinistry({
+      fellowshipId,
+      ...data,
+      imageUrl: uploadedUrl || data.imageUrl,
+    });
+  } catch (error) {
+    await removeStoredImage(uploadedUrl);
+    throw error;
+  }
 };
 
-const updateMinistry = async (access, id, input = {}) => {
-  const ministry = await getMinistry(access, id);
+// Saves the details and, when asked, replaces or removes the cover image.
+const updateWithImage = async (ministry, input, file, saveDetails) => {
+  const newUrl = await uploadMinistryImage(file);
+  const clearImage = !newUrl && String(input.removeImage) === "true";
 
-  return ministryModel.updateMinistry(ministry.id, readMinistryInput(input));
+  try {
+    await saveDetails();
+
+    if (newUrl || clearImage) {
+      await ministryModel.updateMinistryImage(ministry.id, newUrl);
+    }
+  } catch (error) {
+    await removeStoredImage(newUrl);
+    throw error;
+  }
+
+  if ((newUrl || clearImage) && ministry.image_url) {
+    await removeStoredImage(ministry.image_url);
+  }
+
+  return ministryModel.getMinistryById(ministry.id);
+};
+
+const updateMinistry = async (access, id, input = {}, file = null) => {
+  const ministry = await getMinistry(access, id);
+  const data = readMinistryInput(input);
+
+  return updateWithImage(ministry, input, file, () =>
+    ministryModel.updateMinistry(ministry.id, data)
+  );
 };
 
 const updateStatus = async (access, id, status) => {
@@ -199,14 +284,18 @@ const updateStatus = async (access, id, status) => {
   return ministryModel.updateMinistryStatus(ministry.id, status);
 };
 
-const getMembers = async (access, id, role = "") => {
+const getMembers = async (access, id, role = "", status = "Active") => {
   const ministry = await getMinistry(access, id);
 
   if (role && !ASSIGNMENT_ROLES.includes(role)) {
     throw httpError("Invalid assignment role.");
   }
 
-  return ministryModel.getMinistryMembers(ministry.id, role);
+  if (!["Active", "Inactive", "All"].includes(status)) {
+    throw httpError("Status must be Active, Inactive, or All.");
+  }
+
+  return ministryModel.getMinistryMembers(ministry.id, role, status);
 };
 
 /* ------------------------------------------------------------------ */
@@ -311,6 +400,17 @@ const assignMemberToMinistry = async (
   }
 };
 
+// Permanently removes a person from a ministry (their place is deleted).
+const deleteAssignment = async (ministryId, memberId) => {
+  memberId = validateId(memberId, "Member ID");
+
+  const removed = await ministryModel.deleteAssignment(ministryId, memberId);
+
+  if (!removed) throw httpError("Ministry assignment not found.", 404);
+
+  return { ministryId, memberId };
+};
+
 const endAssignment = async (ministryId, memberId) => {
   memberId = validateId(memberId, "Member ID");
 
@@ -345,7 +445,63 @@ const assignMember = async (
 const removeAssignment = async (access, ministryId, memberId) => {
   const ministry = await getMinistry(access, ministryId);
 
+  return deleteAssignment(ministry.id, memberId);
+};
+
+// Campus managers: deactivate or reactivate a person's place (keeps the role).
+const updateMemberStatus = async (access, ministryId, memberId, status) => {
+  const ministry = await getMinistry(access, ministryId);
+  memberId = validateId(memberId, "Member ID");
+
+  if (!["Active", "Inactive"].includes(status)) {
+    throw httpError("Status must be Active or Inactive.");
+  }
+
+  const assignment = await ministryModel.getMinistryAssignment(
+    ministry.id,
+    memberId
+  );
+
+  if (!assignment) throw httpError("Ministry assignment not found.", 404);
+
+  if (assignment.status === status) {
+    throw httpError(`This assignment is already ${status.toLowerCase()}.`);
+  }
+
+  if (status === "Active") {
+    return assignMemberToMinistry(
+      ministry,
+      memberId,
+      assignment.assignment_role
+    );
+  }
+
   return endAssignment(ministry.id, memberId);
+};
+
+// Permanently deletes a ministry together with its assignments.
+const deleteMinistry = async (access, id) => {
+  const ministry = await getMinistry(access, id);
+
+  try {
+    await ministryModel.deleteMinistry(ministry.id);
+  } catch (error) {
+    if (
+      error.code === "ER_ROW_IS_REFERENCED_2" ||
+      error.code === "ER_ROW_IS_REFERENCED"
+    ) {
+      throw httpError(
+        "This ministry is still used elsewhere and cannot be deleted. Deactivate it instead.",
+        409
+      );
+    }
+
+    throw error;
+  }
+
+  await removeStoredImage(ministry.image_url);
+
+  return { id: ministry.id };
 };
 
 const moveMember = async (access, fromMinistryId, toMinistryId, memberId) => {
@@ -503,10 +659,19 @@ const getLeaderMembers = async (ministryId, access, status = "Active") => {
   return ministryModel.getMinistryMembers(id, "", status);
 };
 
-const updateLeaderMinistry = async (ministryId, access, input = {}) => {
+const updateLeaderMinistry = async (
+  ministryId,
+  access,
+  input = {},
+  file = null
+) => {
   const id = await assertLeaderAccess(access, ministryId);
+  const ministry = await loadMinistry(id);
+  const data = readMinistryInput(input);
 
-  return ministryModel.updateLeaderMinistry(id, readMinistryInput(input));
+  return updateWithImage(ministry, input, file, () =>
+    ministryModel.updateLeaderMinistry(id, data)
+  );
 };
 
 // Leaders add existing members only; they cannot appoint other leaders.
@@ -523,9 +688,7 @@ const removeLeaderAssignment = async (ministryId, access, memberId) => {
 
   const assignment = await ministryModel.getMinistryAssignment(id, memberId);
 
-  if (!assignment || assignment.status !== "Active") {
-    throw httpError("Active ministry assignment not found.", 404);
-  }
+  if (!assignment) throw httpError("Ministry assignment not found.", 404);
 
   if (assignment.assignment_role !== "Member") {
     throw httpError(
@@ -534,7 +697,7 @@ const removeLeaderAssignment = async (ministryId, access, memberId) => {
     );
   }
 
-  return endAssignment(id, memberId);
+  return deleteAssignment(id, memberId);
 };
 
 const updateLeaderAssignmentStatus = async (
@@ -574,7 +737,27 @@ const updateLeaderAssignmentStatus = async (
   return endAssignment(id, memberId);
 };
 
+// Campuses the person can manage (all four for a Super Admin).
+const listCampuses = async (access) => {
+  const ids = await manageableFellowshipIds(access);
+
+  let query =
+    "SELECT id, name, code, fellowship_type FROM fellowships WHERE status = 'Active'";
+  const params = [];
+
+  if (ids !== null) {
+    query += " AND id IN (?)";
+    params.push(ids.length > 0 ? ids : [0]);
+  }
+
+  query += " ORDER BY (fellowship_type = 'general') ASC, name ASC";
+
+  const [rows] = await db.query(query, params);
+  return rows;
+};
+
 module.exports = {
+  listCampuses,
   listMinistries,
   getMinistry,
   createMinistry,
@@ -583,6 +766,8 @@ module.exports = {
   getMembers,
   assignMember,
   removeAssignment,
+  updateMemberStatus,
+  deleteMinistry,
   moveMember,
   getCandidates,
   getLeaderMinistries,

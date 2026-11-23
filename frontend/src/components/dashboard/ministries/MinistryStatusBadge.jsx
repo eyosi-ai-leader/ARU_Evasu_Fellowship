@@ -1,4 +1,4 @@
-﻿export default function MinistryStatusBadge({ status }) {
+export default function MinistryStatusBadge({ status }) {
   const active = status === "Active";
 
   return (

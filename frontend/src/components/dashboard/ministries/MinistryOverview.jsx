@@ -1,147 +1,236 @@
-﻿"use client";
+"use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { AlertCircle, Building2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { AlertCircle, Building2, CheckCircle2, Power, Trash2 } from "lucide-react";
+
 import {
-  getMinistries,
   createMinistry,
+  getMinistries,
+  deleteMinistry,
+  getMinistryCampuses,
   updateMinistry,
   updateMinistryStatus,
 } from "@/lib/ministryApi";
+
+import MinistryCard from "./MinistryCard";
+import MinistryFormModal from "./MinistryFormModal";
 import MinistryStats from "./MinistryStats";
 import MinistryToolbar from "./MinistryToolbar";
-import MinistryTable from "./MinistryTable";
-import MinistryFormModal from "./MinistryFormModal";
+import useConfirm from "./useConfirm";
+import { normalizeMinistry } from "./ministryUtils";
 
 export default function MinistryOverview() {
+  const { confirm, confirmDialog } = useConfirm();
+
+  const [campuses, setCampuses] = useState([]);
   const [ministries, setMinistries] = useState([]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
+  const [campusId, setCampusId] = useState("");
+
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [updatingId, setUpdatingId] = useState(null);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedMinistry, setSelectedMinistry] = useState(null);
+  const [busyId, setBusyId] = useState(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [formModal, setFormModal] = useState(null); // { mode, ministry }
+  const [reloadKey, setReloadKey] = useState(0);
 
-  const loadMinistries = useCallback(async () => {
-    setLoading(true);
-    setError("");
-
-    try {
-      const response = await getMinistries({ search, status });
-      const items = Array.isArray(response?.data) ? response.data : [];
-      setMinistries(items);
-    } catch (err) {
-      setError(err.message || "Unable to load ministries.");
-    } finally {
-      setLoading(false);
-    }
-  }, [search, status]);
-
+  // Campuses the person manages (loaded from the ministries API).
   useEffect(() => {
-    loadMinistries();
-  }, [loadMinistries]);
+    let cancelled = false;
 
-  function openCreateModal() {
-    setSelectedMinistry(null);
-    setModalOpen(true);
-    setNotice("");
-  }
+    getMinistryCampuses()
+      .then((response) => {
+        if (!cancelled) {
+          setCampuses(Array.isArray(response?.data) ? response.data : []);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || "Unable to load campuses.");
+      });
 
-  function openEditModal(ministry) {
-    setSelectedMinistry(ministry);
-    setModalOpen(true);
-    setNotice("");
-  }
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Ministries, reloaded when the filters change.
+  useEffect(() => {
+    let cancelled = false;
+
+    const timer = setTimeout(
+      async () => {
+        try {
+          setLoading(true);
+
+          const response = await getMinistries({
+            search,
+            status,
+            fellowshipId: campusId,
+          });
+
+          if (cancelled) return;
+
+          setMinistries(
+            (Array.isArray(response?.data) ? response.data : []).map(
+              normalizeMinistry
+            )
+          );
+          setError("");
+        } catch (err) {
+          if (!cancelled) setError(err.message || "Unable to load ministries.");
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+      },
+      search ? 300 : 0
+    );
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [search, status, campusId, reloadKey]);
+
+  const reload = () => setReloadKey((value) => value + 1);
 
   async function handleSave(data) {
-    setSaving(true);
-    setError("");
-    setNotice("");
-
-    try {
-      if (selectedMinistry) {
-        await updateMinistry(selectedMinistry.id, data);
-        setNotice("Ministry updated successfully.");
-      } else {
-        await createMinistry(data);
-        setNotice("Ministry created successfully.");
-      }
-
-      setModalOpen(false);
-      setSelectedMinistry(null);
-      await loadMinistries();
-    } catch (err) {
-      setError(err.message || "Unable to save the ministry.");
-      throw err;
-    } finally {
-      setSaving(false);
+    // Errors are shown inside the dialog.
+    if (formModal.mode === "edit") {
+      await updateMinistry(formModal.ministry.id, data);
+      setNotice("The ministry was updated.");
+    } else {
+      await createMinistry(data);
+      setNotice("The ministry was created.");
     }
+
+    setFormModal(null);
+    reload();
   }
 
   async function handleToggleStatus(ministry) {
-    const nextStatus = ministry.status === "Active" ? "Inactive" : "Active";
-    const confirmed = window.confirm(
-      `${nextStatus === "Inactive" ? "Deactivate" : "Activate"} "${ministry.name}"?`
-    );
+    const next = ministry.status === "Active" ? "Inactive" : "Active";
+
+    const confirmed = await confirm({
+      title: next === "Inactive" ? "Deactivate ministry?" : "Activate ministry?",
+      message:
+        next === "Inactive"
+          ? `"${ministry.name}" will become inactive and no new people can be added to it.`
+          : `"${ministry.name}" will be active again and people can be added to it.`,
+      note: next === "Inactive" ? "You can activate it again at any time." : "",
+      confirmLabel: next === "Inactive" ? "Deactivate" : "Activate",
+      tone: next === "Inactive" ? "warning" : "default",
+      icon: Power,
+    });
 
     if (!confirmed) return;
 
-    setUpdatingId(ministry.id);
+    setBusyId(ministry.id);
     setError("");
     setNotice("");
 
     try {
-      await updateMinistryStatus(ministry.id, nextStatus);
-      setNotice(`Ministry ${nextStatus.toLowerCase()} successfully.`);
-      await loadMinistries();
+      await updateMinistryStatus(ministry.id, next);
+      setNotice(`"${ministry.name}" is now ${next.toLowerCase()}.`);
+      reload();
     } catch (err) {
-      setError(err.message || "Unable to update ministry status.");
+      setError(err.message || "Unable to update the ministry.");
     } finally {
-      setUpdatingId(null);
+      setBusyId(null);
     }
   }
 
+  async function handleDelete(ministry) {
+    const people = ministry.memberCount + ministry.leaderCount;
+
+    const confirmed = await confirm({
+      title: `Delete "${ministry.name}"?`,
+      message:
+        people > 0
+          ? `Its ${people} ${people === 1 ? "assignment" : "assignments"} will be removed too. The people stay fellowship members.`
+          : "This ministry has no members.",
+      note: "This cannot be undone. To keep it but hide it, use Deactivate instead.",
+      confirmLabel: "Delete ministry",
+      tone: "danger",
+      icon: Trash2,
+    });
+
+    if (!confirmed) return;
+
+    setBusyId(ministry.id);
+    setError("");
+    setNotice("");
+
+    try {
+      await deleteMinistry(ministry.id);
+      setNotice(`"${ministry.name}" was deleted.`);
+      reload();
+    } catch (err) {
+      setError(err.message || "Unable to delete the ministry.");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  const showCampus = campuses.length > 1;
+
   return (
-    <div className="mx-auto max-w-[1600px] space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="min-h-full space-y-6">
+      {/* Heading */}
+      <div className="flex items-center gap-2">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
+          <Building2 size={19} strokeWidth={2} />
+        </div>
+
         <div>
-          <div className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
-              <Building2 size={22} />
-            </span>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-                Ministries
-              </h1>
-              <p className="mt-1 text-sm text-slate-500">
-                Manage church ministries, membership, and leadership.
-              </p>
-            </div>
-          </div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+            Management
+          </p>
+
+          <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-slate-900">
+            Ministries
+          </h1>
         </div>
       </div>
 
+      <p className="-mt-3 max-w-2xl text-sm leading-6 text-slate-500">
+        The teams that serve in your fellowship. Open a ministry to appoint its
+        leaders and add its members.
+      </p>
+
       {error && (
-        <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-          <AlertCircle size={19} className="mt-0.5 shrink-0" />
-          <div className="flex-1">{error}</div>
+        <div
+          role="alert"
+          className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          <AlertCircle size={18} className="mt-0.5 shrink-0" />
+
+          <span className="flex-1">{error}</span>
+
           <button
             type="button"
-            onClick={() => setError("")}
-            className="font-semibold hover:text-red-900"
+            onClick={reload}
+            className="shrink-0 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600"
           >
-            Dismiss
+            Try again
           </button>
         </div>
       )}
 
       {notice && (
-        <div role="status" className="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          <span>{notice}</span>
-          <button type="button" onClick={() => setNotice("")} className="font-semibold">
+        <div
+          role="status"
+          className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700"
+        >
+          <CheckCircle2 size={16} />
+
+          <span className="flex-1">{notice}</span>
+
+          <button
+            type="button"
+            onClick={() => setNotice("")}
+            className="text-xs font-semibold"
+          >
             Dismiss
           </button>
         </div>
@@ -151,52 +240,66 @@ export default function MinistryOverview() {
 
       <MinistryToolbar
         search={search}
-        setSearch={setSearch}
+        onSearch={setSearch}
         status={status}
-        setStatus={setStatus}
-        onCreate={openCreateModal}
-        onRefresh={loadMinistries}
-        loading={loading}
+        onStatus={setStatus}
+        campusId={campusId}
+        onCampus={setCampusId}
+        campuses={campuses}
+        onCreate={() => setFormModal({ mode: "create" })}
       />
 
-      {loading ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center text-sm text-slate-500 shadow-sm">
-          Loading ministries...
+      {loading && ministries.length === 0 ? (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {[1, 2, 3].map((item) => (
+            <div
+              key={item}
+              className="h-56 animate-pulse rounded-2xl border border-slate-200 bg-white"
+            />
+          ))}
         </div>
-      ) : error && ministries.length === 0 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-          <p className="text-sm text-slate-600">
-            Check that the backend is running and your session is authenticated.
+      ) : ministries.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+            <Building2 size={22} />
+          </span>
+
+          <h2 className="mt-4 text-sm font-semibold text-slate-900">
+            No ministries found
+          </h2>
+
+          <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-slate-500">
+            Change your search or filters, or create the first ministry of
+            your campus.
           </p>
-          <button
-            type="button"
-            onClick={loadMinistries}
-            className="mt-4 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
-          >
-            Try again
-          </button>
         </div>
       ) : (
-        <MinistryTable
-          ministries={ministries}
-          onEdit={openEditModal}
-          onToggleStatus={handleToggleStatus}
-          updatingId={updatingId}
-        />
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {ministries.map((ministry) => (
+            <MinistryCard
+              key={ministry.id}
+              ministry={ministry}
+              showCampus={showCampus}
+              canManage
+              busy={busyId === ministry.id}
+              onEdit={(item) => setFormModal({ mode: "edit", ministry: item })}
+              onToggleStatus={handleToggleStatus}
+              onDelete={handleDelete}
+            />
+          ))}
+        </div>
       )}
 
-      <MinistryFormModal
-        open={modalOpen}
-        ministry={selectedMinistry}
-        saving={saving}
-        onClose={() => {
-          if (!saving) {
-            setModalOpen(false);
-            setSelectedMinistry(null);
-          }
-        }}
-        onSubmit={handleSave}
-      />
+      {formModal && (
+        <MinistryFormModal
+          mode={formModal.mode}
+          ministry={formModal.ministry}
+          campuses={campuses}
+          onClose={() => setFormModal(null)}
+          onSubmit={handleSave}
+        />
+      )}
+      {confirmDialog}
     </div>
   );
 }
