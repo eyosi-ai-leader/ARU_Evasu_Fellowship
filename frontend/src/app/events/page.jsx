@@ -1,9 +1,9 @@
 import { EventsPage } from "@/components/pages/events";
 
 export const metadata = {
-  title: "Events | Church",
+  title: "Events & Gallery",
   description:
-    "Discover upcoming church gatherings, worship nights, and community events.",
+    "See what is coming up in every fellowship and look back at the moments we have shared.",
 };
 
 export default function Page() {

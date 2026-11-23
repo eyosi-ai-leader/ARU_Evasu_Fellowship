@@ -1,89 +1,149 @@
+const images = (folder, names) =>
+  names.map((name) => `/images/${folder}/${name}.jpg`);
+
 export const eventsPage = {
   hero: {
-    eyebrow: "Upcoming Gatherings",
-
-    title: "Experience Life Together",
-
+    eyebrow: "Events & gallery",
+    title: "What's happening on our campuses",
     description:
-      "There is always a place for you here. Join us for moments of worship, fellowship, and community as we gather together and celebrate what God is doing among us.",
-     image: "/images/events/Fares-Leaders.jpg",
-    },
-
-  introduction: {
-    subtitle: "Church Events",
-
-    title: "Moments That Bring Us Together",
-
-    description:
-      "Our gatherings create opportunities to worship, connect with others, grow in faith, and experience the love of God through community.",
+      "See what is coming up in every fellowship, and look back at the moments we have shared together.",
+    image: "/images/events/Kairos_1.jpg",
   },
 
-  events: [
+  introduction: {
+    subtitle: "What's on",
+    title: "Upcoming events",
+    description:
+      "Choose a fellowship to see what is happening where you are.",
+  },
+
+  // "match" words are looked for in the campus name that comes from the
+  // dashboard. Events with no campus are shown under General.
+  filters: [
+    { id: "all", label: "All" },
+    { id: "main", label: "Main Campus", match: ["main"] },
+    { id: "health", label: "Health Campus", match: ["health"] },
+    { id: "agriculture", label: "Agriculture Campus", match: ["agri"] },
+    { id: "bekoji", label: "Bekoji Campus", match: ["bekoji"] },
+    { id: "general", label: "General" },
+  ],
+
+  // type: "announcement" | "ad". Examples: replace with your own, or leave
+  // the list empty ([]) to hide this section.
+  notices: [
     {
-      id: 1,
-
-      title: "Sunday Worship Night",
-
-      category: "Worship",
-
-      date: "August 10, 2026",
-
-      time: "6:00 PM",
-
-      location: "Main Church Campus",
-
-      description:
-        "Join our church family for a powerful evening of worship, prayer, and fellowship. Come expecting a meaningful encounter with God and a welcoming community.",
-
-      image:
-        "/images/events/Fares-Family.jpg",
+      type: "announcement", // "announcement" (gold) or "ad" (dark)
+      title: "Welcome, students!",
+      text: "New to the university? Find your fellowship and join us this week.",
+      href: "/fellowships",
+      cta: "Find your fellowship", // the link text; delete this line for no link
     },
-
     {
-      id: 2,
-
-      title: "Youth Fellowship Night",
-
-      category: "Youth",
-
-      date: "August 20, 2026",
-
-      time: "5:30 PM",
-
-      location: "Youth Hall",
-
-      description:
-        "An evening where young people gather together for worship, encouragement, friendship, and spiritual growth.",
-
-      image:
-        "/images/events/Fares-Leaders.jpg",
-    },
-
-    {
-      id: 3,
-
-      title: "Community Prayer Gathering",
-
-      category: "Prayer",
-
-      date: "September 5, 2026",
-
-      time: "6:00 PM",
-
-      location: "Main Church Campus",
-
-      description:
-        "Come together with our church family for prayer, worship, and seeking God's direction for our lives and community.",
-
-      image:
-        "/images/events/Fares-Family.jpg",
+      type: "ad",
+      title: "Arsi University Evasu Fellowship Official Website",
+      text: "Visit our official website for more information about our fellowships, events, and community activities.",
+      href: "/contact",
+      cta: "Contact us",
     },
   ],
 
-  cta: {
-    title: "We Would Love To Welcome You",
+  gallery: {
+    intro: {
+      subtitle: "Gallery",
+      title: "Moments we have shared",
+      description:
+        "Trainings, missions, family days and everyday joy from our fellowships. Tap a photo to see it larger.",
+    },
 
-    description:
-      "Every gathering is an opportunity to worship together, grow in faith, and build lasting relationships. We invite you to be part of our church family.",
+    albums: [
+      {
+        id: "kairos",
+        title: "Kairos Training",
+        photos: [
+          ...images("events", [
+            "Kairos_1",
+            "Kairos_3",
+            "Kairos_4",
+            "Kairos_5",
+            "Kairos_9",
+            "Kairos_10",
+            "Kairos_12",
+            "Kairos_14",
+          ]),
+          ...images("about", ["Kairos_2", "Kairos_8"]),
+          ...images("Welcome", ["Kairos_6", "Kairos_13"]),
+          ...images("ministries", ["Kairos_7", "Kairos_11"]),
+        ],
+      },
+      {
+        id: "dera",
+        title: "Dera Mission",
+        photos: images("events", [
+          "Dera_mission_1",
+          "Dera_mission_2",
+          "Dera_mission_3",
+          "Dera_mission_4",
+          "Dera_mission_5",
+          "Dera_mission_6",
+        ]),
+      },
+      {
+        id: "asela",
+        title: "Asela Mission",
+        photos: images("events", [
+          "Asela_mission",
+          "Asela_mission_1",
+          "Asela_mission_2",
+        ]),
+      },
+      {
+        id: "eteya",
+        title: "Eteya Mission",
+        photos: [
+          ...images("events", [
+            "Eteya_mission_1",
+            "Eteya_mission_2",
+            "Eteya_mission_4",
+          ]),
+          ...images("hero", ["Eteya_mission_3"]),
+        ],
+      },
+      {
+        id: "family",
+        title: "Family Day",
+        photos: [
+          ...images("Welcome", ["Family_1", "Family_3"]),
+          ...images("ministries", ["Family_2"]),
+          ...images("events", ["Family_4", "Family_5", "Family_7"]),
+          ...images("hero", ["Family_6"]),
+        ],
+      },
+      {
+        id: "football",
+        title: "Football",
+        photos: images("events", ["Football", "Football_1", "Football_2"]),
+      },
+      {
+        id: "fellowship",
+        title: "Conferences & Fellowship",
+        photos: [
+          ...images("about", ["GC_1", "NLS_2"]),
+          ...images("events", [
+            "GC_2",
+            "GC_4",
+            "GF_2",
+            "NLS_1",
+            "Fellowship_2",
+            "Images_3",
+          ]),
+          ...images("hero", ["GC_3", "Fellowship"]),
+          ...images("sermons", ["GF_1"]),
+          ...images("Welcome", ["Fellowship_1", "Images_2"]),
+          ...images("ministries", ["Images_1"]),
+        ],
+      },
+    ],
   },
 };
+
+export default eventsPage;

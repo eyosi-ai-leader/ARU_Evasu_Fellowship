@@ -7,13 +7,14 @@ const { parseDateTime, parseDateOnly } = require("../utils/dateInput");
 const { uploadImage, deleteImage } = require("./storageService");
 
 const CATEGORIES = [
-  "Worship",
-  "Prayer",
-  "Conference",
-  "Youth",
-  "Children",
-  "Outreach",
-  "Fellowship",
+  "Select the Category",
+  "Kairos Training",
+  "Worship Night",
+  "Prayer and Fasting",
+  "Family Festival",
+  "Gospel Outreach",
+  "Break Mission",
+  "Summer Mission",
   "Training",
   "Other",
 ];
@@ -441,6 +442,7 @@ const listForUser = async (access, { scope, search, page, fellowshipId }) => {
       ),
       total,
       hasMore: offset + rows.length < total,
+      canCreate: reach.canSend,
     };
   }
 
@@ -455,7 +457,12 @@ const listForUser = async (access, { scope, search, page, fellowshipId }) => {
     access.user.id
   );
 
-  return { items, total: all.length, hasMore: offset + slice.length < all.length };
+  return {
+    items,
+    total: all.length,
+    hasMore: offset + slice.length < all.length,
+    canCreate: reach.canSend,
+  };
 };
 
 /*

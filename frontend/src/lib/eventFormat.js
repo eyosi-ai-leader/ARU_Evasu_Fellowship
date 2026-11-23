@@ -5,13 +5,13 @@
  */
 
 export const EVENT_CATEGORIES = [
-  "Worship",
-  "Prayer",
-  "Conference",
-  "Youth",
-  "Children",
-  "Outreach",
-  "Fellowship",
+  "Worship Night",
+  "Prayer and Fasting",
+  "Kairos Training",
+  "Family Festival",
+  "Gospel Outreach",
+  "Break Mission",
+  "Summer Mission",
   "Training",
   "Other",
 ];
@@ -20,7 +20,6 @@ export const VISIBILITY_LABELS = {
   public: "Public",
   members: "Members only",
   ministry: "Ministry only",
-  small_group: "Small group",
   small_group: "Small group only",
 };
 
@@ -91,6 +90,26 @@ export function formatEventTimeRange(start, end) {
   })}, ${formatEventTime(end)}`;
 }
 
+// The time line of an event: "All day", or the time range.
+export function formatEventWhen(event) {
+  if (!event) return "";
+
+  if (event.allDay) {
+    const start = String(event.startAt).slice(0, 10);
+    const end = String(event.endAt || event.startAt).slice(0, 10);
+
+    if (start === end) return "All day";
+
+    return `All day until ${formatEventDate(`${end} 00:00:00`, {
+      weekday: undefined,
+      year: undefined,
+      month: "short",
+    })}`;
+  }
+
+  return formatEventTimeRange(event.startAt, event.endAt);
+}
+
 export function getDayBadge(value) {
   const date = asDate(value);
 
@@ -148,7 +167,7 @@ export function googleCalendarUrl(event) {
     action: "TEMPLATE",
     text: event.title,
     dates: `${compact(start)}/${compact(end)}`,
-    details: event.description.slice(0, 500),
+    details: String(event.description || "").slice(0, 500),
     location: event.location,
   });
 
