@@ -2,26 +2,28 @@
 
 import { useState } from "react";
 
+import Button from "@/components/shared/Button";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 const MAX_MESSAGE = 2000;
 
 const inputClass =
-  "w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/30 aria-[invalid=true]:border-red-500";
+  "w-full rounded-2xl border border-line bg-white px-4 py-3 text-ink placeholder:text-body/60 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 aria-[invalid=true]:border-danger";
 
 function Field({ id, label, required, error, children }) {
   return (
     <div>
-      <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-slate-800">
+      <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-ink">
         {label}
         {required ? (
-          <span className="text-red-600" aria-hidden="true"> *</span>
+          <span className="text-danger" aria-hidden="true"> *</span>
         ) : (
-          <span className="font-normal text-slate-500"> (optional)</span>
+          <span className="font-normal text-body"> (optional)</span>
         )}
       </label>
       {children}
       {error && (
-        <p id={`${id}-error`} role="alert" className="mt-1.5 text-sm text-red-600">
+        <p id={`${id}-error`} role="alert" className="mt-1.5 text-sm text-danger">
           {error}
         </p>
       )}
@@ -96,28 +98,35 @@ export default function ContactForm() {
 
   if (status === "success") {
     return (
-      <div role="status" className="rounded-3xl bg-white p-8 text-center shadow-sm">
-        <h3 className="text-2xl font-bold text-slate-900">Thank you</h3>
-        <p className="mt-3 text-slate-600">
-          Your prayer request has been received. Our church team will pray with you.
+      <div
+        role="status"
+        className="rounded-3xl bg-white p-8 text-center ring-1 ring-line md:p-10"
+      >
+        <h3 className="font-display text-3xl font-semibold text-ink">
+          Thank you
+        </h3>
+        <p className="mt-3 leading-7 text-body">
+          Your prayer request has been received. Our fellowship leaders will pray
+          with you.
         </p>
 
-        <figure className="mt-6 border-t border-slate-100 pt-5">
-          <blockquote className="text-base italic leading-relaxed text-slate-800">
+        <figure className="mt-6 border-t border-line pt-5">
+          <blockquote className="text-base italic leading-relaxed text-ink">
             “Casting all your care upon him; for he careth for you.”
           </blockquote>
-          <figcaption className="mt-2 text-sm font-medium text-blue-600">
+          <figcaption className="mt-2 text-sm font-medium text-primary">
             1 Peter 5:7 (KJV)
           </figcaption>
         </figure>
 
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={() => setStatus("idle")}
-          className="mt-6 rounded-full border border-slate-300 px-5 py-2 text-sm font-medium text-slate-800 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+          className="mt-6"
         >
           Send another request
-        </button>
+        </Button>
       </div>
     );
   }
@@ -128,10 +137,13 @@ export default function ContactForm() {
     <form
       onSubmit={handleSubmit}
       noValidate
-      className="space-y-5 rounded-3xl bg-white p-8 shadow-sm"
+      className="relative space-y-5 rounded-3xl bg-white p-6 ring-1 ring-line md:p-8"
     >
       {/* Spam trap: hidden from people, visible to bots */}
-            <div className="absolute -left-[9999px] h-0 w-0 overflow-hidden" aria-hidden="true">
+      <div
+        className="absolute -left-[9999px] h-0 w-0 overflow-hidden"
+        aria-hidden="true"
+      >
         <label htmlFor="contact_extra">Leave this field empty</label>
         <input
           id="contact_extra"
@@ -145,7 +157,10 @@ export default function ContactForm() {
       </div>
 
       {serverError && (
-        <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p
+          role="alert"
+          className="rounded-2xl bg-danger/10 px-4 py-3 text-sm text-danger"
+        >
           {serverError}
         </p>
       )}
@@ -203,23 +218,24 @@ export default function ContactForm() {
           aria-describedby={errors.message ? "message-error" : undefined}
           className={inputClass}
         />
-        <p className="mt-1 text-right text-xs text-slate-500">
+        <p className="mt-1 text-right text-xs text-body">
           {length} / {MAX_MESSAGE}
         </p>
       </Field>
 
-      <p className="text-xs leading-relaxed text-slate-500">
-        Your request is sent to our church team and saved so it isn't lost. We use your
-        email only to respond to you.
+      <p className="text-xs leading-relaxed text-body">
+        Your request is sent to our fellowship leaders and saved so it isn't
+        lost. We use your email only to respond to you.
       </p>
 
-      <button
+      <Button
         type="submit"
+        size="lg"
         disabled={submitting}
-        className="w-full rounded-full bg-blue-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full"
       >
         {submitting ? "Sending…" : "Submit prayer request"}
-      </button>
+      </Button>
     </form>
   );
 }

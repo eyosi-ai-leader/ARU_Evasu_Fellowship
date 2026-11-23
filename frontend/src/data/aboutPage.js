@@ -1,9 +1,26 @@
-import { fullTimeStaff, regionalCoordinator } from "./fellowships";
+import {
+  fullTimeStaff,
+  getFellowship,
+  regionalCoordinator,
+} from "./fellowships";
+
+// The students' representative: first leader of the General Fellowship.
+// Change his name and phone in fellowships.js and it updates here too.
+const generalChairperson = {
+  ...getFellowship("general").leaders[0],
+  role: "General Fellowship Chairperson",
+};
 
 // PLACEHOLDERS: replace each message with the real words from the person,
 // and set image to their photo, for example "/images/staff/name.jpg".
 // While image is "" the card shows their initials.
-const staffDetails = [
+// Order: chairperson, regional coordinator, then the 3 full-time staff.
+const peopleDetails = [
+  {
+    image: "",
+    message:
+      "As chairperson of the General Fellowship I represent students from every campus. Your voice matters here, so reach out to me or to any of your campus leaders.",
+  },
   {
     image: "",
     message:
@@ -112,16 +129,18 @@ const aboutPage = {
   },
 
   staffIntro: {
-    subtitle: "Our staff",
+    subtitle: "Our leaders",
     title: "Words from the people who serve with us",
     description:
-      "Meet the full-time staff and regional coordinator who walk with every fellowship. Choose a name to read their message.",
+      "Meet the students' chairperson, our regional coordinator and our full-time staff. Choose a name to read their message.",
   },
 
-  staff: [regionalCoordinator, ...fullTimeStaff].map((person, index) => ({
-    ...person,
-    ...staffDetails[index],
-  })),
+  staff: [generalChairperson, regionalCoordinator, ...fullTimeStaff].map(
+    (person, index) => ({
+      ...person,
+      ...peopleDetails[index],
+    })
+  ),
 };
 
 export default aboutPage;

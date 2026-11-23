@@ -1,11 +1,9 @@
-// src/app/contact/page.jsx
-
 import { ContactPage } from "@/components/pages/contact";
 
 export const metadata = {
-  title: "Contact Us | Church",
+  title: "Contact",
   description:
-    "Get in touch with our church and submit your prayer request.",
+    "Get in touch with the Arsi University Evasu Fellowship, reach your campus fellowship or send a prayer request.",
 };
 
 export default function Page() {

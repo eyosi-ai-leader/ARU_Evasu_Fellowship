@@ -50,7 +50,7 @@ export default function StaffMessages({ intro, staff }) {
       <div className="mt-12 grid gap-6 lg:grid-cols-[18rem_1fr]">
         <div
           role="tablist"
-          aria-label="Staff"
+          aria-label="Leaders"
           className="grid grid-cols-2 gap-3 lg:grid-cols-1"
         >
           {staff.map((item, index) => {
@@ -64,7 +64,7 @@ export default function StaffMessages({ intro, staff }) {
                 aria-selected={selected}
                 onClick={() => setActive(index)}
                 className={clsx(
-                  "flex items-center gap-3 rounded-2xl p-3 text-left ring-1 transition duration-200",
+                  "flex items-center gap-3 rounded-2xl p-3 text-left ring-1 transition duration-200 last:odd:col-span-2 lg:col-span-1",
                   selected
                     ? "bg-primary text-white shadow-soft ring-primary"
                     : "bg-white ring-line hover:ring-primary/40"

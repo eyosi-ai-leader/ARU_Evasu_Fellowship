@@ -1,48 +1,25 @@
-// src/data/contactPage.js
-
 export const contactPage = {
   hero: {
-    title: "We Would Love To Hear From You",
+    eyebrow: "Contact us",
+    title: "We would love to hear from you",
     description:
-      "Whether you have a question, need prayer, or want to connect with us, we are here for you.",
+      "Have a question about the fellowship, want to join a campus group, or need someone to pray with you? Reach out and a real person will get back to you.",
+    image: "/images/about/NLS_2.jpg",
   },
 
-  contactInfo: {
-    address: "Church Address Here",
-    phone: "+251 900 000 000",
-    email: "info@church.com",
-  },
-
-  serviceInfo: {
-    title: "Service Times",
-    services: [
-      {
-        day: "Sunday",
-        time: "9:00 AM - 12:00 PM",
-        description: "Main Worship Service",
-      },
-      {
-        day: "Wednesday",
-        time: "6:00 PM",
-        description: "Bible Study and Prayer",
-      },
-    ],
-  },
-
-  prayerForm: {
-    title: "Prayer Request",
+  fellowships: {
+    subtitle: "Your fellowship",
+    title: "Talk to your fellowship directly",
     description:
-      "Share your prayer request with us. Our team would love to pray with you.",
+      "Every fellowship has a contact person who can answer your questions and connect you with the group.",
   },
 
-  location: {
-    title: "Visit Us",
-    mapUrl: "",
-  },
-
-  cta: {
-    title: "We Are Here For You",
+  prayer: {
+    subtitle: "Prayer",
+    title: "How can we pray for you?",
     description:
-      "Connect with our church family and experience God's love and community.",
+      "Share a prayer request and our fellowship leaders will pray with you. Whatever you share is treated with care.",
   },
 };
+
+export default contactPage;
