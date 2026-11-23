@@ -16,6 +16,15 @@ const leaders = (names, phonePrefix) => {
   }));
 };
 
+export const getInitials = (name = "") =>
+  name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase();
+
 export const fellowships = [
   {
     slug: "main-campus",
@@ -23,12 +32,10 @@ export const fellowships = [
     short: "Main Campus",
     description:
       "Students on the main campus gathering to pray, study the Bible and serve together.",
+    about:
+      "The Main Campus Fellowship is where many students first meet the family. We worship, study the Bible in small groups and serve our campus together. New students are always welcome.",
     image: "/images/hero/Fellowship.jpg",
-    meeting: {
-      day: "Friday",
-      time: "11:00 AM",
-      place: "Main Campus Hall (example)",
-    },
+    program: { day: "Thursday", time: "11:00", place: "Mekaneyesus Church" },
     contact: {
       name: "Contact Person Name",
       phone: "+251 900 000 101",
@@ -46,12 +53,10 @@ export const fellowships = [
     short: "Health Campus",
     description:
       "Health science students growing in faith and serving with compassion.",
+    about:
+      "The Health Campus Fellowship brings health science students together to grow in faith, support one another through demanding studies, and serve with compassion.",
     image: "/images/hero/Family_6.jpg",
-    meeting: {
-      day: "Thursday",
-      time: "6:30 PM",
-      place: "Health Campus Hall (example)",
-    },
+    program: { day: "Friday", time: "11:30", place: "Muluwengel Kuter 1" },
     contact: {
       name: "Contact Person Name",
       phone: "+251 900 000 102",
@@ -69,12 +74,10 @@ export const fellowships = [
     short: "Agriculture Campus",
     description:
       "Agriculture students meeting to worship, learn God's Word and encourage one another.",
+    about:
+      "The Agriculture Campus Fellowship is a warm community of students who worship, learn God's Word and encourage one another through campus life.",
     image: "/images/hero/Eteya_mission_3.jpg",
-    meeting: {
-      day: "Wednesday",
-      time: "6:30 PM",
-      place: "Agriculture Campus Hall (example)",
-    },
+    program: { day: "Friday", time: "11:00", place: "Muluwengel Kuter 3" },
     contact: {
       name: "Contact Person Name",
       phone: "+251 900 000 103",
@@ -92,12 +95,10 @@ export const fellowships = [
     short: "Bekoji Campus",
     description:
       "Students at the Bekoji campus coming together in prayer, worship and fellowship.",
+    about:
+      "The Bekoji Campus Fellowship gathers students at the Bekoji campus for prayer, worship and fellowship, and is part of the same family as every other campus.",
     image: "/images/hero/GC_3.jpg",
-    meeting: {
-      day: "Tuesday",
-      time: "6:30 PM",
-      place: "Bekoji Campus Hall (example)",
-    },
+    program: { day: "Thursday", time: "11:30", place: "Muluwengel" },
     contact: {
       name: "Contact Person Name",
       phone: "+251 900 000 104",
@@ -115,11 +116,13 @@ export const fellowships = [
     short: "General",
     description:
       "All the campus fellowships together: conferences, outreach and shared programs.",
+    about:
+      "The General Fellowship is all the campus fellowships together. We come together for conferences, outreach and shared programs, led by our staff and regional coordinator.",
     image: "/images/about/GC_1.jpg",
-    meeting: {
-      day: "Saturday",
-      time: "9:00 AM",
-      place: "To be announced (example)",
+    program: {
+      day: "Special programs",
+      time: "See Events",
+      place: "All campuses",
     },
     contact: {
       name: "Contact Person Name",

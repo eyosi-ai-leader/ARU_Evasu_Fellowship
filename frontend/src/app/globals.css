@@ -3,30 +3,29 @@
 /* --------------------------------------------------
    Design Tokens (palette taken from the fellowship logo)
 -------------------------------------------------- */
-
 :root {
-  /* Brand */
-  --color-primary: #8c3f10;
-  --color-primary-dark: #6a2c08;
+  /* Brand (from the logo) */
+  --color-primary: #6b1f17;
+  --color-primary-dark: #4a140f;
   --color-accent: #f2a60d;
   --color-ember: #e4572e;
 
   /* Text */
-  --color-ink: #20130d;
-  --color-ink-soft: #2e1c13;
-  --color-body: #6f6259;
+  --color-ink: #1b100c;
+  --color-ink-soft: #2a1912;
+  --color-body: #6a5e59;
 
   /* Surfaces */
   --color-surface: #ffffff;
-  --color-surface-muted: #faf5ee;
-  --color-surface-warm: #f3e9db;
-  --color-line: #ebe0d2;
+  --color-surface-muted: #f5f3f1;
+  --color-surface-warm: #efebe7;
+  --color-line: #e8e4df;
 
   /* Feedback */
   --color-success: #1e9e6b;
   --color-danger: #d93636;
 
-  --background: var(--color-surface-muted);
+  --background: #fcfcfb;
   --foreground: var(--color-ink);
 }
 
@@ -78,6 +77,7 @@
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+        overflow-x: clip;
   }
 
   ::selection {

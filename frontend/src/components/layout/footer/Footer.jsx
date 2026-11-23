@@ -18,6 +18,7 @@ const QUICK_LINKS = [
   { name: "About", href: "/about" },
   { name: "Events & Gallery", href: "/events" },
   { name: "Contact", href: "/contact" },
+  { name: "Fellowships", href: "/fellowships" },
   { name: "Member login", href: "/login" },
 ];
 

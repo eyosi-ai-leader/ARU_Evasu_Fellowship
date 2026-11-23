@@ -1,11 +1,11 @@
 import { AboutPage } from "@/components/pages/about";
 
 export const metadata = {
-  title: "About | Church Platform",
+  title: "About",
   description:
-    "Learn about our church, our mission, vision, leadership, and the story behind our community.",
+    "Learn who we are, what we believe and the staff who serve the Arsi University Evasu Fellowship.",
 };
 
-export default function About() {
+export default function Page() {
   return <AboutPage />;
 }

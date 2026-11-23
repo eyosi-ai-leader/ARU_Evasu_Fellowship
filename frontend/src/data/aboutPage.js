@@ -1,142 +1,127 @@
+import { fullTimeStaff, regionalCoordinator } from "./fellowships";
+
+// PLACEHOLDERS: replace each message with the real words from the person,
+// and set image to their photo, for example "/images/staff/name.jpg".
+// While image is "" the card shows their initials.
+const staffDetails = [
+  {
+    image: "",
+    message:
+      "Every campus fellowship is part of one family. It is a joy to see students growing in Christ together, and whatever your story is, there is a place for you with us.",
+  },
+  {
+    image: "",
+    message:
+      "University is a season that shapes the rest of your life. Come and meet people who will pray with you, study the Bible with you and walk beside you.",
+  },
+  {
+    image: "",
+    message:
+      "You do not need to have everything figured out. Come as you are, ask your questions and let us grow in faith together.",
+  },
+  {
+    image: "",
+    message:
+      "Our desire is to see students follow Jesus and then serve their campus, their families and their nation with love.",
+  },
+];
+
 const aboutPage = {
   hero: {
-    title: "About Our Church",
+    eyebrow: "About us",
+    title: "Following Christ together on every campus",
     description:
-      "Growing together in faith, sharing the love of Christ, and serving our community with purpose, compassion, and hope.",
-    image: "/images/about/Fares-Pray-3.jpg",
-    breadcrumb: [
-      {
-        label: "Home",
-        href: "/",
-      },
-      {
-        label: "About",
-      },
-    ],
+      "We are students and graduates of Arsi University who follow Jesus Christ as Lord and Savior and witness to Him, together with the wider EvaSUE family.",
+    image: "/images/about/GC_1.jpg",
   },
 
   story: {
-    eyebrow: "Our Story",
-    title: "A Christ-Centered Community for Every Generation",
-    description: [
-      "Our church exists to help people know Jesus, grow in their faith, and live out God's purpose in their daily lives. We are committed to creating a welcoming environment where everyone can encounter God's love and build meaningful relationships.",
-      "Through worship, biblical teaching, prayer, discipleship, and community outreach, we strive to make a lasting impact both locally and globally while raising the next generation of faithful followers of Christ.",
+    eyebrow: "Who we are",
+    title: "A fellowship of students and graduates centered on Jesus Christ",
+    paragraphs: [
+      "Arsi University Evasu Fellowship is a community of students and graduates who follow Jesus Christ as Lord and Savior. We are part of EvaSUE, the Evangelical Students' and Graduates' Union of Ethiopia.",
+      "EvaSUE began in 1963 with a small group of students at Addis Ababa University who gave themselves to Bible study, prayer, worship and sharing their faith with friends. Today it includes student and graduate fellowships across Ethiopia and abroad.",
+      "At Arsi University that same story continues in our Main, Health, Agriculture and Bekoji campus fellowships, all joined together as the General Fellowship.",
     ],
-    image: "/images/about/Fares-Pray-3.jpg",
-
+    image: "/images/about/Kairos_8.jpg",
     stats: [
+      { value: "5", label: "Fellowships" },
+      { value: "4", label: "Campuses" },
+      { value: "3", label: "Full-time staff" },
+      { value: "1963", label: "EvaSUE began" },
+    ],
+  },
+
+  foundations: {
+    subtitle: "Why we exist",
+    title: "Purpose, focus and values",
+    description:
+      "Everything we do comes from a few simple convictions about God, students and each other.",
+    items: [
       {
-        number: "20+",
-        label: "Years Serving",
+        icon: "Target",
+        title: "Our purpose",
+        description:
+          "To advance God's Kingdom by reaching and equipping students to influence their university, their nation and the world.",
       },
       {
-        number: "1,500+",
-        label: "Church Members",
+        icon: "GraduationCap",
+        title: "Our focus",
+        description:
+          "Students. The years spent in college shape the decades that follow, so we serve students with humility and love.",
       },
       {
-        number: "35+",
-        label: "Ministries",
-      },
-      {
-        number: "100+",
-        label: "Volunteers",
+        icon: "Users",
+        title: "Our values",
+        description:
+          "The centrality of God's Word, a ministry that is focused on students, and a fellowship that unites us across denomination, ethnicity, language and background.",
       },
     ],
   },
 
-  missionVisionValues: [
-    {
-      title: "Our Mission",
-      description:
-        "To lead people into a growing relationship with Jesus Christ through worship, discipleship, service, and authentic community.",
-      icon: "Cross",
-    },
-    {
-      title: "Our Vision",
-      description:
-        "To become a church that transforms lives, strengthens families, and impacts communities with the hope of the Gospel.",
-      icon: "Eye",
-    },
-    {
-      title: "Our Values",
-      description:
-        "Christ-centered living, biblical truth, prayer, compassion, generosity, excellence, and serving others with love.",
-      icon: "HeartHandshake",
-    },
-  ],
-
-  pastor: {
-    name: "Pastor Aberham ",
-    role: "Lead Pastor",
-    image: "/images/about/Fares-Paster.jpg",
-    message:
-      "Whether you are exploring faith for the first time or looking for a church family, we want you to know that you are always welcome here. Our prayer is that you will experience God's presence, discover authentic community, and grow in your relationship with Jesus.",
-    signature: "Pastor Aberham ",
-  },
-
-  timeline: [
-    {
-      year: "1980",
-      title: "Church Founded",
-      description:
-        "Our church began with a small group of believers passionate about sharing the Gospel.",
-    },
-    {
-      year: "2010",
-      title: "New Worship Center",
-      description:
-        "A larger worship facility was opened to serve our growing congregation.",
-    },
-    {
-      year: "2018",
-      title: "Community Outreach",
-      description:
-        "Expanded local and international outreach programs to serve more families.",
-    },
-    {
-      year: "Today",
-      title: "Growing Together",
-      description:
-        "Continuing to disciple believers and impact lives through Christ.",
-    },
-  ],
-
-  leadership: {
-    title: "Meet Our Leadership",
-    description:
-      "Our pastoral team is committed to serving with humility, wisdom, and a heart for people.",
-    members: [
+  commitments: {
+    subtitle: "Our commitments",
+    title: "Four things we give ourselves to",
+    description: "These four pillars shape our ministry on every campus.",
+    items: [
       {
-        name: "Pastor Aberham ",
-        role: "Lead Pastor",
-        image: "/images/about/Fares-Paster.jpg",
+        icon: "Megaphone",
+        title: "Evangelism",
+        description:
+          "Sharing the good news of Jesus Christ with students on our campuses.",
       },
       {
-        name: "Pastor Aberham ",
-        role: "Executive Pastor",
-        image: "/images/about/Fares-Paster.jpg",
+        icon: "BookOpen",
+        title: "Discipleship",
+        description:
+          "Helping students grow to be more like Christ through God's Word.",
       },
       {
-        name: "Pastor Aberham ",
-        role: "Youth Pastor",
-        image: "/images/about/Fares-Paster.jpg",
+        icon: "Globe",
+        title: "Mission",
+        description:
+          "Equipping students to take part in the mission of the Church around the world.",
+      },
+      {
+        icon: "Compass",
+        title: "Leadership",
+        description:
+          "Training students to lead in church and society with biblical values.",
       },
     ],
   },
 
-  cta: {
-    title: "Become Part of Our Church Family",
+  staffIntro: {
+    subtitle: "Our staff",
+    title: "Words from the people who serve with us",
     description:
-      "We would love to welcome you. Join us for worship, connect with a ministry, and experience authentic community.",
-    primaryButton: {
-      text: "Plan Your Visit",
-      href: "/contact",
-    },
-    secondaryButton: {
-      text: "Service Times",
-      href: "/service-times",
-    },
+      "Meet the full-time staff and regional coordinator who walk with every fellowship. Choose a name to read their message.",
   },
+
+  staff: [regionalCoordinator, ...fullTimeStaff].map((person, index) => ({
+    ...person,
+    ...staffDetails[index],
+  })),
 };
 
 export default aboutPage;

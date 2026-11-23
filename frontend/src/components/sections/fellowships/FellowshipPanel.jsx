@@ -8,7 +8,7 @@ import { CalendarDays, Clock, MapPin, Phone, Send } from "lucide-react";
 import Button from "@/components/shared/Button";
 
 export default function FellowshipPanel({ fellowship, active, onActivate }) {
-  const { name, description, image, meeting, contact } = fellowship;
+  const { name, description, image, program, contact } = fellowship;
   const tel = contact.phone.replace(/\s+/g, "");
 
   const chip =
@@ -30,10 +30,10 @@ export default function FellowshipPanel({ fellowship, active, onActivate }) {
         sizes="(max-width: 1024px) 100vw, 45vw"
         className={clsx(
           "object-cover transition duration-700",
-          active ? "scale-100" : "scale-110 opacity-70"
+          active ? "scale-100" : "scale-110"
         )}
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/40 to-ink/10" />
+      <div className="absolute inset-0 bg-gradient-to-t from-ink/80 via-ink/20 to-transparent" />
 
       {/* Covers the panel while it is closed, so a tap or click opens it */}
       <button
@@ -82,15 +82,15 @@ export default function FellowshipPanel({ fellowship, active, onActivate }) {
               <ul className="mt-5 flex flex-wrap gap-2">
                 <li className={chip}>
                   <CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
-                  {meeting.day}
+                  {program.day}
                 </li>
                 <li className={chip}>
                   <Clock className="h-3.5 w-3.5" aria-hidden="true" />
-                  {meeting.time}
+                  {program.time}
                 </li>
                 <li className={chip}>
                   <MapPin className="h-3.5 w-3.5" aria-hidden="true" />
-                  {meeting.place}
+                  {program.place}
                 </li>
               </ul>
 
@@ -106,6 +106,14 @@ export default function FellowshipPanel({ fellowship, active, onActivate }) {
                     Telegram
                   </Button>
                 )}
+
+                <Button
+                  href={`/fellowships/${fellowship.slug}`}
+                  variant="light"
+                  size="sm"
+                >
+                  Details
+                </Button>
               </div>
             </motion.div>
           )}

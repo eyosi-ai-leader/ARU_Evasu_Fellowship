@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 
+
 import Button from "@/components/shared/Button";
 import BrandLogo from "@/components/shared/BrandLogo/BrandLogo";
 import { BRAND } from "@/data/brand";
@@ -332,7 +333,7 @@ export default function Navbar() {
           <DesktopLinks pathname={pathname} />
 
           <div className="flex shrink-0 items-center gap-2">
-            {user && (
+                           {user && (
               <Button
                 href="/dashboard"
                 variant="secondary"
