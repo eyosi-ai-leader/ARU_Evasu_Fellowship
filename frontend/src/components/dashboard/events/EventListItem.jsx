@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import {
+  BookOpen,
   Building2,
   Clock,
   ExternalLink,
@@ -10,13 +11,17 @@ import {
   Loader2,
   MapPin,
   Pencil,
+  Phone,
   Repeat,
   Trash2,
   Undo2,
+  Users,
+  Video,
   XCircle,
 } from "lucide-react";
 
 import EventCover from "@/components/shared/events/EventCover";
+import EventRsvp from "./EventRsvp";
 import {
   VISIBILITY_LABELS,
   formatEventDate,
@@ -31,11 +36,17 @@ export default function EventListItem({
   anyBusy,
   onToggleCancel,
   onDelete,
+  onChanged,
 }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const badge = getDayBadge(item.startAt);
   const repeat = repeatLabel(item);
+
+  const showFooter =
+    item.canManage ||
+    item.visibility === "public" ||
+    (item.onlineUrl && !item.cancelled);
 
   return (
     <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -88,10 +99,20 @@ export default function EventListItem({
               {formatEventDate(item.startAt)}
             </p>
 
+            {(item.theme || item.speaker) && (
+              <p className="mt-0.5 text-xs text-slate-500">
+                {[item.theme, item.speaker && `Speaker: ${item.speaker}`]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </p>
+            )}
+
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
               <span className="inline-flex items-center gap-1.5">
                 <Clock size={13} aria-hidden="true" />
-                {formatEventTimeRange(item.startAt, item.endAt)}
+                {item.allDay
+                  ? "All day"
+                  : formatEventTimeRange(item.startAt, item.endAt)}
               </span>
 
               <span className="inline-flex items-center gap-1.5">
@@ -106,6 +127,13 @@ export default function EventListItem({
                 </span>
               )}
 
+              {item.smallGroupName && (
+                <span className="inline-flex items-center gap-1.5">
+                  <Users size={13} aria-hidden="true" />
+                  {item.smallGroupName}
+                </span>
+              )}
+
               {repeat && (
                 <span className="inline-flex items-center gap-1.5">
                   <Repeat size={13} aria-hidden="true" />
@@ -115,13 +143,41 @@ export default function EventListItem({
 
               <span className="inline-flex items-center gap-1.5">
                 <Eye size={13} aria-hidden="true" />
-                {VISIBILITY_LABELS[item.visibility]}
+                {item.campusName ? `${item.campusName} · ` : ""}
+                {VISIBILITY_LABELS[item.visibility] || item.visibility}
               </span>
+
+              {item.contactPhone && (
+                <a
+                  href={`tel:${item.contactPhone}`}
+                  className="inline-flex items-center gap-1.5 hover:text-slate-900"
+                >
+                  <Phone size={13} aria-hidden="true" />
+                  {item.contactPhone}
+                </a>
+              )}
             </div>
 
-            <p className="mt-2 line-clamp-2 whitespace-pre-line text-sm text-slate-500">
-              {item.description}
-            </p>
+            {item.description && (
+              <p className="mt-2 line-clamp-2 whitespace-pre-line text-sm text-slate-500">
+                {item.description}
+              </p>
+            )}
+
+            {item.verseReference && (
+              <p className="mt-2 text-xs text-slate-500">
+                <span className="inline-flex items-center gap-1.5 font-semibold text-indigo-600">
+                  <BookOpen size={13} aria-hidden="true" />
+                  {item.verseReference}
+                </span>
+
+                {item.verseText && (
+                  <span className="ml-2 line-clamp-1 italic">
+                    &ldquo;{item.verseText}&rdquo;
+                  </span>
+                )}
+              </p>
+            )}
 
             {item.createdBy && (
               <p className="mt-2 text-xs text-slate-400">
@@ -132,8 +188,24 @@ export default function EventListItem({
         </div>
       </div>
 
-      {(item.canManage || item.visibility === "public") && (
+      {item.rsvpEnabled && !item.cancelled && (
+        <EventRsvp item={item} onChanged={onChanged} />
+      )}
+
+      {showFooter && (
         <div className="flex flex-wrap items-center gap-2 border-t border-slate-100 px-4 py-3 sm:px-5">
+          {item.onlineUrl && !item.cancelled && (
+            <a
+              href={item.onlineUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+            >
+              <Video size={13} aria-hidden="true" />
+              Join online
+            </a>
+          )}
+
           {item.visibility === "public" && (
             <Link
               href={`/events/${item.slug}`}

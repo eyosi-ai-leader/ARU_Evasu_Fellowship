@@ -7,11 +7,13 @@ import {
   ArrowLeft,
   Camera,
   Check,
+  ChevronDown,
   Loader2,
   Lock,
   Trash2,
 } from "lucide-react";
 
+import { useAccess } from "@/components/dashboard/access/AccessProvider";
 import EventCover from "@/components/shared/events/EventCover";
 import {
   createEvent,
@@ -19,12 +21,37 @@ import {
   getEventOptions,
   updateEvent,
 } from "@/lib/eventsApi";
-import { toDateTimeLocal, VISIBILITY_LABELS } from "@/lib/eventFormat";
-import { getStoredUser } from "@/lib/userStorage";
+import { toDateTimeLocal } from "@/lib/eventFormat";
 
-const CREATOR_ROLES = [1, 2, 4];
+const CAPABILITIES = [
+  "fellowship:manage",
+  "general:manage",
+  "ministry:lead",
+  "smallgroup:lead",
+];
+
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const PHONE_PATTERN = /^[0-9+\-\s()]{6,30}$/;
+
+const CHOICES = {
+  public: {
+    label: "Public",
+    hint: "On the church website and for everyone signed in.",
+  },
+  members: {
+    label: "Members",
+    hint: "Signed-in members of a campus.",
+  },
+  ministry: {
+    label: "A ministry",
+    hint: "Only the members of one ministry.",
+  },
+  small_group: {
+    label: "A small group",
+    hint: "Only the members of one small group.",
+  },
+};
 
 const fieldClass = (error) =>
   `w-full rounded-xl border bg-white px-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
@@ -64,6 +91,7 @@ function Card({ title, description, children }) {
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="mb-6">
         <h2 className="text-base font-semibold text-slate-900">{title}</h2>
+
         {description && (
           <p className="mt-1 text-sm text-slate-500">{description}</p>
         )}
@@ -79,25 +107,86 @@ const emptyForm = {
   category: "Worship",
   description: "",
   location: "",
+  onlineUrl: "",
+  allDay: false,
   startAt: "",
   endAt: "",
   repeatType: "none",
   repeatUntil: "",
-  visibility: "public",
+  visibility: "members",
+  fellowshipId: "",
   ministryId: "",
+  smallGroupId: "",
+  theme: "",
+  speaker: "",
+  verseReference: "",
+  verseText: "",
+  contactPhone: "",
+  rsvpEnabled: false,
+  capacity: "",
   featured: false,
 };
+
+// [["Main Campus", [ministry, ...]], ...] so each campus shows its own list.
+function groupByCampus(items) {
+  const groups = new Map();
+
+  items.forEach((item) => {
+    const label = item.isGeneral
+      ? "General Fellowship"
+      : item.campusName || "Campus";
+
+    if (!groups.has(label)) groups.set(label, []);
+
+    groups.get(label).push(item);
+  });
+
+  return [...groups.entries()];
+}
+
+function GroupedSelect({ id, value, onChange, items, placeholder, error, disabled }) {
+  const groups = groupByCampus(items);
+
+  return (
+    <select
+      id={id}
+      value={value}
+      onChange={onChange}
+      disabled={disabled}
+      aria-invalid={Boolean(error)}
+      className={`${fieldClass(error)} h-11 disabled:bg-slate-50`}
+    >
+      {placeholder && <option value="">{placeholder}</option>}
+
+      {groups.map(([label, list]) => (
+        <optgroup key={label} label={label}>
+          {list.map((item) => (
+            <option key={item.id} value={item.id}>
+              {item.name}
+            </option>
+          ))}
+        </optgroup>
+      ))}
+    </select>
+  );
+}
 
 export default function EventEditor({ eventId = null }) {
   const router = useRouter();
   const editing = Boolean(eventId);
 
-  const [user, setUser] = useState(undefined);
+  const { access, loading: accessLoading } = useAccess();
+
+  const allowed = CAPABILITIES.some((capability) =>
+    access?.capabilities?.includes(capability)
+  );
+
   const [options, setOptions] = useState(null);
   const [loadError, setLoadError] = useState("");
 
   const [form, setForm] = useState(emptyForm);
   const [errors, setErrors] = useState({});
+  const [moreOpen, setMoreOpen] = useState(false);
 
   const [existingImage, setExistingImage] = useState("");
   const [image, setImage] = useState(null);
@@ -107,52 +196,89 @@ export default function EventEditor({ eventId = null }) {
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState("");
 
-  useEffect(() => {
-    setUser(getStoredUser());
-  }, []);
-
-  const allowed = Boolean(user) && CREATOR_ROLES.includes(Number(user.roleId));
-
   // Load the choices (and the event itself when editing).
   useEffect(() => {
-    if (!allowed) return;
+    if (accessLoading || !allowed) return;
 
     let cancelled = false;
 
     async function load() {
       try {
-        const [loadedOptions, event] = await Promise.all([
+        const [loaded, event] = await Promise.all([
           getEventOptions(),
           editing ? getEventForEdit(eventId) : Promise.resolve(null),
         ]);
 
         if (cancelled) return;
 
-        setOptions(loadedOptions);
+        setOptions(loaded);
 
         if (event) {
+          const day = (value) => toDateTimeLocal(value).slice(0, 10);
+          const when = (value) => (event.allDay ? day(value) : toDateTimeLocal(value));
+
+          const startAt = when(event.firstStartAt);
+          const endAt = event.firstEndAt ? when(event.firstEndAt) : "";
+
           setForm({
             title: event.title,
             category: event.category,
-            description: event.description,
-            location: event.location,
-            startAt: toDateTimeLocal(event.firstStartAt),
-            endAt: toDateTimeLocal(event.firstEndAt),
+            description: event.description || "",
+            location: event.location === "To be announced" ? "" : event.location,
+            onlineUrl: event.onlineUrl || "",
+            allDay: event.allDay,
+            startAt,
+            endAt: event.allDay && endAt === startAt ? "" : endAt,
             repeatType: event.repeatType,
             repeatUntil: event.repeatUntil || "",
             visibility: event.visibility,
+            fellowshipId: event.fellowshipId ? String(event.fellowshipId) : "",
             ministryId: event.ministryId ? String(event.ministryId) : "",
+            smallGroupId: event.smallGroupId ? String(event.smallGroupId) : "",
+            theme: event.theme || "",
+            speaker: event.speaker || "",
+            verseReference: event.verseReference || "",
+            verseText: event.verseText || "",
+            contactPhone: event.contactPhone || "",
+            rsvpEnabled: event.rsvpEnabled,
+            capacity: event.capacity ? String(event.capacity) : "",
             featured: event.featured,
           });
 
           setExistingImage(event.imageUrl || "");
-        } else if (loadedOptions.role === "leader") {
+
+          setMoreOpen(
+            Boolean(
+              event.theme ||
+                event.speaker ||
+                event.verseReference ||
+                event.verseText ||
+                event.contactPhone ||
+                event.onlineUrl
+            )
+          );
+        } else {
+          const managesCampus =
+            loaded.canWholeFellowship || loaded.campuses.length > 0;
+
           setForm((current) => ({
             ...current,
-            visibility: "ministry",
+            visibility: loaded.visibilities.includes("members")
+              ? "members"
+              : loaded.visibilities[0] || "members",
+            // One campus to manage: no need to ask.
+            fellowshipId:
+              !loaded.canWholeFellowship && loaded.campuses.length === 1
+                ? String(loaded.campuses[0].id)
+                : "",
+            // A leader with one ministry or group: pick it for them.
             ministryId:
-              loadedOptions.ministries.length === 1
-                ? String(loadedOptions.ministries[0].id)
+              !managesCampus && loaded.ministries.length === 1
+                ? String(loaded.ministries[0].id)
+                : "",
+            smallGroupId:
+              !managesCampus && loaded.smallGroups.length === 1
+                ? String(loaded.smallGroups[0].id)
                 : "",
           }));
         }
@@ -166,7 +292,7 @@ export default function EventEditor({ eventId = null }) {
     return () => {
       cancelled = true;
     };
-  }, [allowed, editing, eventId]);
+  }, [accessLoading, allowed, editing, eventId]);
 
   // Release a temporary photo preview when it changes or the page closes.
   useEffect(() => {
@@ -175,12 +301,27 @@ export default function EventEditor({ eventId = null }) {
     };
   }, [preview]);
 
-  function handleChange(event) {
-    const { name, value } = event.target;
-
+  function set(name, value) {
     setForm((current) => ({ ...current, [name]: value }));
     setErrors((current) => ({ ...current, [name]: "" }));
     setServerError("");
+  }
+
+  const handleChange = (event) => set(event.target.name, event.target.value);
+
+  function handleAllDay(checked) {
+    setForm((current) => ({
+      ...current,
+      allDay: checked,
+      startAt: checked
+        ? current.startAt.slice(0, 10)
+        : current.startAt && current.startAt.length === 10
+          ? `${current.startAt}T09:00`
+          : current.startAt,
+      endAt: checked ? current.endAt.slice(0, 10) : "",
+    }));
+
+    setErrors((current) => ({ ...current, startAt: "", endAt: "" }));
   }
 
   function handleImage(event) {
@@ -212,6 +353,21 @@ export default function EventEditor({ eventId = null }) {
     setRemoveImage(Boolean(existingImage));
   }
 
+  // What the audience part of the form needs, from what this person may do.
+  const managesCampus = options
+    ? options.canWholeFellowship || options.campuses.length > 0
+    : false;
+
+  const showCampus =
+    managesCampus &&
+    (form.visibility === "public" || form.visibility === "members");
+
+  const needsMinistry =
+    form.visibility === "ministry" ||
+    (!managesCampus && form.visibility === "members");
+
+  const needsGroup = form.visibility === "small_group";
+
   function validate() {
     const next = {};
 
@@ -219,20 +375,16 @@ export default function EventEditor({ eventId = null }) {
       next.title = "Enter a title (at least 3 characters).";
     }
 
-    if (form.description.trim().length < 10) {
-      next.description = "Write a description (at least 10 characters).";
-    }
-
-    if (form.location.trim().length < 2) {
-      next.location = "Enter where the event takes place.";
-    }
-
     if (!form.startAt) {
-      next.startAt = "Choose the start date and time.";
+      next.startAt = form.allDay ? "Choose the date." : "Choose the start date and time.";
     }
 
-    if (form.endAt && form.startAt && form.endAt <= form.startAt) {
-      next.endAt = "The end must be after the start.";
+    if (form.endAt && form.startAt) {
+      const invalid = form.allDay
+        ? form.endAt < form.startAt
+        : form.endAt <= form.startAt;
+
+      if (invalid) next.endAt = "The end must be after the start.";
     }
 
     if (
@@ -244,12 +396,34 @@ export default function EventEditor({ eventId = null }) {
       next.repeatUntil = "This can't be before the first date.";
     }
 
-    const needsMinistry =
-      options?.role === "leader" || form.visibility === "ministry";
-
-    if (needsMinistry && !form.ministryId) {
-      next.ministryId = "Choose a ministry.";
+    if (form.onlineUrl.trim() && !/^https?:\/\/\S+$/i.test(form.onlineUrl.trim())) {
+      next.onlineUrl = "The link must start with https://";
     }
+
+    if (form.contactPhone.trim() && !PHONE_PATTERN.test(form.contactPhone.trim())) {
+      next.contactPhone = "Enter a valid phone number.";
+    }
+
+    if (form.rsvpEnabled && form.capacity.trim()) {
+      const capacity = Number(form.capacity);
+
+      if (!Number.isInteger(capacity) || capacity < 1 || capacity > 5000) {
+        next.capacity = "Enter a number between 1 and 5000.";
+      }
+    }
+
+    if (
+      showCampus &&
+      !options.canWholeFellowship &&
+      options.campuses.length > 1 &&
+      !form.fellowshipId
+    ) {
+      next.fellowshipId = "Choose the campus.";
+    }
+
+    if (needsMinistry && !form.ministryId) next.ministryId = "Choose a ministry.";
+
+    if (needsGroup && !form.smallGroupId) next.smallGroupId = "Choose a small group.";
 
     return next;
   }
@@ -263,28 +437,49 @@ export default function EventEditor({ eventId = null }) {
 
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
+
+      // Show the optional details if the problem is inside them.
+      if (
+        validationErrors.onlineUrl ||
+        validationErrors.contactPhone
+      ) {
+        setMoreOpen(true);
+      }
+
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
     const data = new FormData();
 
-    data.append("title", form.title.trim());
-    data.append("category", form.category);
-    data.append("description", form.description.trim());
-    data.append("location", form.location.trim());
-    data.append("startAt", form.startAt);
-    data.append("endAt", form.endAt || "");
-    data.append("repeatType", form.repeatType);
-    data.append(
-      "repeatUntil",
-      form.repeatType === "weekly" ? form.repeatUntil || "" : ""
-    );
-    data.append("visibility", form.visibility);
-    data.append("ministryId", form.ministryId || "");
-    data.append(
+    const append = (name, value) => data.append(name, value ?? "");
+
+    append("title", form.title.trim());
+    append("category", form.category);
+    append("description", form.description.trim());
+    append("location", form.location.trim());
+    append("onlineUrl", form.onlineUrl.trim());
+    append("contactPhone", form.contactPhone.trim());
+    append("theme", form.theme.trim());
+    append("speaker", form.speaker.trim());
+    append("verseReference", form.verseReference.trim());
+    append("verseText", form.verseText.trim());
+    append("allDay", String(form.allDay));
+    append("startAt", form.startAt);
+    append("endAt", form.endAt);
+    append("repeatType", form.repeatType);
+    append("repeatUntil", form.repeatType === "weekly" ? form.repeatUntil : "");
+    append("visibility", form.visibility);
+    append("fellowshipId", showCampus ? form.fellowshipId : "");
+    append("ministryId", needsMinistry ? form.ministryId : "");
+    append("smallGroupId", needsGroup ? form.smallGroupId : "");
+    append("rsvpEnabled", String(form.rsvpEnabled));
+    append("capacity", form.rsvpEnabled ? form.capacity.trim() : "");
+    append(
       "featured",
-      String(options?.canFeature && form.visibility === "public" && form.featured)
+      String(
+        Boolean(options?.canFeature && form.visibility === "public" && form.featured)
+      )
     );
 
     if (image) data.append("image", image);
@@ -308,7 +503,7 @@ export default function EventEditor({ eventId = null }) {
     }
   }
 
-  if (user === undefined) return null;
+  if (accessLoading) return null;
 
   if (!allowed) {
     return (
@@ -320,7 +515,8 @@ export default function EventEditor({ eventId = null }) {
         </h1>
 
         <p className="mt-2 text-sm text-slate-500">
-          Events can be added by pastors, administrators and ministry leaders.
+          Events can be added by campus leaders, ministry leaders and small
+          group overseers.
         </p>
 
         <Link
@@ -365,24 +561,12 @@ export default function EventEditor({ eventId = null }) {
     );
   }
 
-  const isLeader = options.role === "leader";
-  const singleMinistry = isLeader && options.ministries.length === 1;
+  const choices = options.visibilities.filter(
+    (value) => value !== "public" || options.canPublic
+  );
 
-  const visibilityChoices = (
-    options.canPublic ? ["public", "members", "ministry"] : ["members", "ministry"]
-  ).map((value) => ({
-    value,
-    label: VISIBILITY_LABELS[value],
-    hint:
-      value === "public"
-        ? "Shown on the church website and to everyone signed in."
-        : value === "members"
-        ? "Shown to signed-in members only."
-        : "Shown only to members of the chosen ministry.",
-  }));
-
-  const needsMinistry = isLeader || form.visibility === "ministry";
   const shownImage = preview || (removeImage ? "" : existingImage);
+  const dateType = form.allDay ? "date" : "datetime-local";
 
   return (
     <div className="mx-auto max-w-4xl pb-10">
@@ -402,8 +586,8 @@ export default function EventEditor({ eventId = null }) {
 
           <p className="mt-2 text-sm text-slate-500">
             {editing
-              ? "Changes appear on the website and in dashboards within about a minute."
-              : "The event goes live as soon as you save it."}
+              ? "Changes appear in dashboards and on the website within about a minute."
+              : "Only the title and the date are required. The event goes live as soon as you save it."}
           </p>
         </div>
 
@@ -416,46 +600,8 @@ export default function EventEditor({ eventId = null }) {
           </div>
         )}
 
-        {/* Photo */}
-        <Card title="Event photo" description="Optional. JPG, PNG or WEBP up to 10 MB.">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-            <div className="h-32 w-full overflow-hidden rounded-xl bg-slate-100 sm:w-56">
-              <EventCover src={shownImage} alt="Event photo preview" />
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <label
-                htmlFor="event-image"
-                className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-within:ring-2 focus-within:ring-indigo-500"
-              >
-                <Camera size={16} aria-hidden="true" />
-                {shownImage ? "Change photo" : "Choose photo"}
-              </label>
-
-              <input
-                id="event-image"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={handleImage}
-                className="sr-only"
-              />
-
-              {shownImage && (
-                <button
-                  type="button"
-                  onClick={handleRemoveImage}
-                  className="inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold text-red-600 transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
-                >
-                  <Trash2 size={16} aria-hidden="true" />
-                  Remove
-                </button>
-              )}
-            </div>
-          </div>
-        </Card>
-
-        {/* Details */}
-        <Card title="Event details">
+        {/* The event */}
+        <Card title="The event">
           <div className="grid gap-5 md:grid-cols-2">
             <div className="md:col-span-2">
               <Field id="title" label="Title" required error={errors.title}>
@@ -465,14 +611,14 @@ export default function EventEditor({ eventId = null }) {
                   value={form.title}
                   onChange={handleChange}
                   maxLength={150}
-                  placeholder="For example: Sunday Worship Service"
+                  placeholder="For example: Friday Prayer Night"
                   aria-invalid={Boolean(errors.title)}
                   className={`${fieldClass(errors.title)} h-11`}
                 />
               </Field>
             </div>
 
-            <Field id="category" label="Category" required>
+            <Field id="category" label="Category">
               <select
                 id="category"
                 name="category"
@@ -490,9 +636,8 @@ export default function EventEditor({ eventId = null }) {
 
             <Field
               id="location"
-              label="Location"
-              required
-              error={errors.location}
+              label="Place (optional)"
+              hint="A room, a building or an address."
             >
               <input
                 id="location"
@@ -500,29 +645,25 @@ export default function EventEditor({ eventId = null }) {
                 value={form.location}
                 onChange={handleChange}
                 maxLength={255}
-                placeholder="Main sanctuary, or a full address"
-                aria-invalid={Boolean(errors.location)}
-                className={`${fieldClass(errors.location)} h-11`}
+                placeholder="Main hall"
+                className={`${fieldClass(false)} h-11`}
               />
             </Field>
 
             <div className="md:col-span-2">
               <Field
                 id="description"
-                label="Description"
-                required
-                error={errors.description}
-                hint="Line breaks are kept."
+                label="Description (optional)"
+                hint="What will happen, who should come, what to bring. Line breaks are kept."
               >
                 <textarea
                   id="description"
                   name="description"
-                  rows={6}
+                  rows={5}
                   value={form.description}
                   onChange={handleChange}
                   maxLength={5000}
-                  aria-invalid={Boolean(errors.description)}
-                  className={`${fieldClass(errors.description)} py-3`}
+                  className={`${fieldClass(false)} py-3`}
                 />
               </Field>
             </div>
@@ -532,19 +673,30 @@ export default function EventEditor({ eventId = null }) {
         {/* When */}
         <Card
           title="When"
-          description="Times are shown exactly as you enter them, in the church's local time."
+          description="Times are shown exactly as you enter them, in the fellowship's local time."
         >
+          <label className="mb-5 flex cursor-pointer items-center gap-3">
+            <input
+              type="checkbox"
+              checked={form.allDay}
+              onChange={(event) => handleAllDay(event.target.checked)}
+              className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+            />
+
+            <span className="text-sm font-medium text-slate-700">All day</span>
+          </label>
+
           <div className="grid gap-5 md:grid-cols-2">
             <Field
               id="startAt"
-              label={editing && form.repeatType === "weekly" ? "First date and time" : "Starts"}
+              label={form.allDay ? "Date" : "Starts"}
               required
               error={errors.startAt}
             >
               <input
                 id="startAt"
                 name="startAt"
-                type="datetime-local"
+                type={dateType}
                 value={form.startAt}
                 onChange={handleChange}
                 aria-invalid={Boolean(errors.startAt)}
@@ -552,11 +704,15 @@ export default function EventEditor({ eventId = null }) {
               />
             </Field>
 
-            <Field id="endAt" label="Ends (optional)" error={errors.endAt}>
+            <Field
+              id="endAt"
+              label={form.allDay ? "Last day (optional)" : "Ends (optional)"}
+              error={errors.endAt}
+            >
               <input
                 id="endAt"
                 name="endAt"
-                type="datetime-local"
+                type={dateType}
                 value={form.endAt}
                 onChange={handleChange}
                 aria-invalid={Boolean(errors.endAt)}
@@ -598,83 +754,133 @@ export default function EventEditor({ eventId = null }) {
           </div>
         </Card>
 
-        {/* Audience */}
+        {/* Who is it for */}
         <Card
-          title="Who can see it"
-          description="Choose where this event appears."
+          title="Who is it for"
+          description="Choose who can see this event. Each campus has its own ministries and small groups."
         >
           <fieldset>
             <legend className="sr-only">Who can see this event</legend>
 
-            <div className="grid gap-3 sm:grid-cols-3">
-              {visibilityChoices.map((choice) => (
-                <label
-                  key={choice.value}
-                  className={`flex cursor-pointer flex-col gap-1 rounded-xl border p-4 transition focus-within:ring-2 focus-within:ring-indigo-500 ${
-                    form.visibility === choice.value
-                      ? "border-slate-950 bg-slate-950 text-white"
-                      : "border-slate-200 text-slate-700 hover:bg-slate-50"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="visibility"
-                    value={choice.value}
-                    checked={form.visibility === choice.value}
-                    onChange={handleChange}
-                    className="sr-only"
-                  />
+            <div className="grid gap-3 sm:grid-cols-2">
+              {choices.map((value) => {
+                const choice = CHOICES[value];
+                const active = form.visibility === value;
 
-                  <span className="text-sm font-semibold">{choice.label}</span>
-
-                  <span
-                    className={`text-xs leading-5 ${
-                      form.visibility === choice.value
-                        ? "text-white/75"
-                        : "text-slate-500"
+                return (
+                  <label
+                    key={value}
+                    className={`flex cursor-pointer flex-col gap-1 rounded-xl border p-4 transition focus-within:ring-2 focus-within:ring-indigo-500 ${
+                      active
+                        ? "border-slate-950 bg-slate-950 text-white"
+                        : "border-slate-200 text-slate-700 hover:bg-slate-50"
                     }`}
                   >
-                    {choice.hint}
-                  </span>
-                </label>
-              ))}
+                    <input
+                      type="radio"
+                      name="visibility"
+                      value={value}
+                      checked={active}
+                      onChange={handleChange}
+                      className="sr-only"
+                    />
+
+                    <span className="text-sm font-semibold">{choice.label}</span>
+
+                    <span
+                      className={`text-xs leading-5 ${
+                        active ? "text-white/75" : "text-slate-500"
+                      }`}
+                    >
+                      {value === "members" && !managesCampus
+                        ? "All signed-in members of your campus."
+                        : choice.hint}
+                    </span>
+                  </label>
+                );
+              })}
             </div>
           </fieldset>
 
-          {!options.canPublic && (
-            <p className="mt-3 text-xs text-slate-500">
-              Only pastors and administrators can publish events on the public
-              website.
-            </p>
-          )}
+          <div className="mt-5 grid gap-5 md:grid-cols-2">
+            {showCampus &&
+              (options.canWholeFellowship || options.campuses.length > 1) && (
+                <Field
+                  id="fellowshipId"
+                  label="Campus"
+                  required={!options.canWholeFellowship}
+                  error={errors.fellowshipId}
+                >
+                  <select
+                    id="fellowshipId"
+                    name="fellowshipId"
+                    value={form.fellowshipId}
+                    onChange={handleChange}
+                    aria-invalid={Boolean(errors.fellowshipId)}
+                    className={`${fieldClass(errors.fellowshipId)} h-11`}
+                  >
+                    {options.canWholeFellowship ? (
+                      <option value="">Whole fellowship (all campuses)</option>
+                    ) : (
+                      <option value="">Select campus</option>
+                    )}
 
-          {(needsMinistry || options.ministries.length > 0) && (
-            <div className="mt-5 max-w-md">
+                    {options.campuses.map((campus) => (
+                      <option key={campus.id} value={campus.id}>
+                        {campus.name}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              )}
+
+            {needsMinistry && (
               <Field
                 id="ministryId"
-                label={needsMinistry ? "Ministry" : "Hosting ministry (optional)"}
-                required={needsMinistry}
+                label={managesCampus ? "Ministry" : "Hosted by your ministry"}
+                required
                 error={errors.ministryId}
               >
-                <select
+                <GroupedSelect
                   id="ministryId"
-                  name="ministryId"
                   value={form.ministryId}
-                  onChange={handleChange}
-                  disabled={singleMinistry}
-                  aria-invalid={Boolean(errors.ministryId)}
-                  className={`${fieldClass(errors.ministryId)} h-11 disabled:bg-slate-50`}
-                >
-                  {!singleMinistry && <option value="">Select ministry</option>}
-
-                  {options.ministries.map((ministry) => (
-                    <option key={ministry.id} value={ministry.id}>
-                      {ministry.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(event) => set("ministryId", event.target.value)}
+                  items={options.ministries}
+                  placeholder={
+                    options.ministries.length === 1 ? "" : "Select ministry"
+                  }
+                  error={errors.ministryId}
+                  disabled={options.ministries.length === 1}
+                />
               </Field>
-            </div>
+            )}
+
+            {needsGroup && (
+              <Field
+                id="smallGroupId"
+                label="Small group"
+                required
+                error={errors.smallGroupId}
+              >
+                <GroupedSelect
+                  id="smallGroupId"
+                  value={form.smallGroupId}
+                  onChange={(event) => set("smallGroupId", event.target.value)}
+                  items={options.smallGroups}
+                  placeholder={
+                    options.smallGroups.length === 1 ? "" : "Select small group"
+                  }
+                  error={errors.smallGroupId}
+                  disabled={options.smallGroups.length === 1}
+                />
+              </Field>
+            )}
+          </div>
+
+          {!options.canPublic && (
+            <p className="mt-4 text-xs text-slate-500">
+              Only campus leaders can publish events on the public website.
+            </p>
           )}
 
           {options.canFeature && form.visibility === "public" && (
@@ -682,12 +888,7 @@ export default function EventEditor({ eventId = null }) {
               <input
                 type="checkbox"
                 checked={form.featured}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    featured: event.target.checked,
-                  }))
-                }
+                onChange={(event) => set("featured", event.target.checked)}
                 className="mt-1 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
               />
 
@@ -703,6 +904,217 @@ export default function EventEditor({ eventId = null }) {
             </label>
           )}
         </Card>
+
+        {/* RSVP */}
+        <Card
+          title="RSVP"
+          description="Optional. Let members say if they are coming."
+        >
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={form.rsvpEnabled}
+              onChange={(event) => set("rsvpEnabled", event.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
+            />
+
+            <span>
+              <span className="block text-sm font-semibold text-slate-900">
+                Ask people to RSVP
+              </span>
+              <span className="mt-0.5 block text-sm text-slate-500">
+                Members answer going, maybe or can&apos;t go. You see who is
+                coming.
+              </span>
+            </span>
+          </label>
+
+          {form.rsvpEnabled && (
+            <div className="mt-5 max-w-xs">
+              <Field
+                id="capacity"
+                label="Places (optional)"
+                error={errors.capacity}
+                hint="Leave empty for no limit. Guests count as places."
+              >
+                <input
+                  id="capacity"
+                  name="capacity"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={5000}
+                  value={form.capacity}
+                  onChange={handleChange}
+                  aria-invalid={Boolean(errors.capacity)}
+                  className={`${fieldClass(errors.capacity)} h-11`}
+                />
+              </Field>
+            </div>
+          )}
+        </Card>
+
+        {/* Photo */}
+        <Card
+          title="Photo"
+          description="Optional. JPG, PNG or WEBP up to 10 MB."
+        >
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+            <div className="h-32 w-full overflow-hidden rounded-xl bg-slate-100 sm:w-56">
+              <EventCover src={shownImage} alt="Event photo preview" />
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <label
+                htmlFor="event-image"
+                className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-within:ring-2 focus-within:ring-indigo-500"
+              >
+                <Camera size={16} aria-hidden="true" />
+                {shownImage ? "Change photo" : "Choose photo"}
+              </label>
+
+              <input
+                id="event-image"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleImage}
+                className="sr-only"
+              />
+
+              {shownImage && (
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  className="inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold text-red-600 transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                >
+                  <Trash2 size={16} aria-hidden="true" />
+                  Remove
+                </button>
+              )}
+            </div>
+          </div>
+        </Card>
+
+        {/* More details */}
+        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <button
+            type="button"
+            onClick={() => setMoreOpen((current) => !current)}
+            aria-expanded={moreOpen}
+            className="flex w-full items-center justify-between gap-3 p-6 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500"
+          >
+            <span>
+              <span className="block text-base font-semibold text-slate-900">
+                More details
+              </span>
+              <span className="mt-1 block text-sm text-slate-500">
+                Optional: online link, theme, speaker, verse and a contact
+                phone.
+              </span>
+            </span>
+
+            <ChevronDown
+              size={18}
+              aria-hidden="true"
+              className={`shrink-0 text-slate-400 transition ${
+                moreOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+
+          {moreOpen && (
+            <div className="grid gap-5 border-t border-slate-100 p-6 md:grid-cols-2">
+              <div className="md:col-span-2">
+                <Field
+                  id="onlineUrl"
+                  label="Online link"
+                  error={errors.onlineUrl}
+                  hint="For a meeting or a live stream. Only signed-in members see it."
+                >
+                  <input
+                    id="onlineUrl"
+                    name="onlineUrl"
+                    type="url"
+                    value={form.onlineUrl}
+                    onChange={handleChange}
+                    maxLength={500}
+                    placeholder="https://"
+                    aria-invalid={Boolean(errors.onlineUrl)}
+                    className={`${fieldClass(errors.onlineUrl)} h-11`}
+                  />
+                </Field>
+              </div>
+
+              <Field id="theme" label="Theme">
+                <input
+                  id="theme"
+                  name="theme"
+                  value={form.theme}
+                  onChange={handleChange}
+                  maxLength={150}
+                  placeholder="e.g. Rooted in Christ"
+                  className={`${fieldClass(false)} h-11`}
+                />
+              </Field>
+
+              <Field id="speaker" label="Speaker">
+                <input
+                  id="speaker"
+                  name="speaker"
+                  value={form.speaker}
+                  onChange={handleChange}
+                  maxLength={150}
+                  className={`${fieldClass(false)} h-11`}
+                />
+              </Field>
+
+              <Field id="verseReference" label="Verse">
+                <input
+                  id="verseReference"
+                  name="verseReference"
+                  value={form.verseReference}
+                  onChange={handleChange}
+                  maxLength={100}
+                  placeholder="e.g. Colossians 2:6-7"
+                  className={`${fieldClass(false)} h-11`}
+                />
+              </Field>
+
+              <Field
+                id="contactPhone"
+                label="Contact phone"
+                error={errors.contactPhone}
+              >
+                <input
+                  id="contactPhone"
+                  name="contactPhone"
+                  type="tel"
+                  inputMode="tel"
+                  value={form.contactPhone}
+                  onChange={handleChange}
+                  maxLength={30}
+                  aria-invalid={Boolean(errors.contactPhone)}
+                  className={`${fieldClass(errors.contactPhone)} h-11`}
+                />
+              </Field>
+
+              <div className="md:col-span-2">
+                <Field id="verseText" label="Verse text">
+                  <textarea
+                    id="verseText"
+                    name="verseText"
+                    rows={3}
+                    value={form.verseText}
+                    onChange={handleChange}
+                    maxLength={600}
+                    placeholder="Type the verse as it is in your Bible."
+                    className={`${fieldClass(false)} py-3`}
+                  />
+                </Field>
+              </div>
+            </div>
+          )}
+        </section>
 
         <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">
           <Link

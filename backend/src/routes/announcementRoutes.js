@@ -4,7 +4,10 @@ const rateLimit = require("express-rate-limit");
 const router = express.Router();
 
 const authMiddleware = require("../middleware/authMiddleware");
-const roleMiddleware = require("../middleware/roleMiddleware");
+const {
+  loadAccess,
+  requireCapability,
+} = require("../middleware/accessMiddleware");
 
 const controller = require("../controllers/announcementController");
 
@@ -14,6 +17,8 @@ const {
   createAnnouncementValidator,
   retryValidator,
   detailsValidator,
+  cancelValidator,
+  pinValidator,
   retryRecipientValidator,
   membersQueryValidator,
   listQueryValidator,
@@ -36,12 +41,25 @@ const perUserLimiter = (windowMs, limit) =>
 const previewLimiter = perUserLimiter(15 * 60 * 1000, 120);
 const browseLimiter = perUserLimiter(15 * 60 * 1000, 300);
 const testLimiter = perUserLimiter(60 * 60 * 1000, 10);
-const createLimiter = perUserLimiter(60 * 60 * 1000, 10);
+const createLimiter = perUserLimiter(60 * 60 * 1000, 20);
 const retryLimiter = perUserLimiter(60 * 60 * 1000, 30);
 const deleteLimiter = perUserLimiter(60 * 60 * 1000, 60);
 
-// Admin (1), Pastor (2) and Ministry Leader (4) only.
-router.use(authMiddleware, roleMiddleware(1, 2, 4));
+/*
+ * Anyone who manages a campus, leads a ministry or oversees a small group
+ * can send announcements. The service limits each person to the people they
+ * can reach (see utils/reachScope.js).
+ */
+router.use(
+  authMiddleware,
+  loadAccess,
+  requireCapability(
+    "fellowship:manage",
+    "general:manage",
+    "ministry:lead",
+    "smallgroup:lead"
+  )
+);
 
 // Fixed paths first, then the ":id" routes.
 router.get("/options", controller.getOptions);
@@ -55,6 +73,8 @@ router.post("/", createLimiter, createAnnouncementValidator, controller.create);
 router.get("/:id", detailsValidator, controller.details);
 router.delete("/:id", deleteLimiter, detailsValidator, controller.remove);
 router.post("/:id/retry", retryLimiter, retryValidator, controller.retry);
+router.post("/:id/cancel", retryLimiter, cancelValidator, controller.cancel);
+router.patch("/:id/pin", retryLimiter, pinValidator, controller.pin);
 router.post(
   "/:id/recipients/:recipientId/retry",
   retryLimiter,

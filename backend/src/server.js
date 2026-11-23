@@ -1,6 +1,7 @@
 const app = require("./app");
 const env = require("./config/env");
 const pool = require("./config/db");
+const { startAnnouncementScheduler } = require("./services/announcementService");
 
 const startServer = async () => {
   try {
@@ -14,6 +15,7 @@ const startServer = async () => {
       console.log(
         `🚀 Server is running on http://localhost:${env.PORT}`
       );
+      startAnnouncementScheduler();
     });
   } catch (error) {
     console.error("❌ Failed to connect to MySQL");

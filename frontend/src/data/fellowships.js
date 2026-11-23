@@ -4,9 +4,9 @@ const leaders = (names, phonePrefix) => {
     "Vice Chairperson",
     "Secretary",
     "Treasurer",
-    "Worship Leader",
-    "Prayer Coordinator",
-    "Evangelism Coordinator",
+    "Auditor",
+    "Team Coordinator",
+    "Team Coordinator",
   ];
 
   return roles.map((role, i) => ({
@@ -35,16 +35,16 @@ export const fellowships = [
     about:
       "The Main Campus Fellowship is where many students first meet the family. We worship, study the Bible in small groups and serve our campus together. New students are always welcome.",
     image: "/images/hero/Fellowship.jpg",
-    program: { day: "Thursday", time: "11:00", place: "Mekaneyesus Church" },
+    program: { day: "Thursday", time: "11:00", place: "Bethel Mekaneyesus Church" },
     contact: {
-      name: "Contact Person Name",
-      phone: "+251 900 000 101",
+      name: "Bereket Hailu",
+      phone: "+251 94 582 3539",
       email: "main@arsievasu.example",
-      telegram: "https://t.me/your-main-campus",
+      telegram: "https://t.me/Arsiufellow",
     },
     leaders: leaders(
-      ["Abel Tesfaye", "Selam Bekele", "Dawit Alemu", "Hana Girma", "Yonas Mulu", "Ruth Tadesse", "Samuel Haile"],
-      "+251 900 000 11"
+      ["Bereket Hailu", "Tekalgn Bogale", "Yodahe Hailemichael ", " Yididiya Tlahun", "Alazar Adane", "", ""],
+      "+251 992912263"
     ),
   },
   {
@@ -58,7 +58,7 @@ export const fellowships = [
     image: "/images/hero/Family_6.jpg",
     program: { day: "Friday", time: "11:30", place: "Muluwengel Kuter 1" },
     contact: {
-      name: "Contact Person Name",
+      name: "Tariku Lemesa",
       phone: "+251 900 000 102",
       email: "health@arsievasu.example",
       telegram: "https://t.me/your-health-campus",

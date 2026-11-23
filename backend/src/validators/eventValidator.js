@@ -11,6 +11,17 @@ const statusValidator = [
     .withMessage("Status must be published or cancelled"),
 ];
 
+const rsvpValidator = [
+  ...idValidator,
+  body("response")
+    .isIn(["going", "maybe", "not_going"])
+    .withMessage("Choose going, maybe or not going"),
+  body("guests")
+    .optional({ values: "falsy" })
+    .isInt({ min: 0, max: 5 })
+    .withMessage("Guests must be between 0 and 5"),
+];
+
 const listValidator = [
   query("scope")
     .optional({ values: "falsy" })
@@ -25,6 +36,10 @@ const listValidator = [
     .optional({ values: "falsy" })
     .isInt({ min: 1, max: 10000 })
     .withMessage("Invalid page"),
+  query("fellowshipId")
+    .optional({ values: "falsy" })
+    .isInt({ min: 1 })
+    .withMessage("Invalid campus"),
 ];
 
 const publicListValidator = [
@@ -32,6 +47,10 @@ const publicListValidator = [
     .optional({ values: "falsy" })
     .isInt({ min: 1, max: 50 })
     .withMessage("Invalid limit"),
+  query("campus")
+    .optional({ values: "falsy" })
+    .isInt({ min: 1 })
+    .withMessage("Invalid campus"),
 ];
 
 const slugValidator = [
@@ -45,6 +64,7 @@ const slugValidator = [
 module.exports = {
   idValidator,
   statusValidator,
+  rsvpValidator,
   listValidator,
   publicListValidator,
   slugValidator,

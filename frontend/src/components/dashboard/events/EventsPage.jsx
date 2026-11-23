@@ -12,12 +12,11 @@ import {
   X,
 } from "lucide-react";
 
-import EventListItem from "./EventListItem";
+import useMyAccess from "@/lib/useMyAccess";
 import { deleteEvent, listEvents, setEventStatus } from "@/lib/eventsApi";
-import { getStoredUser } from "@/lib/userStorage";
+import { shortCampusName } from "@/components/dashboard/small-groups/parts";
 
-// Admin, Pastor, Ministry Leader
-const CREATOR_ROLES = [1, 2, 4];
+import EventListItem from "./EventListItem";
 
 const SAVED_MESSAGES = {
   created: "The event was created and is now live.",
@@ -32,11 +31,13 @@ const TABS = [
 export default function EventsPage() {
   const router = useRouter();
   const params = useSearchParams();
+  const { campuses } = useMyAccess();
 
-  const [user, setUser] = useState(undefined);
+  const [canCreate, setCanCreate] = useState(false);
 
   const [tab, setTab] = useState("upcoming");
   const [search, setSearch] = useState("");
+  const [campusId, setCampusId] = useState("");
 
   const [items, setItems] = useState(null);
   const [total, setTotal] = useState(0);
@@ -48,10 +49,6 @@ export default function EventsPage() {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(null); // { id, action }
   const [reloadKey, setReloadKey] = useState(0);
-
-  useEffect(() => {
-    setUser(getStoredUser());
-  }, []);
 
   // Message shown after saving in the editor.
   useEffect(() => {
@@ -71,7 +68,7 @@ export default function EventsPage() {
     return () => clearTimeout(timer);
   }, [notice]);
 
-  // First page, and again when the tab, search or data changes.
+  // First page, and again when the tab, search, campus or data changes.
   useEffect(() => {
     let cancelled = false;
 
@@ -82,11 +79,13 @@ export default function EventsPage() {
             scope: tab,
             search: search.trim(),
             page: 1,
+            fellowshipId: campusId,
           });
 
           if (cancelled) return;
 
           setItems(data.items);
+          setCanCreate(Boolean(data.canCreate));
           setTotal(data.total);
           setHasMore(data.hasMore);
           setPage(1);
@@ -102,7 +101,7 @@ export default function EventsPage() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [tab, search, reloadKey]);
+  }, [tab, search, campusId, reloadKey]);
 
   function changeTab(id) {
     setTab(id);
@@ -121,6 +120,7 @@ export default function EventsPage() {
         scope: tab,
         search: search.trim(),
         page: page + 1,
+        fellowshipId: campusId,
       });
 
       setItems((current) => {
@@ -177,9 +177,6 @@ export default function EventsPage() {
       `"${item.title}" was deleted.`
     );
 
-  if (user === undefined) return null;
-
-  const canCreate = Boolean(user) && CREATOR_ROLES.includes(Number(user.roleId));
   const searching = search.trim().length > 0;
 
   return (
@@ -192,8 +189,8 @@ export default function EventsPage() {
 
           <p className="mt-1 text-sm text-slate-500">
             {canCreate
-              ? "Add and manage church events. They appear on the website and in member dashboards automatically."
-              : "Upcoming gatherings and activities at your church."}
+              ? "Add and manage events for your campus, ministries and small groups."
+              : "Upcoming gatherings and activities for you."}
           </p>
         </div>
 
@@ -232,21 +229,43 @@ export default function EventsPage() {
           ))}
         </div>
 
-        <div className="relative w-full sm:max-w-xs">
-          <Search
-            size={16}
-            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-            aria-hidden="true"
-          />
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+          {campuses.length > 1 && (
+            <select
+              value={campusId}
+              onChange={(event) => {
+                setCampusId(event.target.value);
+                setItems(null);
+              }}
+              aria-label="Campus"
+              className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 outline-none focus:border-indigo-500"
+            >
+              <option value="">All campuses</option>
 
-          <input
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search events"
-            aria-label="Search events"
-            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
-          />
+              {campuses.map((campus) => (
+                <option key={campus.id} value={String(campus.id)}>
+                  {shortCampusName(campus.name)}
+                </option>
+              ))}
+            </select>
+          )}
+
+          <div className="relative w-full sm:w-64">
+            <Search
+              size={16}
+              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+              aria-hidden="true"
+            />
+
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search events"
+              aria-label="Search events"
+              className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+            />
+          </div>
         </div>
       </div>
 
@@ -299,8 +318,8 @@ export default function EventsPage() {
             {searching
               ? "No events match your search."
               : tab === "upcoming"
-              ? "No upcoming events."
-              : "No past events yet."}
+                ? "No upcoming events."
+                : "No past events yet."}
           </p>
 
           {canCreate && tab === "upcoming" && !searching && (
@@ -323,6 +342,7 @@ export default function EventsPage() {
           anyBusy={Boolean(busy)}
           onToggleCancel={() => handleToggleCancel(item)}
           onDelete={() => handleDelete(item)}
+          onChanged={() => setReloadKey((current) => current + 1)}
         />
       ))}
 

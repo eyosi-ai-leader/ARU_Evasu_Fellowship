@@ -20,6 +20,8 @@ export const VISIBILITY_LABELS = {
   public: "Public",
   members: "Members only",
   ministry: "Ministry only",
+  small_group: "Small group",
+  small_group: "Small group only",
 };
 
 function parts(value) {

@@ -1,27 +1,34 @@
 import { getToken } from "@/lib/authToken";
+import { endSession } from "@/lib/accountApi";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
-async function request(path, { method = "GET", body } = {}) {
+async function request(path, { method = "GET", body, form } = {}) {
   const token = getToken();
 
   if (!token) {
     throw new Error("Your session has expired. Please sign in again.");
   }
 
-  const isForm = typeof FormData !== "undefined" && body instanceof FormData;
+  const headers = { Authorization: `Bearer ${token}` };
+  let payload;
+
+  if (form) {
+    // The browser sets the multipart boundary itself.
+    payload = form;
+  } else if (body !== undefined) {
+    headers["Content-Type"] = "application/json";
+    payload = JSON.stringify(body);
+  }
 
   let response;
 
   try {
     response = await fetch(`${API_URL}${path}`, {
       method,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        ...(body && !isForm ? { "Content-Type": "application/json" } : {}),
-      },
-      body: body ? (isForm ? body : JSON.stringify(body)) : undefined,
+      headers,
+      body: payload,
       cache: "no-store",
     });
   } catch {
@@ -30,7 +37,7 @@ async function request(path, { method = "GET", body } = {}) {
     );
   }
 
-  let result = {};
+  let result = null;
 
   try {
     result = await response.json();
@@ -38,37 +45,68 @@ async function request(path, { method = "GET", body } = {}) {
     /* non-JSON response */
   }
 
+  if (response.status === 401 || result?.code === "ACCOUNT_INACTIVE") {
+    endSession({ inactive: result?.code === "ACCOUNT_INACTIVE" });
+    throw new Error(result?.message || "Please sign in again.");
+  }
+
   if (!response.ok) {
     throw new Error(
-      result.message || "Something went wrong. Please try again."
+      result?.message || `Request failed with status ${response.status}`
     );
   }
 
-  return result.data;
+  return result?.data ?? null;
 }
 
-export const listEvents = ({ scope = "upcoming", search = "", page = 1 } = {}) => {
-  const params = new URLSearchParams();
+const enc = encodeURIComponent;
 
-  params.set("scope", scope);
+// scope: "upcoming" | "past"   fellowshipId: "" = every campus
+export function listEvents({
+  scope = "upcoming",
+  search = "",
+  page = 1,
+  fellowshipId = "",
+} = {}) {
+  const params = new URLSearchParams({ scope, page: String(page) });
+
   if (search) params.set("search", search);
-  params.set("page", String(page));
+  if (fellowshipId) params.set("fellowshipId", String(fellowshipId));
 
   return request(`/events?${params.toString()}`);
-};
+}
 
+// What the "add event" form can offer this person.
 export const getEventOptions = () => request("/events/options");
 
-export const getEventForEdit = (id) => request(`/events/${id}`);
+export const getEventForEdit = (id) => request(`/events/${enc(id)}`);
 
-export const createEvent = (formData) =>
-  request("/events", { method: "POST", body: formData });
+// form: FormData (the image is optional)
+export const createEvent = (form) =>
+  request("/events", { method: "POST", form });
 
-export const updateEvent = (id, formData) =>
-  request(`/events/${id}`, { method: "PUT", body: formData });
+export const updateEvent = (id, form) =>
+  request(`/events/${enc(id)}`, { method: "PUT", form });
 
+// status: "published" | "cancelled"
 export const setEventStatus = (id, status) =>
-  request(`/events/${id}/status`, { method: "PATCH", body: { status } });
+  request(`/events/${enc(id)}/status`, {
+    method: "PATCH",
+    body: { status },
+  });
 
 export const deleteEvent = (id) =>
-  request(`/events/${id}`, { method: "DELETE" });
+  request(`/events/${enc(id)}`, { method: "DELETE" });
+
+// RSVP: response is "going" | "maybe" | "not_going"
+export const setRsvp = (id, { response, guests = 0 }) =>
+  request(`/events/${enc(id)}/rsvp`, {
+    method: "PUT",
+    body: { response, guests },
+  });
+
+export const removeRsvp = (id) =>
+  request(`/events/${enc(id)}/rsvp`, { method: "DELETE" });
+
+// People who answered (for campus and ministry leaders).
+export const listRsvps = (id) => request(`/events/${enc(id)}/rsvps`);

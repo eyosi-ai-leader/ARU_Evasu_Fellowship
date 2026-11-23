@@ -34,7 +34,10 @@ const handle = (action) => async (req, res) => {
 /* ---- Public website (no sign-in) ---- */
 
 const publicList = handle(async (req, res) => {
-  const data = await service.listPublic({ limit: req.query.limit });
+  const data = await service.listPublic({
+    limit: req.query.limit,
+    fellowshipId: req.query.campus,
+  });
 
   res.set("Cache-Control", "public, max-age=30");
 
@@ -60,33 +63,34 @@ const publicDetail = handle(async (req, res) => {
 /* ---- Dashboard (signed in) ---- */
 
 const list = handle(async (req, res) => {
-  const data = await service.listForUser(req.user, {
+  const data = await service.listForUser(req.access, {
     scope: req.query.scope,
     search: req.query.search,
     page: req.query.page,
+    fellowshipId: req.query.fellowshipId,
   });
 
   return successResponse(res, "Events retrieved", data);
 });
 
 const options = handle(async (req, res) => {
-  const data = await service.getOptions(req.user);
+  const data = await service.getOptions(req.access);
   return successResponse(res, "Event options retrieved", data);
 });
 
 const details = handle(async (req, res) => {
-  const data = await service.getForEdit(req.user, Number(req.params.id));
+  const data = await service.getForEdit(req.access, Number(req.params.id));
   return successResponse(res, "Event retrieved", data);
 });
 
 const create = handle(async (req, res) => {
-  const data = await service.createEvent(req.user, req.body || {}, req.file);
+  const data = await service.createEvent(req.access, req.body || {}, req.file);
   return successResponse(res, "Event created.", data, 201);
 });
 
 const update = handle(async (req, res) => {
   const data = await service.updateEvent(
-    req.user,
+    req.access,
     Number(req.params.id),
     req.body || {},
     req.file
@@ -97,7 +101,7 @@ const update = handle(async (req, res) => {
 
 const changeStatus = handle(async (req, res) => {
   await service.changeStatus(
-    req.user,
+    req.access,
     Number(req.params.id),
     req.body.status
   );
@@ -106,8 +110,30 @@ const changeStatus = handle(async (req, res) => {
 });
 
 const remove = handle(async (req, res) => {
-  await service.deleteEvent(req.user, Number(req.params.id));
+  await service.deleteEvent(req.access, Number(req.params.id));
   return successResponse(res, "Event deleted.", null);
+});
+
+/* ---- RSVP ---- */
+
+const setRsvp = handle(async (req, res) => {
+  const data = await service.setRsvp(
+    req.access,
+    Number(req.params.id),
+    req.body || {}
+  );
+
+  return successResponse(res, "Your answer was saved.", data);
+});
+
+const removeRsvp = handle(async (req, res) => {
+  await service.removeRsvp(req.access, Number(req.params.id));
+  return successResponse(res, "Your answer was removed.", null);
+});
+
+const listRsvps = handle(async (req, res) => {
+  const data = await service.listRsvps(req.access, Number(req.params.id));
+  return successResponse(res, "Answers retrieved", data);
 });
 
 module.exports = {
@@ -121,4 +147,7 @@ module.exports = {
   update,
   changeStatus,
   remove,
+  setRsvp,
+  removeRsvp,
+  listRsvps,
 };

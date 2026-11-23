@@ -2,12 +2,9 @@ const crypto = require("crypto");
 
 const model = require("../models/eventModel");
 const time = require("../utils/churchTime");
+const reachScope = require("../utils/reachScope");
+const { parseDateTime, parseDateOnly } = require("../utils/dateInput");
 const { uploadImage, deleteImage } = require("./storageService");
-
-const ROLE_ADMIN = 1;
-const ROLE_PASTOR = 2;
-const ROLE_ELDER = 3;
-const ROLE_LEADER = 4;
 
 const CATEGORIES = [
   "Worship",
@@ -21,7 +18,16 @@ const CATEGORIES = [
   "Other",
 ];
 
-const VISIBILITIES = ["public", "members", "ministry"];
+/*
+ * public       the public website and every signed-in member
+ * members      signed-in members of the event's campus
+ *              (every campus when the event belongs to the whole fellowship)
+ * ministry     the members of one ministry
+ * small_group  the members of one small group
+ */
+const VISIBILITIES = ["public", "members", "ministry", "small_group"];
+
+const RESPONSES = ["going", "maybe", "not_going"];
 const PAGE_SIZE = 12;
 
 const httpError = (message, statusCode) => {
@@ -32,81 +38,135 @@ const httpError = (message, statusCode) => {
 
 const clean = (value) => (typeof value === "string" ? value.trim() : "");
 
-/* ---------------------------------------------------------------- */
-/* Access                                                            */
-/* ---------------------------------------------------------------- */
+const fullName = (first, last) => `${first || ""} ${last || ""}`.trim();
 
-const getAccess = async (user) => {
-  const roleId = Number(user.roleId);
-  const { memberMinistryIds, ledMinistryIds } = await model.getMinistryAccess(
-    user.id
-  );
+const shortCampus = (name) => String(name || "").replace(/\s+Fellowship$/i, "");
 
-  return {
-    roleId,
-    isStaff: roleId === ROLE_ADMIN || roleId === ROLE_PASTOR,
-    isLeader: roleId === ROLE_LEADER,
-    viewsAll: [ROLE_ADMIN, ROLE_PASTOR, ROLE_ELDER].includes(roleId),
-    memberMinistryIds,
-    ledMinistryIds,
-  };
-};
-
-const canManage = (row, user, access) => {
-  if (access.isStaff) return true;
-
-  if (access.isLeader) {
-    return (
-      row.created_by === user.id ||
-      (row.ministry_id !== null &&
-        access.ledMinistryIds.includes(row.ministry_id))
-    );
+const positiveId = (value, label) => {
+  if (value === undefined || value === null || clean(String(value)) === "") {
+    return null;
   }
 
-  return false;
+  const id = Number(value);
+
+  if (!Number.isInteger(id) || id < 1) {
+    throw httpError(`Choose a valid ${label}.`, 400);
+  }
+
+  return id;
 };
+
+/* ---------------------------------------------------------------- */
+/* Who can see and manage                                            */
+/* ---------------------------------------------------------------- */
+
+const canManage = (row, access, reach) =>
+  reach.coversAll ||
+  row.created_by === access.user.id ||
+  (row.fellowship_id !== null && reach.campusIds.includes(row.fellowship_id)) ||
+  (row.ministry_id !== null && reach.ledMinistryIds.includes(row.ministry_id)) ||
+  (row.small_group_id !== null && reach.ledGroupIds.includes(row.small_group_id));
 
 /* Which events this signed-in person is allowed to see. */
-const viewerClause = (user, access) => {
-  if (access.viewsAll) return { clauseSql: "1 = 1", clauseParams: [] };
+const viewerClause = async (access, reach) => {
+  if (reach.coversAll) return { clauseSql: "1 = 1", clauseParams: [] };
 
-  let sql = "(e.visibility IN ('public', 'members') OR e.created_by = ?";
-  const params = [user.id];
+  const parts = ["e.visibility = 'public'", "e.created_by = ?"];
+  const params = [access.user.id];
 
-  if (access.memberMinistryIds.length > 0) {
-    sql += " OR (e.visibility = 'ministry' AND e.ministry_id IN (?))";
-    params.push(access.memberMinistryIds);
+  // Events for members: the whole fellowship, or my campus / campuses I manage.
+  const campusIds = [
+    ...new Set([
+      ...(access.member?.fellowshipId ? [access.member.fellowshipId] : []),
+      ...reach.campusIds,
+    ]),
+  ];
+
+  if (campusIds.length > 0) {
+    parts.push(
+      "(e.visibility = 'members' AND (e.fellowship_id IS NULL OR e.fellowship_id IN (?)))"
+    );
+    params.push(campusIds);
+  } else {
+    parts.push("(e.visibility = 'members' AND e.fellowship_id IS NULL)");
   }
 
-  sql += ")";
+  // Campus leaders see everything of their campus.
+  if (reach.campusIds.length > 0) {
+    parts.push("e.fellowship_id IN (?)");
+    params.push(reach.campusIds);
+  }
 
-  return { clauseSql: sql, clauseParams: params };
+  const ministryIds = [
+    ...new Set(access.positions.ministries.map((item) => item.id)),
+  ];
+
+  if (ministryIds.length > 0) {
+    parts.push("(e.visibility = 'ministry' AND e.ministry_id IN (?))");
+    params.push(ministryIds);
+  }
+
+  const mine = access.member
+    ? await model.getMySmallGroupIds(access.member.id)
+    : [];
+
+  const groupIds = [...new Set([...mine, ...reach.ledGroupIds])];
+
+  if (groupIds.length > 0) {
+    parts.push("(e.visibility = 'small_group' AND e.small_group_id IN (?))");
+    params.push(groupIds);
+  }
+
+  return { clauseSql: `(${parts.join(" OR ")})`, clauseParams: params };
+};
+
+// Narrow a clause to one campus (events of the whole fellowship stay in).
+const onlyCampus = (clause, fellowshipId) => {
+  const id = Number(fellowshipId);
+
+  if (!Number.isInteger(id) || id < 1) return clause;
+
+  return {
+    clauseSql: `(${clause.clauseSql}) AND (e.fellowship_id = ? OR e.fellowship_id IS NULL)`,
+    clauseParams: [...clause.clauseParams, id],
+  };
 };
 
 /* ---------------------------------------------------------------- */
 /* Mapping                                                           */
 /* ---------------------------------------------------------------- */
 
-const fullName = (first, last) => `${first || ""} ${last || ""}`.trim();
-
 const toEvent = (row, occurrence, extras = {}) => ({
   id: row.id,
   slug: row.slug,
   title: row.title,
+  theme: row.theme || "",
+  speaker: row.speaker || "",
   category: row.category,
   description: row.description,
+  verseReference: row.verse_reference || "",
+  verseText: row.verse_text || "",
   location: row.location,
+  onlineUrl: row.online_url || "",
+  contactPhone: row.contact_phone || "",
   startAt: occurrence.start,
   endAt: occurrence.end,
   firstStartAt: row.start_at,
   firstEndAt: row.end_at,
+  allDay: Boolean(row.all_day),
   imageUrl: row.image_url,
   visibility: row.visibility,
+  fellowshipId: row.fellowship_id,
+  campusName: shortCampus(row.campus_name),
   ministryId: row.ministry_id,
   ministryName: row.ministry_name || "",
+  smallGroupId: row.small_group_id,
+  smallGroupName: row.small_group_name || "",
   repeatType: row.repeat_type,
   repeatUntil: row.repeat_until,
   featured: Boolean(row.featured),
+  rsvpEnabled: Boolean(row.rsvp_enabled),
+  capacity: row.capacity,
   status: row.status,
   cancelled: row.status === "cancelled",
   ongoing: occurrence.ongoing,
@@ -118,12 +178,18 @@ const toEvent = (row, occurrence, extras = {}) => ({
 const toPublic = (row, occurrence) => ({
   slug: row.slug,
   title: row.title,
+  theme: row.theme || "",
+  speaker: row.speaker || "",
   category: row.category,
   description: row.description,
+  verseReference: row.verse_reference || "",
+  verseText: row.verse_text || "",
   location: row.location,
   startAt: occurrence.start,
   endAt: occurrence.end,
+  allDay: Boolean(row.all_day),
   imageUrl: row.image_url,
+  campusName: shortCampus(row.campus_name),
   ministryName: row.ministry_name || "",
   repeatType: row.repeat_type,
   repeatUntil: row.repeat_until,
@@ -143,13 +209,18 @@ const withOccurrences = (rows, nowStr) =>
 /* Public website                                                    */
 /* ---------------------------------------------------------------- */
 
-const publicClause = { clauseSql: "e.visibility = 'public'", clauseParams: [] };
+const publicClause = (fellowshipId) =>
+  onlyCampus({ clauseSql: "e.visibility = 'public'", clauseParams: [] }, fellowshipId);
 
-const listPublic = async ({ limit }) => {
+const listPublic = async ({ limit, fellowshipId }) => {
   const size = Math.min(50, Math.max(1, Number(limit) || 12));
   const nowStr = time.nowInChurch();
 
-  const rows = await model.findUpcoming({ ...publicClause, nowStr, search: "" });
+  const rows = await model.findUpcoming({
+    ...publicClause(fellowshipId),
+    nowStr,
+    search: "",
+  });
 
   return withOccurrences(rows, nowStr)
     .slice(0, size)
@@ -159,7 +230,11 @@ const listPublic = async ({ limit }) => {
 const getPublicFeatured = async () => {
   const nowStr = time.nowInChurch();
 
-  const rows = await model.findUpcoming({ ...publicClause, nowStr, search: "" });
+  const rows = await model.findUpcoming({
+    ...publicClause(null),
+    nowStr,
+    search: "",
+  });
 
   const upcoming = withOccurrences(
     rows.filter((row) => row.status === "published"),
@@ -183,19 +258,171 @@ const getPublicBySlug = async (slug) => {
 };
 
 /* ---------------------------------------------------------------- */
+/* RSVP                                                              */
+/* ---------------------------------------------------------------- */
+
+const attachRsvp = async (items, userId) => {
+  const ids = items.filter((item) => item.rsvpEnabled).map((item) => item.id);
+
+  if (ids.length === 0) return items;
+
+  const [summary, mine] = await Promise.all([
+    model.getRsvpSummary(ids),
+    model.getMyRsvps(ids, userId),
+  ]);
+
+  return items.map((item) => {
+    if (!item.rsvpEnabled) return item;
+
+    const date = item.startAt.slice(0, 10);
+    const rows = summary.filter(
+      (row) => row.event_id === item.id && row.date === date
+    );
+
+    const count = (response) => {
+      const row = rows.find((entry) => entry.response === response);
+
+      return row ? Number(row.people) + Number(row.guests) : 0;
+    };
+
+    const own = mine.find(
+      (row) => row.event_id === item.id && row.date === date
+    );
+
+    return {
+      ...item,
+      rsvp: {
+        going: count("going"),
+        maybe: count("maybe"),
+        notGoing: count("not_going"),
+        mine: own ? own.response : null,
+        myGuests: own ? Number(own.guests) : 0,
+        full: Boolean(item.capacity) && count("going") >= item.capacity,
+      },
+    };
+  });
+};
+
+const nextDate = (row) => {
+  const occurrence = time.computeOccurrence(row, time.nowInChurch());
+
+  return { occurrence, date: occurrence.start.slice(0, 10) };
+};
+
+const setRsvp = async (access, id, body) => {
+  const reach = await reachScope.getReach(access);
+  const clause = await viewerClause(access, reach);
+  const row = await model.findByIdForViewer(id, clause.clauseSql, clause.clauseParams);
+
+  if (!row) throw httpError("Event not found.", 404);
+
+  if (!row.rsvp_enabled) {
+    throw httpError("RSVP is not open for this event.", 400);
+  }
+
+  if (row.status === "cancelled") {
+    throw httpError("This event was cancelled.", 400);
+  }
+
+  const { occurrence, date } = nextDate(row);
+
+  if (occurrence.ended) {
+    throw httpError("This event has already taken place.", 400);
+  }
+
+  const response = clean(body.response);
+
+  if (!RESPONSES.includes(response)) {
+    throw httpError("Choose going, maybe or not going.", 400);
+  }
+
+  const guests =
+    response === "going"
+      ? Math.min(5, Math.max(0, Number.parseInt(body.guests, 10) || 0))
+      : 0;
+
+  if (response === "going" && row.capacity) {
+    const taken = await model.sumGoing(row.id, date, access.user.id);
+
+    if (taken + 1 + guests > row.capacity) {
+      throw httpError("This event is full.", 409);
+    }
+  }
+
+  await model.upsertRsvp({
+    eventId: row.id,
+    userId: access.user.id,
+    date,
+    response,
+    guests,
+  });
+
+  return { response, guests, date };
+};
+
+const removeRsvp = async (access, id) => {
+  const reach = await reachScope.getReach(access);
+  const clause = await viewerClause(access, reach);
+  const row = await model.findByIdForViewer(id, clause.clauseSql, clause.clauseParams);
+
+  if (!row) throw httpError("Event not found.", 404);
+
+  await model.deleteRsvp({
+    eventId: row.id,
+    userId: access.user.id,
+    date: nextDate(row).date,
+  });
+};
+
+const listRsvps = async (access, id) => {
+  const reach = await reachScope.getReach(access);
+  const row = await model.findById(id);
+
+  if (!row) throw httpError("Event not found.", 404);
+
+  if (!canManage(row, access, reach)) {
+    throw httpError("You can't see the answers for this event.", 403);
+  }
+
+  const { date } = nextDate(row);
+  const people = await model.listRsvps(row.id, date);
+
+  const total = (response) =>
+    people
+      .filter((person) => person.response === response)
+      .reduce((sum, person) => sum + 1 + Number(person.guests), 0);
+
+  return {
+    date,
+    capacity: row.capacity,
+    going: total("going"),
+    maybe: total("maybe"),
+    notGoing: total("not_going"),
+    people: people.map((person) => ({
+      name: fullName(person.first_name, person.last_name),
+      email: person.email,
+      memberNumber: person.member_number || "",
+      response: person.response,
+      guests: Number(person.guests),
+      answeredAt: person.updated_at,
+    })),
+  };
+};
+
+/* ---------------------------------------------------------------- */
 /* Dashboard                                                         */
 /* ---------------------------------------------------------------- */
 
-const listForUser = async (user, { scope, search, page }) => {
-  const access = await getAccess(user);
+const listForUser = async (access, { scope, search, page, fellowshipId }) => {
+  const reach = await reachScope.getReach(access);
   const nowStr = time.nowInChurch();
-  const clause = viewerClause(user, access);
+  const clause = onlyCampus(await viewerClause(access, reach), fellowshipId);
   const term = String(search || "").trim();
   const pageNumber = Math.max(1, Number(page) || 1);
   const offset = (pageNumber - 1) * PAGE_SIZE;
 
   const extras = (row) => ({
-    canManage: canManage(row, user, access),
+    canManage: canManage(row, access, reach),
     createdBy: fullName(row.creator_first_name, row.creator_last_name),
   });
 
@@ -221,52 +448,58 @@ const listForUser = async (user, { scope, search, page }) => {
   const all = withOccurrences(rows, nowStr);
   const slice = all.slice(offset, offset + PAGE_SIZE);
 
-  return {
-    items: slice.map((entry) =>
+  const items = await attachRsvp(
+    slice.map((entry) =>
       toEvent(entry.row, entry.occurrence, extras(entry.row))
     ),
-    total: all.length,
-    hasMore: offset + slice.length < all.length,
-  };
-};
-
-const getOptions = async (user) => {
-  const access = await getAccess(user);
-
-  if (!access.isStaff && !access.isLeader) {
-    throw httpError("Access denied.", 403);
-  }
-
-  const ministries = await model.getMinistries(
-    access.isStaff ? null : access.ledMinistryIds
+    access.user.id
   );
 
-  if (access.isLeader && ministries.length === 0) {
-    throw httpError(
-      "You are not assigned as the leader of an active ministry.",
-      403
-    );
-  }
+  return { items, total: all.length, hasMore: offset + slice.length < all.length };
+};
+
+/*
+ * What the "new event" form can offer this person. Each campus has its own
+ * ministries and small groups, grouped by campus.
+ */
+const getOptions = async (access) => {
+  const reach = await reachScope.getReach(access);
+
+  if (!reach.canSend) throw httpError("Access denied.", 403);
+
+  const [ministries, smallGroups] = await Promise.all([
+    reachScope.listMinistries(reach),
+    reachScope.listSmallGroups(reach),
+  ]);
+
+  const managesCampus = reach.coversAll || reach.campusIds.length > 0;
+
+  const visibilities = managesCampus
+    ? VISIBILITIES
+    : [
+        ...(reach.ledMinistryIds.length > 0 ? ["members", "ministry"] : []),
+        ...(reach.ledGroupIds.length > 0 ? ["small_group"] : []),
+      ];
 
   return {
-    role: access.isStaff ? "staff" : "leader",
-    canPublic: access.isStaff,
-    canFeature: access.isStaff,
+    canWholeFellowship: reach.coversAll,
+    canPublic: managesCampus,
+    canFeature: reach.coversAll,
+    visibilities,
     categories: CATEGORIES,
-    ministries: ministries.map((ministry) => ({
-      id: ministry.id,
-      name: ministry.name,
-    })),
+    campuses: reach.campuses,
+    ministries,
+    smallGroups,
   };
 };
 
-const getForEdit = async (user, id) => {
-  const access = await getAccess(user);
+const getForEdit = async (access, id) => {
+  const reach = await reachScope.getReach(access);
   const row = await model.findById(id);
 
   if (!row) throw httpError("Event not found.", 404);
 
-  if (!canManage(row, user, access)) {
+  if (!canManage(row, access, reach)) {
     throw httpError("You can't edit this event.", 403);
   }
 
@@ -279,52 +512,108 @@ const getForEdit = async (user, id) => {
 /* Validation                                                        */
 /* ---------------------------------------------------------------- */
 
-const parseDateTime = (value) => {
-  const match = /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})(?::\d{2})?$/.exec(
-    String(value || "").trim()
-  );
+/*
+ * Where the event belongs and who sees it, checked against what this
+ * person may do:
+ *   whole fellowship      people who serve every campus
+ *   a campus              its Main Leader, Fellowship Admin and Staff
+ *   a ministry            leaders of that ministry (or the campus leaders)
+ *   a small group         its overseers (or the campus leaders)
+ */
+const resolvePlacement = async (body, reach) => {
+  const visibility = clean(body.visibility) || "members";
 
-  if (!match) return null;
-
-  const normalized = `${match[1]} ${match[2]}:00`;
-  const date = time.parseNaive(normalized);
-
-  return date && time.formatNaive(date) === normalized ? normalized : null;
-};
-
-const parseDateOnly = (value) => {
-  const text = String(value || "").trim();
-
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
-
-  const date = time.parseNaive(`${text} 00:00:00`);
-
-  return date && time.formatNaive(date) === `${text} 00:00:00` ? text : null;
-};
-
-const parseInput = async (body, user, access) => {
-  const title = clean(body.title);
-  const description = clean(body.description);
-  const location = clean(body.location);
-  const category = clean(body.category) || "Other";
-
-  if (title.length < 3 || title.length > 150) {
-    throw httpError("The title must be between 3 and 150 characters.", 400);
+  if (!VISIBILITIES.includes(visibility)) {
+    throw httpError("Choose who can see this event.", 400);
   }
 
-  if (description.length < 10 || description.length > 5000) {
+  const managesCampus = (campusId) =>
+    campusId === null ? reach.coversAll : reach.coversAll || reach.campusIds.includes(campusId);
+
+  const ministryId = positiveId(body.ministryId, "ministry");
+  const smallGroupId = positiveId(body.smallGroupId, "small group");
+  let fellowshipId = positiveId(body.fellowshipId, "campus");
+  let ministry = null;
+  let group = null;
+
+  if (visibility === "small_group") {
+    if (!smallGroupId) throw httpError("Choose the small group.", 400);
+
+    group = await model.findSmallGroup(smallGroupId);
+
+    if (!group) throw httpError("That small group was not found.", 400);
+
+    if (!managesCampus(group.fellowship_id) && !reach.ledGroupIds.includes(group.id)) {
+      throw httpError("You can only add events for small groups you manage or oversee.", 403);
+    }
+
+    fellowshipId = group.fellowship_id;
+  } else if (visibility === "ministry" || ministryId) {
+    if (!ministryId) throw httpError("Choose the ministry.", 400);
+
+    ministry = await model.findMinistry(ministryId);
+
+    if (!ministry) throw httpError("That ministry was not found.", 400);
+
+    if (
+      !managesCampus(ministry.fellowship_id) &&
+      !reach.ledMinistryIds.includes(ministry.id)
+    ) {
+      throw httpError("You can only add events for ministries you manage or lead.", 403);
+    }
+
+    fellowshipId = ministry.fellowship_id;
+  } else {
+    // The whole fellowship, or one campus: only campus leaders.
+    if (fellowshipId === null && !reach.coversAll) {
+      if (reach.campusIds.length === 1) {
+        fellowshipId = reach.campusIds[0];
+      } else {
+        throw httpError("Choose the campus for this event.", 400);
+      }
+    }
+
+    if (fellowshipId !== null && !(await model.findCampus(fellowshipId))) {
+      throw httpError("That campus was not found.", 400);
+    }
+
+    if (!managesCampus(fellowshipId)) {
+      throw httpError("You can only add events for campuses you manage.", 403);
+    }
+  }
+
+  if (visibility === "public" && !managesCampus(fellowshipId)) {
     throw httpError(
-      "The description must be between 10 and 5000 characters.",
-      400
+      "Only campus leaders can publish events on the public website.",
+      403
     );
   }
 
-  if (location.length < 2 || location.length > 255) {
-    throw httpError("The location must be between 2 and 255 characters.", 400);
-  }
+  return {
+    visibility,
+    fellowshipId,
+    ministryId: ministry ? ministry.id : null,
+    smallGroupId: group ? group.id : null,
+  };
+};
 
-  if (!CATEGORIES.includes(category)) {
-    throw httpError("Choose a valid category.", 400);
+const parseWhen = (body) => {
+  const allDay = body.allDay === true || body.allDay === "true";
+
+  if (allDay) {
+    const day = parseDateOnly(clean(body.startAt).slice(0, 10));
+
+    if (!day) throw httpError("Enter a valid date.", 400);
+
+    const endDay = clean(body.endAt)
+      ? parseDateOnly(clean(body.endAt).slice(0, 10))
+      : day;
+
+    if (!endDay) throw httpError("Enter a valid end date.", 400);
+
+    if (endDay < day) throw httpError("The end date can't be before the start date.", 400);
+
+    return { allDay, startAt: `${day} 00:00:00`, endAt: `${endDay} 23:59:00` };
   }
 
   const startAt = parseDateTime(body.startAt);
@@ -343,18 +632,67 @@ const parseInput = async (body, user, access) => {
     }
   }
 
-  const visibility = clean(body.visibility) || "public";
+  return { allDay, startAt, endAt };
+};
 
-  if (!VISIBILITIES.includes(visibility)) {
-    throw httpError("Choose who can see this event.", 400);
+const parseOnlineUrl = (value) => {
+  const url = clean(value);
+
+  if (!url) return "";
+
+  if (url.length > 500 || !/^https?:\/\/[^\s]+$/i.test(url)) {
+    throw httpError("The online link must start with https://", 400);
   }
 
-  if (access.isLeader && visibility === "public") {
-    throw httpError(
-      "Only pastors and administrators can publish events on the public website.",
-      403
-    );
+  return url;
+};
+
+const parseInput = async (body, reach) => {
+  const title = clean(body.title);
+
+  if (title.length < 3 || title.length > 150) {
+    throw httpError("The title must be between 3 and 150 characters.", 400);
   }
+
+  // Everything else is optional.
+  const description = clean(body.description);
+
+  if (description.length > 5000) {
+    throw httpError("The description must not exceed 5000 characters.", 400);
+  }
+
+  const category = clean(body.category) || "Other";
+
+  if (!CATEGORIES.includes(category)) {
+    throw httpError("Choose a valid category.", 400);
+  }
+
+  const optional = (value, max, label) => {
+    const text = clean(value);
+
+    if (text.length > max) {
+      throw httpError(`${label} must not exceed ${max} characters.`, 400);
+    }
+
+    return text || null;
+  };
+
+  const contactPhone = clean(body.contactPhone);
+
+  if (contactPhone && !/^[0-9+\-\s()]{6,30}$/.test(contactPhone)) {
+    throw httpError("Enter a valid contact phone number.", 400);
+  }
+
+  const onlineUrl = parseOnlineUrl(body.onlineUrl);
+  const when = parseWhen(body);
+
+  const place = clean(body.location);
+
+  if (place.length > 255) {
+    throw httpError("The location must not exceed 255 characters.", 400);
+  }
+
+  const location = place || (onlineUrl ? "Online" : "To be announced");
 
   const repeatType = clean(body.repeatType) === "weekly" ? "weekly" : "none";
 
@@ -367,59 +705,45 @@ const parseInput = async (body, user, access) => {
       throw httpError("Enter a valid date for the last repeat.", 400);
     }
 
-    if (repeatUntil < startAt.slice(0, 10)) {
-      throw httpError(
-        "The last repeat can't be before the first date.",
-        400
-      );
+    if (repeatUntil < when.startAt.slice(0, 10)) {
+      throw httpError("The last repeat can't be before the first date.", 400);
     }
   }
 
-  let ministryId = null;
+  const rsvpEnabled = body.rsvpEnabled === true || body.rsvpEnabled === "true";
 
-  if (clean(body.ministryId)) {
-    ministryId = Number(body.ministryId);
+  let capacity = null;
 
-    if (!Number.isInteger(ministryId) || ministryId < 1) {
-      throw httpError("Choose a valid ministry.", 400);
+  if (clean(String(body.capacity ?? ""))) {
+    capacity = Number(body.capacity);
+
+    if (!Number.isInteger(capacity) || capacity < 1 || capacity > 5000) {
+      throw httpError("The capacity must be a number between 1 and 5000.", 400);
     }
   }
 
-  if (access.isLeader) {
-    if (!ministryId) {
-      throw httpError("Choose one of the ministries you lead.", 400);
-    }
-
-    if (!access.ledMinistryIds.includes(ministryId)) {
-      throw httpError("You can only add events for ministries you lead.", 403);
-    }
-  }
-
-  if (visibility === "ministry" && !ministryId) {
-    throw httpError("Choose the ministry for a ministry-only event.", 400);
-  }
-
-  if (ministryId && access.isStaff) {
-    const found = await model.getMinistries([ministryId]);
-
-    if (found.length === 0) throw httpError("That ministry was not found.", 400);
-  }
-
+  const placement = await resolvePlacement(body, reach);
   const wantsFeatured = body.featured === true || body.featured === "true";
 
   return {
     title,
+    theme: optional(body.theme, 150, "The theme"),
+    speaker: optional(body.speaker, 150, "The speaker"),
     category,
     description,
+    verseReference: optional(body.verseReference, 100, "The verse reference"),
+    verseText: optional(body.verseText, 600, "The verse text"),
     location,
-    startAt,
-    endAt,
-    visibility,
-    ministryId,
+    onlineUrl: onlineUrl || null,
+    contactPhone: contactPhone || null,
+    ...when,
+    ...placement,
     repeatType,
     repeatUntil,
-    // Only staff can feature an event on the homepage, and only public ones.
-    featured: Boolean(access.isStaff && wantsFeatured && visibility === "public"),
+    rsvpEnabled,
+    capacity: rsvpEnabled ? capacity : null,
+    // Only people who serve every campus can feature a public event.
+    featured: Boolean(reach.coversAll && wantsFeatured && placement.visibility === "public"),
   };
 };
 
@@ -485,14 +809,12 @@ const makeSlug = async (title) => {
 /* Changes                                                           */
 /* ---------------------------------------------------------------- */
 
-const createEvent = async (user, body, file) => {
-  const access = await getAccess(user);
+const createEvent = async (access, body, file) => {
+  const reach = await reachScope.getReach(access);
 
-  if (!access.isStaff && !access.isLeader) {
-    throw httpError("Access denied.", 403);
-  }
+  if (!reach.canSend) throw httpError("Access denied.", 403);
 
-  const data = await parseInput(body, user, access);
+  const data = await parseInput(body, reach);
 
   let uploaded = null;
 
@@ -507,7 +829,7 @@ const createEvent = async (user, body, file) => {
       ...data,
       slug,
       imageUrl: uploaded?.secureUrl || null,
-      createdBy: user.id,
+      createdBy: access.user.id,
     });
 
     return { id, slug };
@@ -520,17 +842,17 @@ const createEvent = async (user, body, file) => {
   }
 };
 
-const updateEvent = async (user, id, body, file) => {
-  const access = await getAccess(user);
+const updateEvent = async (access, id, body, file) => {
+  const reach = await reachScope.getReach(access);
   const existing = await model.findById(id);
 
   if (!existing) throw httpError("Event not found.", 404);
 
-  if (!canManage(existing, user, access)) {
+  if (!canManage(existing, access, reach)) {
     throw httpError("You can't edit this event.", 403);
   }
 
-  const data = await parseInput(body, user, access);
+  const data = await parseInput(body, reach);
 
   const removeRequested =
     body.removeImage === true || body.removeImage === "true";
@@ -562,26 +884,26 @@ const updateEvent = async (user, id, body, file) => {
   return { id, slug: existing.slug };
 };
 
-const changeStatus = async (user, id, status) => {
-  const access = await getAccess(user);
+const changeStatus = async (access, id, status) => {
+  const reach = await reachScope.getReach(access);
   const existing = await model.findById(id);
 
   if (!existing) throw httpError("Event not found.", 404);
 
-  if (!canManage(existing, user, access)) {
+  if (!canManage(existing, access, reach)) {
     throw httpError("You can't change this event.", 403);
   }
 
   await model.setStatus(id, status);
 };
 
-const deleteEvent = async (user, id) => {
-  const access = await getAccess(user);
+const deleteEvent = async (access, id) => {
+  const reach = await reachScope.getReach(access);
   const existing = await model.findById(id);
 
   if (!existing) throw httpError("Event not found.", 404);
 
-  if (!canManage(existing, user, access)) {
+  if (!canManage(existing, access, reach)) {
     throw httpError("You can't delete this event.", 403);
   }
 
@@ -599,4 +921,7 @@ module.exports = {
   updateEvent,
   changeStatus,
   deleteEvent,
+  setRsvp,
+  removeRsvp,
+  listRsvps,
 };
