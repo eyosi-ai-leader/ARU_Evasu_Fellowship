@@ -27,7 +27,7 @@ import {
 
 function Avatar({ info }) {
   return (
-    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-slate-900 text-sm font-bold text-white shadow-sm">
+    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-ember text-sm font-bold text-white shadow-card">
       {info.profileImage ? (
         <img
           src={info.profileImage}
@@ -48,13 +48,13 @@ function StatusDot({ status }) {
     <span
       className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
         active
-          ? "bg-emerald-50 text-emerald-700"
-          : "bg-slate-100 text-slate-500"
+          ? "bg-success/10 text-success"
+          : "bg-surface-muted text-body ring-1 ring-line"
       }`}
     >
       <span
         className={`h-1.5 w-1.5 rounded-full ${
-          active ? "bg-emerald-500" : "bg-slate-400"
+          active ? "bg-success" : "bg-body/50"
         }`}
       />
       {status}
@@ -69,9 +69,9 @@ function QuickButton({ href, icon: Icon, label, external = false }) {
       {...(external
         ? { target: "_blank", rel: "noopener noreferrer" }
         : {})}
-      className="flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 transition active:bg-slate-100"
+      className="flex h-11 min-w-0 flex-1 items-center justify-center gap-2 rounded-full bg-white px-2 text-xs font-semibold text-ink ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97] active:bg-primary/5"
     >
-      <Icon size={15} className="shrink-0 text-slate-500" />
+      <Icon size={15} className="shrink-0 text-primary" />
       <span className="truncate">{label}</span>
     </a>
   );
@@ -85,14 +85,14 @@ function PlacementLine({ placement, mode }) {
   if (mode === "smallGroup") {
     return (
       <div className="flex items-center gap-2">
-        <Home size={14} className="shrink-0 text-slate-300" />
+        <Home size={14} className="shrink-0 text-body/50" />
 
         {placement.family ? (
-          <dd className="min-w-0 truncate font-medium text-slate-600">
+          <dd className="min-w-0 truncate font-medium text-ink">
             {placement.family}
           </dd>
         ) : (
-          <dd className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+          <dd className="rounded-full bg-accent/20 px-2 py-0.5 text-[11px] font-semibold text-ink ring-1 ring-accent/40">
             Not yet in a family
           </dd>
         )}
@@ -103,9 +103,9 @@ function PlacementLine({ placement, mode }) {
   if (!placement.hasSmallGroup) {
     return (
       <div className="flex items-center gap-2">
-        <Users size={14} className="shrink-0 text-slate-300" />
+        <Users size={14} className="shrink-0 text-body/50" />
 
-        <dd className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+        <dd className="rounded-full bg-accent/20 px-2 py-0.5 text-[11px] font-semibold text-ink ring-1 ring-accent/40">
           Not yet in a small group
         </dd>
       </div>
@@ -114,14 +114,14 @@ function PlacementLine({ placement, mode }) {
 
   return (
     <div className="flex items-center gap-2">
-      <Users size={14} className="shrink-0 text-slate-300" />
+      <Users size={14} className="shrink-0 text-body/50" />
 
-      <dd className="min-w-0 truncate font-medium text-slate-600">
+      <dd className="min-w-0 truncate font-medium text-ink">
         {placement.smallGroup}
         {placement.family ? (
           ` · ${placement.family}`
         ) : (
-          <span className="font-semibold text-amber-600"> · Not yet in a family</span>
+          <span className="font-semibold text-ember"> · Not yet in a family</span>
         )}
       </dd>
     </div>
@@ -159,12 +159,12 @@ export default function MemberMobileCard({
       <div className="min-w-0 flex-1">
         <p
           title={info.fullName}
-          className="truncate text-[15px] font-bold leading-5 text-slate-900"
+          className="truncate font-display text-[15px] font-semibold leading-5 text-ink"
         >
           {info.fullName}
         </p>
 
-        <p className="mt-0.5 truncate font-mono text-[11px] font-medium text-slate-400">
+        <p className="mt-0.5 truncate font-mono text-[11px] font-medium text-body">
           {info.memberNumber}
         </p>
 
@@ -183,7 +183,7 @@ export default function MemberMobileCard({
           {positions.map((position) => (
             <span
               key={position}
-              className="rounded-full bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold text-indigo-600"
+              className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary"
             >
               {position}
             </span>
@@ -192,19 +192,19 @@ export default function MemberMobileCard({
       </div>
 
       {info.canView && (
-        <ChevronRight size={18} className="shrink-0 text-slate-300" />
+        <ChevronRight size={18} className="shrink-0 text-body/50" />
       )}
     </div>
   );
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <article className="overflow-hidden rounded-3xl bg-white shadow-card ring-1 ring-line">
       {/* Tap the top part to open the member */}
       {info.canView ? (
         <Link
           href={`/dashboard/members/${member.id}`}
           aria-label={`Open ${info.fullName}`}
-          className="block p-4 transition active:bg-slate-50"
+          className="block p-4 transition active:bg-primary/5"
         >
           {top}
         </Link>
@@ -217,11 +217,11 @@ export default function MemberMobileCard({
         (isMinistry && info.ministryName) ||
         (showCampus && info.campus) ||
         showPlacement) && (
-        <dl className="space-y-1.5 px-4 pb-3 text-xs text-slate-500">
+        <dl className="space-y-1.5 px-4 pb-3 text-xs text-body">
           {!isMinistry && academicLine && (
             <div className="flex items-center gap-2">
-              <GraduationCap size={14} className="shrink-0 text-slate-300" />
-              <dd className="min-w-0 truncate font-medium text-slate-600">
+              <GraduationCap size={14} className="shrink-0 text-body/50" />
+              <dd className="min-w-0 truncate font-medium text-ink">
                 {academicLine}
               </dd>
             </div>
@@ -233,8 +233,8 @@ export default function MemberMobileCard({
 
           {isMinistry && (
             <div className="flex items-center gap-2">
-              <Building2 size={14} className="shrink-0 text-slate-300" />
-              <dd className="min-w-0 truncate font-medium text-slate-600">
+              <Building2 size={14} className="shrink-0 text-body/50" />
+              <dd className="min-w-0 truncate font-medium text-ink">
                 {info.ministryName}
                 {info.displayedRole ? ` · ${info.displayedRole}` : ""}
               </dd>
@@ -243,7 +243,7 @@ export default function MemberMobileCard({
 
           {showCampus && info.campus && (
             <div className="flex items-center gap-2">
-              <MapPin size={14} className="shrink-0 text-slate-300" />
+              <MapPin size={14} className="shrink-0 text-body/50" />
               <dd className="min-w-0 truncate">{info.campus}</dd>
             </div>
           )}
@@ -252,7 +252,7 @@ export default function MemberMobileCard({
 
       {/* One-tap contact buttons */}
       {(info.phone || telegram || info.email) && (
-        <div className="flex gap-2 border-t border-slate-100 px-3 py-3">
+        <div className="flex gap-2 border-t border-line px-3 py-3">
           {info.phone && (
             <QuickButton
               href={`tel:${info.phone}`}
@@ -282,8 +282,8 @@ export default function MemberMobileCard({
 
       {/* Management buttons (edit, delete, more...) */}
       {actions && (
-        <div className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/60 px-3 py-2">
-          <span className="truncate pl-1 text-[11px] font-medium text-slate-400">
+        <div className="flex items-center justify-between gap-2 border-t border-line bg-surface-muted/60 px-3 py-2">
+          <span className="truncate pl-1 text-[11px] font-medium text-body">
             {info.displayedRole}
           </span>
 

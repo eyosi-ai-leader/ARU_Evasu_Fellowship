@@ -22,14 +22,14 @@ export const optimizedImage = (url, width = 1200) => {
   return value.replace("/upload/", `/upload/c_limit,w_${width},q_auto,f_auto/`);
 };
 
-// A soft colour for ministries that have no cover image yet.
+// A soft brand colour for ministries that have no cover image yet.
 const GRADIENTS = [
-  "from-indigo-600 to-slate-900",
-  "from-emerald-600 to-slate-900",
-  "from-rose-600 to-slate-900",
-  "from-amber-500 to-slate-900",
-  "from-sky-600 to-slate-900",
-  "from-violet-600 to-slate-900",
+  "from-primary to-ink",
+  "from-ember to-primary-dark",
+  "from-accent to-primary",
+  "from-primary-dark to-ink",
+  "from-ember to-ink",
+  "from-primary to-ember",
 ];
 
 export const coverGradient = (name) => {

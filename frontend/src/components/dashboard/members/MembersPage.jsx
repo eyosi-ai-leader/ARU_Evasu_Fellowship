@@ -883,16 +883,16 @@ export default function MembersPage() {
   if (noAccess) {
     return (
       <div className="min-h-full">
-        <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+        <div className="mx-auto max-w-md rounded-3xl bg-white p-10 text-center shadow-card ring-1 ring-line">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <Lock size={24} />
           </div>
 
-          <h1 className="mt-4 text-sm font-bold text-slate-900">
+          <h1 className="mt-4 font-display text-lg font-semibold text-ink">
             No member list for your account
           </h1>
 
-          <p className="mt-1 text-xs leading-5 text-slate-400">
+          <p className="mt-1 text-sm leading-6 text-body">
             You don&apos;t manage a fellowship, ministry or small group yet.
             If you should, ask a Super Admin to check your role and campus.
           </p>
@@ -906,27 +906,28 @@ export default function MembersPage() {
       {/* Page heading */}
       <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-dark text-accent shadow-soft">
               {isMinistryLeader ? (
-                <Building2 size={19} strokeWidth={2} />
+                <Building2 size={21} strokeWidth={2} />
               ) : (
-                <Users size={19} strokeWidth={2} />
+                <Users size={21} strokeWidth={2} />
               )}
             </div>
 
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+              <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                <span className="h-0.5 w-5 rounded-full bg-accent" />
                 {eyebrow}
               </p>
 
-              <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-slate-900">
+              <h1 className="mt-1 font-display text-3xl font-semibold text-ink">
                 {heading}
               </h1>
             </div>
           </div>
 
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-body">
             {description}
           </p>
         </div>
@@ -941,7 +942,7 @@ export default function MembersPage() {
             type="button"
             onClick={handleExportExcel}
             disabled={exporting || (!members.length && !loading)}
-            className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 active:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-ink ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {exporting ? (
               <Loader2 size={16} className="animate-spin" />
@@ -955,7 +956,7 @@ export default function MembersPage() {
           {canManage && (
             <Link
               href="/dashboard/members/create"
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 active:bg-slate-700"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-white shadow-card transition hover:bg-primary-dark active:scale-[0.97]"
             >
               <Plus size={17} />
               <span>Add member</span>
@@ -978,10 +979,10 @@ export default function MembersPage() {
               role="tab"
               aria-selected={mode === item}
               onClick={() => handleModeChange(item)}
-              className={`rounded-xl border px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 ${
+              className={`rounded-full px-5 py-2.5 text-sm font-semibold transition active:scale-[0.97] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/10 ${
                 mode === item
-                  ? "border-slate-900 bg-slate-900 text-white"
-                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  ? "bg-primary text-white shadow-card"
+                  : "bg-white text-ink ring-1 ring-line hover:text-primary hover:ring-primary/40"
               }`}
             >
               {item === "ministry" ? "My ministry" : "My small group"}
@@ -990,21 +991,21 @@ export default function MembersPage() {
         </div>
       )}
 
-      {/* Ministry cards — Ministry Leader only */}
+      {/* Ministry cards: Ministry Leader only */}
       {isMinistryLeader && (
         <section className="space-y-4">
           <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-base font-bold text-slate-900">
+              <h2 className="font-display text-lg font-semibold text-ink">
                 Your ministries
               </h2>
 
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-1 text-sm text-body">
                 Select a card to view its assigned members.
               </p>
             </div>
 
-            <p className="text-xs font-medium text-slate-400">
+            <p className="text-xs font-medium text-body">
               {ministries.length}{" "}
               {ministries.length === 1 ? "ministry" : "ministries"}
             </p>
@@ -1015,19 +1016,21 @@ export default function MembersPage() {
               {[1, 2].map((item) => (
                 <div
                   key={item}
-                  className="h-36 animate-pulse rounded-2xl border border-slate-200 bg-white"
+                  className="h-36 animate-pulse rounded-3xl bg-surface-muted"
                 />
               ))}
             </div>
           ) : ministries.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center">
-              <Building2 className="mx-auto text-slate-400" size={24} />
+            <div className="rounded-3xl border border-dashed border-line bg-white p-8 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <Building2 size={22} />
+              </div>
 
-              <h3 className="mt-3 text-sm font-semibold text-slate-800">
+              <h3 className="mt-3 font-display text-base font-semibold text-ink">
                 No active ministry assignments
               </h3>
 
-              <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-slate-500">
+              <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-body">
                 Your ministries will appear here when you have an active
                 Ministry Leader assignment.
               </p>
@@ -1047,19 +1050,19 @@ export default function MembersPage() {
                       )
                     }
                     aria-pressed={isSelected}
-                    className={`group rounded-2xl border bg-white p-5 text-left shadow-sm transition ${
+                    className={`group rounded-3xl p-5 text-left shadow-card transition duration-300 hover:-translate-y-0.5 hover:shadow-soft ${
                       isSelected
-                        ? "border-slate-900 ring-1 ring-slate-900"
-                        : "border-slate-200 hover:border-slate-300 hover:shadow-md"
+                        ? "bg-primary/[0.04] ring-2 ring-primary"
+                        : "bg-white ring-1 ring-line"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700 transition group-hover:bg-slate-200">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                         <Building2 size={19} />
                       </div>
 
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-2.5 py-1 text-[11px] font-semibold text-success">
+                        <span className="h-1.5 w-1.5 rounded-full bg-success" />
                         Active
                       </span>
                     </div>
@@ -1068,35 +1071,35 @@ export default function MembersPage() {
                       <div className="min-w-0">
                         <h3
                           title={ministry.name}
-                          className="truncate text-sm font-bold text-slate-900"
+                          className="truncate font-display text-base font-semibold text-ink"
                         >
                           {ministry.name}
                         </h3>
 
-                        <p className="mt-1 text-xs text-slate-500">
+                        <p className="mt-1 text-xs text-body">
                           Assigned members
                         </p>
                       </div>
 
-                      <span className="text-3xl font-bold tracking-tight text-slate-900">
+                      <span className="font-display text-3xl font-semibold text-ink">
                         {ministry.memberCount}
                       </span>
                     </div>
 
-                    <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
-                      <span className="text-xs font-medium text-slate-500">
+                    <div className="mt-4 flex items-center justify-between border-t border-line pt-3">
+                      <span className="text-xs font-medium text-body">
                         {isSelected ? "Currently selected" : "View members"}
                       </span>
 
                       {isSelected ? (
                         <CheckCircle2
                           size={16}
-                          className="text-slate-900"
+                          className="text-primary"
                         />
                       ) : (
                         <ArrowUpRight
                           size={16}
-                          className="text-slate-400 transition group-hover:text-slate-900"
+                          className="text-body transition group-hover:text-primary"
                         />
                       )}
                     </div>
@@ -1110,19 +1113,19 @@ export default function MembersPage() {
 
       {/* Ministry selector */}
       {isMinistryLeader && (
-        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+        <section className="rounded-3xl bg-white p-4 shadow-card ring-1 ring-line sm:p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <Building2 size={18} />
               </div>
 
               <div>
-                <h2 className="text-sm font-semibold text-slate-900">
+                <h2 className="font-display text-base font-semibold text-ink">
                   Select ministry
                 </h2>
 
-                <p className="mt-1 text-xs leading-5 text-slate-500">
+                <p className="mt-1 text-xs leading-5 text-body">
                   {selectedMinistry
                     ? `Showing assignments for ${selectedMinistry.name}.`
                     : "All my ministries — view assignments across your ministry teams."}
@@ -1137,7 +1140,7 @@ export default function MembersPage() {
                   handleMinistryChange(event.target.value)
                 }
                 disabled={ministriesLoading && ministries.length === 0}
-                className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 disabled:cursor-not-allowed disabled:bg-slate-50"
+                className="h-11 w-full rounded-full border border-line bg-white px-4 text-sm text-ink outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 disabled:cursor-not-allowed disabled:bg-surface-muted"
               >
                 <option value="">All my ministries</option>
 
@@ -1155,58 +1158,58 @@ export default function MembersPage() {
       {/* General member overview cards for non-Ministry Leaders */}
       {!isMinistryLeader && (
         <div className="grid grid-cols-3 gap-3 sm:gap-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-slate-400">
+          <div className="rounded-3xl bg-white p-4 shadow-card ring-1 ring-line sm:p-5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-body">
                   Total students
                 </p>
 
-                <p className="mt-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+                <p className="mt-2 font-display text-xl font-semibold text-ink sm:text-3xl">
                   {pagination.total.toLocaleString()}
                 </p>
               </div>
 
-              <div className="hidden h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600 sm:flex">
+              <div className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary sm:flex">
                 <Users size={18} />
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-slate-400">
+          <div className="rounded-3xl bg-white p-4 shadow-card ring-1 ring-line sm:p-5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-body">
                   Showing
                 </p>
 
-                <p className="mt-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+                <p className="mt-2 font-display text-xl font-semibold text-ink sm:text-3xl">
                   {members.length}
                 </p>
               </div>
 
-              <div className="hidden h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600 sm:flex">
+              <div className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary sm:flex">
                 <UserPlus size={18} />
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-slate-400">
+          <div className="rounded-3xl bg-white p-4 shadow-card ring-1 ring-line sm:p-5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-body">
                   Page
                 </p>
 
-                <p className="mt-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+                <p className="mt-2 font-display text-xl font-semibold text-ink sm:text-3xl">
                   {pagination.totalPages
                     ? `${pagination.page} / ${pagination.totalPages}`
                     : "0"}
                 </p>
               </div>
 
-              <div className="hidden h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600 sm:flex">
-                <span className="text-sm font-bold">
+              <div className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary sm:flex">
+                <span className="font-display text-sm font-semibold">
                   {pagination.page}
                 </span>
               </div>
@@ -1236,28 +1239,28 @@ export default function MembersPage() {
       {notice && (
         <div
           role="status"
-          className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700"
+          className="rounded-2xl border border-success/30 bg-success/10 px-4 py-3 text-sm font-medium text-success"
         >
           {notice}
         </div>
       )}
 
       {error && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
+        <div className="rounded-2xl border border-danger/30 bg-danger/10 p-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-red-700">
+              <p className="text-sm font-semibold text-danger">
                 Could not complete the request
               </p>
 
-              <p className="mt-1 text-xs text-red-600">{error}</p>
+              <p className="mt-1 text-xs text-danger">{error}</p>
             </div>
 
             <button
               type="button"
               onClick={handleRefresh}
               disabled={refreshing}
-              className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+              className="shrink-0 rounded-full bg-white px-4 py-1.5 text-xs font-semibold text-danger ring-1 ring-danger/30 transition hover:bg-danger/10 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60"
             >
               Try again
             </button>

@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 const itemClass =
-  "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-xs font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900";
+  "flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-xs font-medium text-body transition hover:bg-primary/5 hover:text-primary";
 
 export default function MemberActionsMenu({
   member,
@@ -90,7 +90,7 @@ export default function MemberActionsMenu({
         onClick={() =>
           setOpen((value) => !value)
         }
-        className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-900 sm:h-8 sm:w-8"
+        className="flex h-9 w-9 items-center justify-center rounded-full text-body transition hover:bg-primary/10 hover:text-primary active:scale-[0.97] sm:h-8 sm:w-8"
       >
         <MoreHorizontal size={16} />
       </button>
@@ -98,7 +98,7 @@ export default function MemberActionsMenu({
       {open && (
         <div
           role="menu"
-          className={`absolute right-0 z-50 w-52 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg ${
+          className={`absolute right-0 z-50 w-56 overflow-hidden rounded-3xl bg-white p-2 shadow-soft ring-1 ring-line ${
             placement === "up"
               ? "bottom-10"
               : "top-10"
@@ -127,7 +127,7 @@ export default function MemberActionsMenu({
           )}
 
           {(canEdit || canChangeRole) && (
-            <div className="my-1 border-t border-slate-100" />
+            <div className="my-1.5 border-t border-line" />
           )}
 
           {canEdit && (
@@ -160,7 +160,7 @@ export default function MemberActionsMenu({
 
           {canDelete && (
             <>
-              <div className="my-1 border-t border-slate-100" />
+              <div className="my-1.5 border-t border-line" />
 
               <button
                 type="button"
@@ -168,7 +168,7 @@ export default function MemberActionsMenu({
                 onClick={() =>
                   handleAction(onDelete)
                 }
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-xs font-medium text-red-600 transition hover:bg-red-50"
+                className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left text-xs font-medium text-danger transition hover:bg-danger/10"
               >
                 <Trash2 size={15} />
                 Delete Member

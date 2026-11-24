@@ -4,16 +4,24 @@ import { useEffect, useState } from "react";
 import {
   AlertTriangle,
   CheckCircle2,
+  Clock,
   Download,
+  KeyRound,
   Loader2,
   Lock,
   Mail,
+  MailWarning,
   Search,
+  UserCheck,
+  UserX,
+  Users,
   X,
 } from "lucide-react";
 
 import AccessRow from "./AccessRow";
 import { FILTERS, csvCell, ACCESS_STATES } from "./accessStates";
+import CampusBadge from "@/components/dashboard/access/CampusBadge";
+import { shortCampusName } from "@/components/dashboard/small-groups/parts";
 import {
   deleteMemberAccount,
   exportMemberAccess,
@@ -23,16 +31,28 @@ import {
   setMemberStatus,
 } from "@/lib/memberAccessApi";
 import { useAccess } from "@/components/dashboard/access/AccessProvider";
+import useMyAccess from "@/lib/useMyAccess";
 
 const BULK_LIMIT = 25;
 
 const plural = (count, one, many) => (count === 1 ? one : many);
 
+const FILTER_ICONS = {
+  never: UserX,
+  invited: Mail,
+  expired: Clock,
+  unverified: MailWarning,
+  signed_in: UserCheck,
+  all: Users,
+};
+
 export default function MemberAccessPage() {
   const { access, loading: accessLoading } = useAccess();
+  const { campuses } = useMyAccess();
 
   const [filter, setFilter] = useState("never");
   const [search, setSearch] = useState("");
+  const [campusId, setCampusId] = useState("");
 
   const [items, setItems] = useState(null);
   const [summary, setSummary] = useState(null);
@@ -51,8 +71,9 @@ export default function MemberAccessPage() {
   const [reloadKey, setReloadKey] = useState(0);
 
   const isStaff = Boolean(access?.capabilities?.includes("fellowship:manage"));
+  const showCampus = campuses.length > 1;
 
-  // First page, and again when the filter, search or data changes.
+  // First page, and again when the filter, search, campus or data changes.
   useEffect(() => {
     if (!isStaff) return;
 
@@ -64,6 +85,7 @@ export default function MemberAccessPage() {
           const data = await listMemberAccess({
             filter,
             search: search.trim(),
+            fellowshipId: campusId,
             page: 1,
           });
 
@@ -86,7 +108,7 @@ export default function MemberAccessPage() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [isStaff, filter, search, reloadKey]);
+  }, [isStaff, filter, search, campusId, reloadKey]);
 
   function reload() {
     setSelected(new Set());
@@ -95,6 +117,13 @@ export default function MemberAccessPage() {
 
   function changeFilter(id) {
     setFilter(id);
+    setSelected(new Set());
+    setNotice(null);
+  }
+
+  function changeCampus(value) {
+    setCampusId(value);
+    setItems(null);
     setSelected(new Set());
     setNotice(null);
   }
@@ -109,6 +138,7 @@ export default function MemberAccessPage() {
       const data = await listMemberAccess({
         filter,
         search: search.trim(),
+        fellowshipId: campusId,
         page: page + 1,
       });
 
@@ -221,9 +251,7 @@ export default function MemberAccessPage() {
       setNotice({
         type: problems.length > 0 ? "warning" : "success",
         text: `${result.sent} ${plural(result.sent, "invitation", "invitations")} sent${
-          problems.length > 0
-            ? `, ${problems.length} could not be sent.`
-            : "."
+          problems.length > 0 ? `, ${problems.length} could not be sent.` : "."
         }`,
         details: problems,
       });
@@ -243,12 +271,17 @@ export default function MemberAccessPage() {
     setError("");
 
     try {
-      const rows = await exportMemberAccess({ filter, search: search.trim() });
+      const rows = await exportMemberAccess({
+        filter,
+        search: search.trim(),
+        fellowshipId: campusId,
+      });
 
       const header = [
         "Name",
         "Email",
         "Role",
+        "Campus",
         "Member number",
         "Access status",
         "Member status",
@@ -262,6 +295,7 @@ export default function MemberAccessPage() {
         row.name,
         row.email,
         row.role,
+        row.campusName,
         row.memberNumber,
         ACCESS_STATES[row.state]?.label || row.state,
         row.memberStatus,
@@ -299,12 +333,16 @@ export default function MemberAccessPage() {
 
   if (!isStaff) {
     return (
-      <div className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-        <Lock className="mx-auto h-10 w-10 text-slate-300" aria-hidden="true" />
-        <h1 className="mt-4 text-xl font-semibold text-slate-900">
+      <div className="mx-auto max-w-2xl rounded-3xl bg-white p-10 text-center shadow-card ring-1 ring-line">
+        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <Lock className="h-6 w-6" aria-hidden="true" />
+        </span>
+
+        <h1 className="mt-4 font-display text-2xl font-semibold text-ink">
           You don&apos;t have access to this page
         </h1>
-        <p className="mt-2 text-sm text-slate-500">
+
+        <p className="mt-2 text-sm text-body">
           Member access can be managed by campus leaders and administrators.
         </p>
       </div>
@@ -313,28 +351,47 @@ export default function MemberAccessPage() {
 
   const bulkSending = bulkState === "sending";
   const searching = search.trim().length > 0;
+  const activeFilter = FILTERS.find((entry) => entry.id === filter);
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Member Access
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          See who hasn&apos;t signed in yet, and send them an invitation to
-          set their password.
-        </p>
+      {/* Heading */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-dark text-accent shadow-soft">
+            <KeyRound size={20} strokeWidth={2} />
+          </div>
+
+          <div>
+            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+              <span className="h-0.5 w-5 rounded-full bg-accent" />
+              Management
+            </p>
+
+            <h1 className="mt-1 font-display text-3xl font-semibold text-ink">
+              Member Access
+            </h1>
+          </div>
+        </div>
+
+        <CampusBadge variant="pill" />
       </div>
+
+      <p className="-mt-3 max-w-2xl text-sm leading-6 text-body">
+        See who hasn&apos;t signed in yet, and send them an invitation to set
+        their password.
+      </p>
 
       {/* Summary tiles (they also work as filters) */}
       <div
         role="group"
         aria-label="Filter members"
-        className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6"
+        className="grid grid-cols-2 gap-3 sm:grid-cols-3"
       >
         {FILTERS.map((entry) => {
           const active = filter === entry.id;
           const value = summary ? summary[entry.count] : "-";
+          const Icon = FILTER_ICONS[entry.id] || Users;
 
           return (
             <button
@@ -342,60 +399,92 @@ export default function MemberAccessPage() {
               type="button"
               aria-pressed={active}
               onClick={() => changeFilter(entry.id)}
-              className={`rounded-xl border px-4 py-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+              className={`flex items-center gap-3 rounded-2xl p-4 text-left transition duration-300 hover:-translate-y-0.5 hover:shadow-soft focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 ${
                 active
-                  ? "border-slate-950 bg-slate-950 text-white"
-                  : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+                  ? "bg-gradient-to-br from-primary to-primary-dark text-white shadow-soft"
+                  : "bg-white text-body shadow-card ring-1 ring-line"
               }`}
             >
               <span
-                className={`block text-2xl font-bold ${
-                  active ? "text-white" : "text-slate-900"
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
+                  active ? "bg-white/15 text-accent" : "bg-primary/10 text-primary"
                 }`}
               >
-                {value}
+                <Icon size={17} aria-hidden="true" />
               </span>
-              <span
-                className={`block text-xs font-medium ${
-                  active ? "text-white/75" : "text-slate-500"
-                }`}
-              >
-                {entry.label}
+
+              <span className="min-w-0">
+                <span
+                  className={`block font-display text-2xl font-semibold leading-tight ${
+                    active ? "text-white" : "text-ink"
+                  }`}
+                >
+                  {value}
+                </span>
+
+                <span
+                  className={`block truncate text-xs font-medium ${
+                    active ? "text-white/80" : "text-body"
+                  }`}
+                >
+                  {entry.label}
+                </span>
               </span>
             </button>
           );
         })}
       </div>
 
-      <p className="rounded-xl bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-500">
+      {activeFilter && <p className="text-sm text-body">{activeFilter.hint}</p>}
+
+      <p className="rounded-2xl bg-surface-muted px-4 py-3 text-xs leading-5 text-body ring-1 ring-line">
         Sign-in tracking is new. Members who signed in before it was added
         appear as &quot;Never signed in&quot; until their next sign-in.
       </p>
 
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="relative w-full sm:max-w-xs">
-          <Search
-            size={16}
-            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-            aria-hidden="true"
-          />
+      <div className="flex flex-col gap-3 rounded-3xl bg-white p-4 shadow-card ring-1 ring-line lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-1 flex-col gap-3 sm:flex-row">
+          <div className="relative min-w-0 flex-1 sm:max-w-sm">
+            <Search
+              size={16}
+              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-body"
+              aria-hidden="true"
+            />
 
-          <input
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search by name, email or number"
-            aria-label="Search members"
-            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
-          />
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search by name, email or number"
+              aria-label="Search members"
+              className="h-11 w-full rounded-full border border-line bg-white pl-11 pr-4 text-sm text-ink outline-none transition placeholder:text-body/60 focus:border-primary focus:ring-4 focus:ring-primary/10"
+            />
+          </div>
+
+          {campuses.length > 1 && (
+            <select
+              value={campusId}
+              onChange={(event) => changeCampus(event.target.value)}
+              aria-label="Campus"
+              className="h-11 rounded-full border border-line bg-white px-4 text-sm font-medium text-ink outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
+            >
+              <option value="">All campuses</option>
+
+              {campuses.map((campus) => (
+                <option key={campus.id} value={String(campus.id)}>
+                  {shortCampusName(campus.name)}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         <button
           type="button"
           onClick={handleExport}
           disabled={exporting}
-          className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-ink ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 disabled:opacity-60"
         >
           {exporting ? (
             <Loader2 size={15} className="animate-spin" />
@@ -409,10 +498,10 @@ export default function MemberAccessPage() {
       {notice && (
         <div
           role="status"
-          className={`rounded-xl border px-4 py-3 text-sm ${
+          className={`rounded-2xl px-4 py-3 text-sm ring-1 ${
             notice.type === "warning"
-              ? "border-amber-200 bg-amber-50 text-amber-800"
-              : "border-emerald-200 bg-emerald-50 text-emerald-700"
+              ? "bg-accent/20 text-ink ring-accent/40"
+              : "bg-success/10 text-success ring-success/30"
           }`}
         >
           <div className="flex items-start gap-3">
@@ -438,7 +527,7 @@ export default function MemberAccessPage() {
               type="button"
               onClick={() => setNotice(null)}
               aria-label="Dismiss message"
-              className="rounded-md p-1 transition hover:bg-black/5"
+              className="rounded-full p-1 transition hover:bg-ink/5"
             >
               <X size={16} />
             </button>
@@ -449,7 +538,7 @@ export default function MemberAccessPage() {
       {error && (
         <div
           role="alert"
-          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="rounded-2xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger"
         >
           {error}
         </div>
@@ -457,19 +546,20 @@ export default function MemberAccessPage() {
 
       {/* Bulk bar */}
       {selected.size > 0 && (
-        <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
+        <div className="rounded-3xl bg-primary/[0.04] p-4 ring-2 ring-primary/30">
           {bulkState === "idle" ? (
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-indigo-900">
+              <p className="text-sm font-semibold text-ink">
                 {selected.size} selected
-                {selected.size >= BULK_LIMIT && ` (the limit is ${BULK_LIMIT} at a time)`}
+                {selected.size >= BULK_LIMIT &&
+                  ` (the limit is ${BULK_LIMIT} at a time)`}
               </p>
 
               <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => setSelected(new Set())}
-                  className="rounded-xl px-4 py-2 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
+                  className="rounded-full px-5 py-2 text-sm font-semibold text-body transition hover:bg-primary/10 hover:text-primary"
                 >
                   Clear
                 </button>
@@ -477,7 +567,7 @@ export default function MemberAccessPage() {
                 <button
                   type="button"
                   onClick={() => setBulkState("confirm")}
-                  className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-600"
+                  className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white transition hover:bg-primary-dark active:scale-[0.97]"
                 >
                   <Mail size={15} aria-hidden="true" />
                   Send invitations
@@ -486,11 +576,12 @@ export default function MemberAccessPage() {
             </div>
           ) : (
             <div role="alertdialog" aria-label="Confirm sending invitations">
-              <p className="text-sm font-semibold text-indigo-900">
+              <p className="text-sm font-semibold text-ink">
                 Email an invitation to {selected.size}{" "}
                 {plural(selected.size, "member", "members")}?
               </p>
-              <p className="mt-1 text-sm text-indigo-800">
+
+              <p className="mt-1 text-sm text-body">
                 Each one gets a personal link to set their password. It takes
                 about a second per email, so please keep this page open.
               </p>
@@ -500,7 +591,7 @@ export default function MemberAccessPage() {
                   type="button"
                   onClick={() => setBulkState("idle")}
                   disabled={bulkSending}
-                  className="rounded-xl border border-indigo-200 bg-white px-4 py-2 text-sm font-semibold text-indigo-900 transition hover:bg-indigo-100 disabled:opacity-60"
+                  className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-ink ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97] disabled:opacity-60"
                 >
                   Go back
                 </button>
@@ -509,7 +600,7 @@ export default function MemberAccessPage() {
                   type="button"
                   onClick={handleBulk}
                   disabled={bulkSending}
-                  className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-600 disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-semibold text-white transition hover:bg-primary-dark active:scale-[0.97] disabled:opacity-60"
                 >
                   {bulkSending && <Loader2 size={15} className="animate-spin" />}
                   {bulkSending ? "Sending..." : "Yes, send them"}
@@ -524,43 +615,57 @@ export default function MemberAccessPage() {
       {!items && !error && (
         <div
           role="status"
-          className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white py-16 text-sm text-slate-500"
+          className="flex items-center justify-center gap-2 rounded-3xl bg-white py-16 text-sm text-body shadow-card ring-1 ring-line"
         >
-          <Loader2 size={18} className="animate-spin" />
+          <Loader2 size={18} className="animate-spin text-primary" />
           Loading members...
         </div>
       )}
 
       {items && items.length === 0 && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
-          {searching
-            ? "No members match your search."
-            : filter === "never"
-            ? "Everyone has signed in. Nothing to follow up."
-            : "No members in this group."}
+        <div className="rounded-3xl border border-dashed border-line bg-white p-12 text-center">
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <Users size={22} />
+          </span>
+
+          <p className="mt-4 text-sm font-semibold text-ink">
+            {searching
+              ? "No members match your search"
+              : filter === "never"
+                ? "Everyone has signed in"
+                : "No members in this group"}
+          </p>
+
+          <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-body">
+            {searching
+              ? "Try another name, email or member number."
+              : filter === "never"
+                ? "There is nobody to follow up right now."
+                : "Choose another group above to see more members."}
+          </p>
         </div>
       )}
 
       {items && items.length > 0 && (
-        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
-            <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-slate-700">
+        <div className="overflow-hidden rounded-3xl bg-white shadow-card ring-1 ring-line">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-surface-muted/60 px-4 py-3 sm:px-6">
+            <label className="flex cursor-pointer items-center gap-3 text-sm font-medium text-ink">
               <input
                 type="checkbox"
                 checked={allShownSelected}
                 onChange={toggleAllShown}
                 disabled={selectable.length === 0 || bulkSending}
-                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-30"
+                className="h-4 w-4 rounded border-line text-primary focus:ring-primary/30 disabled:opacity-30"
               />
               Select shown (up to {BULK_LIMIT})
             </label>
 
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-body">
               {total} {plural(total, "member", "members")}
             </p>
           </div>
 
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-line">
             {items.map((item) => (
               <AccessRow
                 key={item.memberId}
@@ -569,6 +674,7 @@ export default function MemberAccessPage() {
                 onToggle={() => toggleOne(item.memberId)}
                 busy={busy?.id === item.memberId ? busy.action : null}
                 anyBusy={Boolean(busy) || bulkSending}
+                showCampus={showCampus}
                 onInvite={() => handleInvite(item)}
                 onToggleStatus={() => handleStatus(item)}
                 onDelete={() => handleDelete(item)}
@@ -584,7 +690,7 @@ export default function MemberAccessPage() {
             type="button"
             onClick={loadMore}
             disabled={loadingMore}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-full bg-white px-7 py-2.5 text-sm font-semibold text-ink ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 disabled:opacity-60"
           >
             {loadingMore && <Loader2 size={15} className="animate-spin" />}
             Load more

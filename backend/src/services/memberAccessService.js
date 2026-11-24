@@ -31,6 +31,20 @@ const campusScope = (requester) =>
     ? requester.scope.memberFellowshipIds
     : null;
 
+// A campus the person picked in the filter, limited to what they manage.
+const narrowCampuses = (requester, fellowshipId) => {
+  const scope = campusScope(requester);
+  const id = Number(fellowshipId);
+
+  if (!Number.isInteger(id) || id < 1) return scope;
+
+  if (scope && !scope.includes(id)) {
+    throw httpError("You can only see the campuses you manage.", 403);
+  }
+
+  return [id];
+};
+
 const assertCanManage = (requester, target, { allowSelf = false } = {}) => {
   if (!target) {
     throw httpError("Member not found.", 404);
@@ -92,6 +106,7 @@ const toItem = (row, requester) => ({
   roleId: row.role_id,
   role: row.role_name || "",
   fellowshipId: row.fellowship_id,
+  campusName: String(row.campus_name || "").replace(/\s+Fellowship$/i, ""),
   memberNumber: row.member_number || "",
   memberStatus: row.member_status,
   joinedAt: row.joined_at,
@@ -118,10 +133,10 @@ const toSummary = (counts) => {
   };
 };
 
-const list = async (requester, { filter, search, page }) => {
+const list = async (requester, { filter, search, page, fellowshipId }) => {
   const pageNumber = Math.max(1, Number(page) || 1);
   const offset = (pageNumber - 1) * PAGE_SIZE;
-  const campusIds = campusScope(requester);
+  const campusIds = narrowCampuses(requester, fellowshipId);
 
   const [{ rows, total }, counts] = await Promise.all([
     model.listAccess({
@@ -131,6 +146,7 @@ const list = async (requester, { filter, search, page }) => {
       offset,
       campusIds,
     }),
+    // The tiles follow the chosen campus.
     model.getSummary(campusIds),
   ]);
 
@@ -142,13 +158,13 @@ const list = async (requester, { filter, search, page }) => {
   };
 };
 
-const exportRows = async (requester, { filter, search }) => {
+const exportRows = async (requester, { filter, search, fellowshipId }) => {
   const { rows } = await model.listAccess({
     filter: filter || "never",
     search: String(search || "").trim(),
     limit: 1000,
     offset: 0,
-    campusIds: campusScope(requester),
+    campusIds: narrowCampuses(requester, fellowshipId),
   });
 
   return rows.map((row) => toItem(row, requester));

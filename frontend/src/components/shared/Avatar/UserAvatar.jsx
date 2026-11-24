@@ -21,7 +21,7 @@ export default function UserAvatar({ user, className = "h-10 w-10 text-xs" }) {
   return (
     <div
       aria-hidden="true"
-      className={`${className} flex shrink-0 items-center justify-center rounded-full bg-slate-900 font-bold text-white shadow-sm`}
+      className={`${className} flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-ember font-bold text-white shadow-sm`}
     >
       {initials}
     </div>

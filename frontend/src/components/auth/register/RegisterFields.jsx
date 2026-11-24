@@ -3,14 +3,15 @@
 import { useId } from "react";
 import { AlertCircle, Check, ChevronDown } from "lucide-react";
 
+// Pill shape for inputs and selects. Textareas stay rounded-2xl.
 const controlBase =
-  "w-full rounded-xl border bg-white px-4 py-3 text-[15px] text-slate-900 shadow-xs outline-none transition placeholder:text-slate-400 focus:ring-4 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400";
+  "w-full rounded-full [&:is(textarea)]:rounded-2xl border bg-white px-5 py-3 text-[15px] text-ink shadow-xs outline-none transition placeholder:text-body/60 focus:ring-4 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-body/60";
 
 export const controlClass = (hasError) =>
   `${controlBase} ${
     hasError
-      ? "border-red-300 focus:border-red-500 focus:ring-red-500/10"
-      : "border-slate-200 hover:border-slate-300 focus:border-indigo-500 focus:ring-indigo-500/10"
+      ? "border-danger/50 focus:border-danger focus:ring-danger/10"
+      : "border-line hover:border-primary/30 focus:border-primary focus:ring-primary/10"
   }`;
 
 export function FieldError({ message }) {
@@ -19,7 +20,7 @@ export function FieldError({ message }) {
   return (
     <p
       role="alert"
-      className="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-red-600"
+      className="mt-1.5 flex items-center gap-1.5 px-1 text-xs font-medium text-danger"
     >
       <AlertCircle size={13} aria-hidden="true" />
       {message}
@@ -41,17 +42,17 @@ export function Field({
       {label && (
         <label
           htmlFor={htmlFor}
-          className="mb-1.5 block text-sm font-medium text-slate-700"
+          className="mb-1.5 block px-1 text-sm font-medium text-ink"
         >
           {label}
-          {required && <span className="text-rose-500"> *</span>}
+          {required && <span className="text-danger"> *</span>}
         </label>
       )}
 
       {children}
 
       {hint && !error && (
-        <p className="mt-1.5 text-xs text-slate-500">{hint}</p>
+        <p className="mt-1.5 px-1 text-xs text-body">{hint}</p>
       )}
 
       <FieldError message={error} />
@@ -132,7 +133,7 @@ export function SelectInput({
         <ChevronDown
           size={18}
           aria-hidden="true"
-          className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+          className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-body"
         />
       </div>
     </Field>
@@ -162,8 +163,8 @@ export function SegmentedRadio({
       <div
         role="radiogroup"
         aria-label={label}
-        className={`grid gap-1 rounded-xl bg-slate-100 p-1 ${
-          error ? "ring-1 ring-red-300" : ""
+        className={`grid gap-1 rounded-full bg-surface-muted p-1 ring-1 ${
+          error ? "ring-danger/40" : "ring-line"
         }`}
         style={{
           gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`,
@@ -180,7 +181,7 @@ export function SegmentedRadio({
               className="peer sr-only"
             />
 
-            <span className="flex items-center justify-center rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition peer-checked:bg-white peer-checked:text-slate-900 peer-checked:shadow-sm peer-focus-visible:ring-4 peer-focus-visible:ring-indigo-500/20">
+            <span className="flex items-center justify-center rounded-full px-3 py-2.5 text-sm font-medium text-body transition hover:text-primary peer-checked:bg-white peer-checked:text-primary peer-checked:shadow-card peer-focus-visible:ring-4 peer-focus-visible:ring-primary/20">
               {option.label}
             </span>
           </label>
@@ -200,7 +201,7 @@ export function CheckboxCard({
 }) {
   return (
     <div>
-      <label className="flex cursor-pointer items-start gap-3.5 rounded-xl border border-slate-200 bg-white p-4 transition hover:border-slate-300 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50/60 has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-indigo-500/15">
+      <label className="flex cursor-pointer items-start gap-3.5 rounded-2xl bg-white p-4 ring-1 ring-line transition hover:ring-primary/40 has-[:checked]:bg-primary/[0.04] has-[:checked]:ring-2 has-[:checked]:ring-primary has-[:focus-visible]:ring-4 has-[:focus-visible]:ring-primary/20">
         <input
           type="checkbox"
           name={name}
@@ -209,7 +210,7 @@ export function CheckboxCard({
           className="peer sr-only"
         />
 
-        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-slate-300 bg-white text-white transition peer-checked:border-indigo-600 peer-checked:bg-indigo-600 peer-checked:[&>svg]:opacity-100">
+        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-line bg-white text-white transition peer-checked:border-primary peer-checked:bg-primary peer-checked:[&>svg]:opacity-100">
           <Check
             size={13}
             strokeWidth={3}
@@ -219,12 +220,12 @@ export function CheckboxCard({
         </span>
 
         <span className="min-w-0">
-          <span className="block text-sm font-medium text-slate-800">
+          <span className="block text-sm font-medium text-ink">
             {title}
           </span>
 
           {description && (
-            <span className="mt-0.5 block text-sm leading-6 text-slate-500">
+            <span className="mt-0.5 block text-sm leading-6 text-body">
               {description}
             </span>
           )}
@@ -238,21 +239,21 @@ export function CheckboxCard({
 
 export function SectionCard({ icon: Icon, title, description, children }) {
   return (
-    <section className="rounded-3xl border border-slate-200/80 bg-white p-6 shadow-sm shadow-slate-900/5 sm:p-8">
+    <section className="rounded-3xl bg-white p-6 shadow-card ring-1 ring-line sm:p-8">
       <div className="mb-6 flex items-start gap-4">
         {Icon && (
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <Icon size={20} aria-hidden="true" />
           </span>
         )}
 
         <div>
-          <h2 className="text-lg font-semibold tracking-tight text-slate-900">
+          <h2 className="font-display text-lg font-semibold tracking-tight text-ink">
             {title}
           </h2>
 
           {description && (
-            <p className="mt-0.5 text-sm text-slate-500">{description}</p>
+            <p className="mt-0.5 text-sm text-body">{description}</p>
           )}
         </div>
       </div>

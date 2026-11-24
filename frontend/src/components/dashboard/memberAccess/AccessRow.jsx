@@ -28,7 +28,7 @@ export default function AccessRow({
     : "No invitation sent yet";
 
   return (
-    <li className="px-4 py-4">
+    <li className="px-4 py-5 transition hover:bg-primary/[0.02] sm:px-6">
       <div className="flex items-start gap-3">
         <input
           type="checkbox"
@@ -36,15 +36,15 @@ export default function AccessRow({
           onChange={onToggle}
           disabled={!item.canInvite || anyBusy}
           aria-label={`Select ${item.name}`}
-          className="mt-1 h-4 w-4 shrink-0 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-30"
+          className="mt-1 h-4 w-4 shrink-0 rounded border-line text-primary focus:ring-primary/30 disabled:opacity-30"
         />
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="truncate text-sm font-semibold text-slate-900">
+            <p className="truncate text-sm font-semibold text-ink">
               {item.name}
               {item.isSelf && (
-                <span className="ml-2 text-xs font-normal text-slate-400">
+                <span className="ml-2 text-xs font-normal text-body">
                   (you)
                 </span>
               )}
@@ -57,21 +57,21 @@ export default function AccessRow({
             </span>
 
             {inactive && (
-              <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-semibold text-red-600">
+              <span className="rounded-full bg-danger/10 px-2.5 py-0.5 text-xs font-semibold text-danger">
                 Inactive
               </span>
             )}
           </div>
 
-          <p className="truncate text-xs text-slate-500">{item.email}</p>
+          <p className="truncate text-xs text-body">{item.email}</p>
 
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-body/80">
             {item.role}
             {item.memberNumber && ` · ${item.memberNumber}`} · Joined{" "}
             {new Date(item.joinedAt).toLocaleDateString()}
           </p>
 
-          <p className="mt-0.5 text-xs text-slate-400">
+          <p className="mt-0.5 text-xs text-body/80">
             {item.lastLoginAt
               ? `Last signed in ${timeAgo(item.lastLoginAt)}`
               : invitation}
@@ -83,7 +83,7 @@ export default function AccessRow({
                 type="button"
                 onClick={onInvite}
                 disabled={anyBusy}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-slate-950 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-white transition hover:bg-primary-dark active:scale-[0.97] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 disabled:opacity-60"
               >
                 {busy === "invite" ? (
                   <Loader2 size={13} className="animate-spin" />
@@ -99,7 +99,7 @@ export default function AccessRow({
                 type="button"
                 onClick={onToggleStatus}
                 disabled={anyBusy}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs font-semibold text-ink ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 disabled:opacity-60"
               >
                 {busy === "status" ? (
                   <Loader2 size={13} className="animate-spin" />
@@ -117,7 +117,7 @@ export default function AccessRow({
                 type="button"
                 onClick={() => setConfirmDelete((current) => !current)}
                 disabled={anyBusy}
-                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold text-body transition hover:bg-danger/10 hover:text-danger active:scale-[0.97] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-danger/20 disabled:opacity-60"
               >
                 <Trash2 size={13} aria-hidden="true" />
                 Delete
@@ -129,13 +129,13 @@ export default function AccessRow({
             <div
               role="alertdialog"
               aria-label={`Confirm deleting ${item.name}`}
-              className="mt-3 rounded-xl border border-red-200 bg-red-50 p-4"
+              className="mt-3 rounded-2xl border border-danger/30 bg-danger/10 p-4"
             >
-              <p className="text-sm font-semibold text-red-900">
+              <p className="text-sm font-semibold text-danger">
                 Delete {item.name}?
               </p>
 
-              <p className="mt-1 text-sm text-red-800">
+              <p className="mt-1 text-sm text-ink/80">
                 This permanently removes the account and any ministry
                 assignments. It can&apos;t be undone. To keep the record, mark
                 them inactive instead.
@@ -146,7 +146,7 @@ export default function AccessRow({
                   type="button"
                   onClick={() => setConfirmDelete(false)}
                   disabled={anyBusy}
-                  className="rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-900 transition hover:bg-red-100 disabled:opacity-60"
+                  className="rounded-full bg-white px-5 py-2 text-sm font-semibold text-ink ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97] disabled:opacity-60"
                 >
                   Keep them
                 </button>
@@ -158,7 +158,7 @@ export default function AccessRow({
                     setConfirmDelete(false);
                   }}
                   disabled={anyBusy}
-                  className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-full bg-danger px-5 py-2 text-sm font-semibold text-white transition hover:opacity-90 active:scale-[0.97] disabled:opacity-60"
                 >
                   {busy === "delete" && (
                     <Loader2 size={15} className="animate-spin" />

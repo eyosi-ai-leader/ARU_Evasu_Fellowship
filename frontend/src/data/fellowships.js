@@ -59,7 +59,7 @@ export const fellowships = [
     program: { day: "Friday", time: "11:30", place: "Muluwengel Kuter 1" },
     contact: {
       name: "Tariku Lemesa",
-      phone: "+251 900 000 102",
+      phone: "+251 945325534",
       email: "health@arsievasu.example",
       telegram: "https://t.me/your-health-campus",
     },

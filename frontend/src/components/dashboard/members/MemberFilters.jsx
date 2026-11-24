@@ -46,7 +46,7 @@ const SEARCH_PLACEHOLDER = {
 };
 
 const selectClass =
-  "h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-100 sm:w-auto";
+  "h-11 w-full rounded-full border border-line bg-white px-4 text-sm font-medium text-ink outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10 sm:w-auto";
 
 // "Main Campus Fellowship" -> "Main Campus"
 const shortCampusName = (name) =>
@@ -100,14 +100,14 @@ export default function MemberFilters({
   ].filter(Boolean).length;
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-3xl bg-white p-4 shadow-card ring-1 ring-line">
       <div className="flex flex-col gap-3">
         {/* Search */}
         <div className="flex min-w-0 items-center gap-2">
           <div className="relative min-w-0 flex-1">
             <Search
               size={18}
-              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-body"
             />
 
             <input
@@ -115,7 +115,7 @@ export default function MemberFilters({
               value={filters.search}
               onChange={(event) => onSearch(event.target.value)}
               placeholder={SEARCH_PLACEHOLDER[mode] || SEARCH_PLACEHOLDER.manage}
-              className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-4 focus:ring-slate-100"
+              className="h-12 w-full rounded-full border border-line bg-white pl-11 pr-4 text-sm text-ink outline-none transition placeholder:text-body/60 focus:border-primary focus:ring-4 focus:ring-primary/10"
             />
           </div>
 
@@ -123,14 +123,14 @@ export default function MemberFilters({
             type="button"
             onClick={() => setOpen((value) => !value)}
             aria-expanded={open}
-            className="relative inline-flex h-12 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 sm:hidden"
+            className="relative inline-flex h-12 shrink-0 items-center gap-2 rounded-full bg-white px-4 text-sm font-semibold text-ink ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97] sm:hidden"
           >
             <SlidersHorizontal size={15} />
 
             <span>Filters</span>
 
             {activeCount > 0 && (
-              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-slate-900 px-1.5 text-[10px] font-bold text-white">
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-white">
                 {activeCount}
               </span>
             )}
@@ -144,17 +144,17 @@ export default function MemberFilters({
           } grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center`}
         >
           {/* Status */}
-          <div className="flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3">
+          <div className="flex h-11 items-center gap-2 rounded-full border border-line bg-white px-4 transition focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/10">
             <SlidersHorizontal
               size={15}
-              className="hidden shrink-0 text-slate-400 sm:block"
+              className="hidden shrink-0 text-body sm:block"
             />
 
             <select
               value={filters.status}
               onChange={(event) => onStatusChange(event.target.value)}
               aria-label="Status"
-              className="w-full bg-transparent text-sm font-medium text-slate-600 outline-none"
+              className="w-full bg-transparent text-sm font-medium text-ink outline-none"
             >
               <option value="">All statuses</option>
               <option value="Active">Active</option>
@@ -267,7 +267,7 @@ export default function MemberFilters({
             <button
               type="button"
               onClick={onClear}
-              className="col-span-2 inline-flex h-11 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 sm:col-span-1"
+              className="col-span-2 inline-flex h-11 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold text-body transition hover:bg-primary/10 hover:text-primary active:scale-[0.97] sm:col-span-1"
             >
               <X size={15} />
 

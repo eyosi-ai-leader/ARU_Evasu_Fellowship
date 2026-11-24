@@ -67,11 +67,16 @@ export default function ProfilePage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+        <span
+          aria-hidden="true"
+          className="mb-3 block h-0.5 w-5 rounded-full bg-accent"
+        />
+
+        <h1 className="font-display text-3xl font-semibold text-ink">
           {editing ? "Edit profile" : "My Profile"}
         </h1>
 
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="mt-1 text-sm leading-6 text-body">
           {editing
             ? "Update your personal information, then save your changes."
             : "View your personal information."}
@@ -81,7 +86,7 @@ export default function ProfilePage() {
       {notice && (
         <div
           role="status"
-          className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
+          className="flex items-center gap-3 rounded-2xl border border-success/30 bg-success/10 px-4 py-3 text-sm font-medium text-success"
         >
           <CheckCircle2 size={18} className="shrink-0" aria-hidden="true" />
 
@@ -91,7 +96,7 @@ export default function ProfilePage() {
             type="button"
             onClick={() => setNotice("")}
             aria-label="Dismiss message"
-            className="rounded-md p-1 text-emerald-700 transition hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+            className="rounded-full p-1.5 text-success transition hover:bg-success/20 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-success/20"
           >
             <X size={16} />
           </button>
@@ -101,9 +106,9 @@ export default function ProfilePage() {
       {loading && (
         <div
           role="status"
-          className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white py-16 text-sm text-slate-500"
+          className="flex items-center justify-center gap-2 rounded-3xl bg-white py-16 text-sm text-body shadow-card ring-1 ring-line"
         >
-          <Loader2 size={18} className="animate-spin" />
+          <Loader2 size={18} className="animate-spin text-primary" />
           Loading your profile...
         </div>
       )}
@@ -111,14 +116,14 @@ export default function ProfilePage() {
       {!loading && error && (
         <div
           role="alert"
-          className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center"
+          className="rounded-3xl border border-danger/30 bg-danger/10 p-6 text-center"
         >
-          <p className="text-sm text-red-700">{error}</p>
+          <p className="text-sm text-danger">{error}</p>
 
           <button
             type="button"
             onClick={load}
-            className="mt-4 rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-600"
+            className="mt-4 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-white shadow-card transition hover:bg-primary-dark active:scale-[0.97] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
           >
             Try again
           </button>

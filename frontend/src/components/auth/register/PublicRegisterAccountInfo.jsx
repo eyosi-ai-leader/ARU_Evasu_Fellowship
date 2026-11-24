@@ -13,7 +13,7 @@ function EyeButton({ shown, onToggle, label }) {
       type="button"
       onClick={onToggle}
       aria-label={shown ? `Hide ${label}` : `Show ${label}`}
-      className="rounded-lg p-1.5 text-slate-400 transition hover:text-slate-700"
+      className="rounded-full p-1.5 text-body transition hover:bg-primary/10 hover:text-primary"
     >
       {shown ? <EyeOff size={18} /> : <Eye size={18} />}
     </button>

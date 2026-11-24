@@ -17,19 +17,19 @@ export const initialsOf = (name) =>
     .toUpperCase();
 
 export const inputClass =
-  "h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-100";
+  "h-11 w-full rounded-2xl border border-line bg-white px-4 text-sm text-ink outline-none transition placeholder:text-body/60 focus:border-primary focus:ring-4 focus:ring-primary/10";
 
 export const primaryButton =
-  "inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 sm:h-10";
+  "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 text-xs font-semibold text-white shadow-sm transition hover:bg-primary-dark active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 sm:h-10";
 
 export const secondaryButton =
-  "inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50 sm:h-10";
+  "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-white px-5 text-xs font-semibold text-ink ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 sm:h-10";
 
 export function Avatar({ name, className = "h-9 w-9 text-xs" }) {
   return (
     <span
       aria-hidden="true"
-      className={`flex shrink-0 items-center justify-center rounded-full bg-slate-900 font-bold text-white ${className}`}
+      className={`flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-ember font-bold text-white shadow-sm ${className}`}
     >
       {initialsOf(name) || "?"}
     </span>
@@ -37,10 +37,10 @@ export function Avatar({ name, className = "h-9 w-9 text-xs" }) {
 }
 
 const CHIP_TONES = {
-  neutral: "bg-slate-100 text-slate-600",
-  good: "bg-emerald-50 text-emerald-700",
-  attention: "bg-amber-50 text-amber-700",
-  info: "bg-indigo-50 text-indigo-600",
+  neutral: "bg-surface-muted text-body ring-1 ring-line",
+  good: "bg-success/10 text-success",
+  attention: "bg-accent/20 text-ink ring-1 ring-accent/40",
+  info: "bg-primary/10 text-primary",
 };
 
 export function Chip({ tone = "neutral", children }) {
@@ -78,7 +78,7 @@ export function ModalShell({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-900/40 backdrop-blur-sm sm:items-center sm:px-4 sm:py-6"
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-ink/50 backdrop-blur-sm sm:items-center sm:px-4 sm:py-6"
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !busy) onClose?.();
       }}
@@ -87,16 +87,18 @@ export function ModalShell({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-2xl border border-slate-200 bg-white shadow-2xl sm:rounded-2xl ${
+        className={`flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-3xl bg-white shadow-soft ring-1 ring-line sm:rounded-3xl ${
           wide ? "max-w-2xl" : "max-w-md"
         }`}
       >
-        <div className="flex items-start justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
+        <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-5 sm:px-6">
           <div className="min-w-0">
-            <h2 className="text-sm font-bold text-slate-900">{title}</h2>
+            <h2 className="font-display text-lg font-semibold text-ink">
+              {title}
+            </h2>
 
             {subtitle && (
-              <p className="mt-1 text-xs text-slate-400">{subtitle}</p>
+              <p className="mt-1 text-xs leading-5 text-body">{subtitle}</p>
             )}
           </div>
 
@@ -105,9 +107,9 @@ export function ModalShell({
             onClick={onClose}
             disabled={busy}
             aria-label="Close"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-body transition hover:bg-surface-muted hover:text-ink active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <X size={17} />
+            <X size={18} />
           </button>
         </div>
 
@@ -116,7 +118,7 @@ export function ModalShell({
         </div>
 
         {footer && (
-          <div className="flex flex-col-reverse gap-2 border-t border-slate-100 bg-slate-50/50 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+          <div className="flex flex-col-reverse gap-2 border-t border-line bg-surface-muted/60 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
             {footer}
           </div>
         )}

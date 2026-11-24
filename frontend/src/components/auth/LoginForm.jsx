@@ -46,7 +46,7 @@ export default function LoginForm() {
 
   const busy = loading || googleLoading;
 
-    // A signed-in person whose account was made inactive is sent back here.
+  // A signed-in person whose account was made inactive is sent back here.
   useEffect(() => {
     try {
       if (sessionStorage.getItem("chms:inactive") === "1") {
@@ -147,7 +147,7 @@ export default function LoginForm() {
       {error && (
         <div
           role="alert"
-          className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"
+          className="mb-5 rounded-2xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger"
         >
           {error}
         </div>
@@ -164,21 +164,21 @@ export default function LoginForm() {
           {googleLoading && (
             <p
               role="status"
-              className="mt-3 flex items-center justify-center gap-2 text-sm text-slate-500"
+              className="mt-3 flex items-center justify-center gap-2 text-sm text-body"
             >
-              <Loader2 size={15} className="animate-spin" />
+              <Loader2 size={15} className="animate-spin text-primary" />
               Signing you in with Google...
             </p>
           )}
 
           <div className="my-6 flex items-center gap-4">
-            <div className="h-px flex-1 bg-slate-200" />
+            <div className="h-px flex-1 bg-line" />
 
-            <span className="whitespace-nowrap text-xs font-medium text-slate-400">
+            <span className="whitespace-nowrap text-xs font-medium text-body">
               or sign in with email
             </span>
 
-            <div className="h-px flex-1 bg-slate-200" />
+            <div className="h-px flex-1 bg-line" />
           </div>
         </>
       )}
@@ -188,7 +188,7 @@ export default function LoginForm() {
         <div>
           <label
             htmlFor="login-email"
-            className="mb-2 block text-sm font-medium text-slate-700"
+            className="mb-2 block text-sm font-semibold text-ink"
           >
             Email address
           </label>
@@ -197,7 +197,7 @@ export default function LoginForm() {
             <Mail
               size={18}
               aria-hidden="true"
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-primary/60"
             />
 
             <input
@@ -208,7 +208,7 @@ export default function LoginForm() {
               placeholder="you@fellowship.com"
               autoComplete="email"
               required
-              className="w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-11 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+              className="w-full rounded-2xl border border-line bg-white py-3.5 pl-11 pr-4 text-sm text-ink outline-none transition placeholder:text-body/60 focus:border-primary focus:ring-4 focus:ring-primary/10"
             />
           </div>
         </div>
@@ -230,15 +230,15 @@ export default function LoginForm() {
               type="checkbox"
               checked={rememberMe}
               onChange={(event) => setRememberMe(event.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+              className="h-4 w-4 rounded border-line text-primary focus:ring-primary/40"
             />
 
-            <span className="text-sm text-slate-500">Remember me</span>
+            <span className="text-sm text-body">Remember me</span>
           </label>
 
           <Link
             href="/forgot-password"
-            className="rounded text-sm font-semibold text-indigo-600 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            className="rounded text-sm font-semibold text-primary transition hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             Forgot password?
           </Link>
@@ -248,7 +248,7 @@ export default function LoginForm() {
         <button
           type="submit"
           disabled={busy}
-          className="group flex w-full items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          className="group flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? (
             <>
@@ -268,11 +268,11 @@ export default function LoginForm() {
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-slate-500">
+      <p className="mt-6 text-center text-sm text-body">
         Don&apos;t have an account?{" "}
         <Link
           href="/register"
-          className="rounded font-semibold text-indigo-600 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+          className="rounded font-semibold text-primary transition hover:text-primary-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           Register
         </Link>

@@ -247,8 +247,8 @@ export default function CreateMemberForm() {
   if (!ready) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
-        <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
-          <Loader2 size={18} className="animate-spin" />
+        <div className="flex items-center gap-2 text-sm font-medium text-body">
+          <Loader2 size={18} className="animate-spin text-primary" />
           Checking access...
         </div>
       </div>
@@ -269,28 +269,28 @@ export default function CreateMemberForm() {
       <div className="mx-auto max-w-2xl pb-10">
         <div
           role="status"
-          className="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm sm:p-8"
+          className="rounded-3xl bg-white p-6 text-center shadow-card ring-1 ring-line sm:p-8"
         >
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success/10 text-success">
             <CheckCircle2 size={28} aria-hidden="true" />
           </span>
 
-          <h1 className="mt-4 text-xl font-bold text-slate-900">
+          <h1 className="mt-4 font-display text-2xl font-semibold text-ink">
             Member created
           </h1>
 
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-body">
             {result.name}
             {result.memberNumber && ` · ${result.memberNumber}`}
           </p>
 
           <div
-            className={`mx-auto mt-6 max-w-md rounded-xl border px-4 py-3 text-left text-sm ${
+            className={`mx-auto mt-6 max-w-md rounded-2xl px-4 py-3 text-left text-sm ring-1 ${
               sent
-                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                ? "bg-success/10 text-success ring-success/30"
                 : failed
-                  ? "border-amber-200 bg-amber-50 text-amber-900"
-                  : "border-slate-200 bg-slate-50 text-slate-700"
+                  ? "bg-accent/20 text-ink ring-accent/40"
+                  : "bg-surface-muted text-body ring-line"
             }`}
           >
             <p className="flex items-start gap-2">
@@ -334,7 +334,7 @@ export default function CreateMemberForm() {
             <button
               type="button"
               onClick={resetForm}
-              className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+              className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-white transition hover:bg-primary-dark active:scale-[0.97]"
             >
               Add another member
             </button>
@@ -342,7 +342,7 @@ export default function CreateMemberForm() {
             {result.memberId && (
               <Link
                 href={`/dashboard/members/${result.memberId}`}
-                className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                className="inline-flex h-11 items-center justify-center rounded-full bg-white px-6 text-sm font-semibold text-ink ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97]"
               >
                 View member
               </Link>
@@ -351,7 +351,7 @@ export default function CreateMemberForm() {
             {(failed || (!sent && !result.inactive)) && (
               <Link
                 href="/dashboard/account-access"
-                className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                className="inline-flex h-11 items-center justify-center rounded-full bg-white px-6 text-sm font-semibold text-ink ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97]"
               >
                 Open Member Access
               </Link>
@@ -359,7 +359,7 @@ export default function CreateMemberForm() {
 
             <Link
               href="/dashboard/members"
-              className="inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
+              className="inline-flex h-11 items-center justify-center rounded-full px-6 text-sm font-semibold text-body transition hover:bg-primary/10 hover:text-primary"
             >
               Back to members
             </Link>
@@ -376,17 +376,19 @@ export default function CreateMemberForm() {
           <div>
             <Link
               href="/dashboard/members"
-              className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"
+              className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-body transition hover:text-primary"
             >
               <ArrowLeft size={16} />
               Back to members
             </Link>
 
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            <span className="mb-2 block h-0.5 w-5 rounded-full bg-accent" />
+
+            <h1 className="font-display text-3xl font-semibold text-ink">
               Add Member
             </h1>
 
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="mt-2 text-sm text-body">
               Add a new student to the fellowship. They choose their own
               password from an invitation email.
             </p>
@@ -395,7 +397,7 @@ export default function CreateMemberForm() {
           <div className="hidden items-center gap-2 lg:flex">
             <Link
               href="/dashboard/members"
-              className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50"
+              className="inline-flex h-11 items-center rounded-full bg-white px-5 text-sm font-semibold text-ink ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97]"
             >
               Cancel
             </Link>
@@ -403,7 +405,7 @@ export default function CreateMemberForm() {
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-11 items-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-white transition hover:bg-primary-dark active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving ? (
                 <>
@@ -423,7 +425,7 @@ export default function CreateMemberForm() {
         {serverError && (
           <div
             role="alert"
-            className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+            className="rounded-2xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger"
           >
             {serverError}
           </div>
@@ -432,7 +434,7 @@ export default function CreateMemberForm() {
         {Object.keys(errors).some((key) => errors[key]) && (
           <div
             role="alert"
-            className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+            className="rounded-2xl bg-accent/20 px-4 py-3 text-sm text-ink ring-1 ring-accent/40"
           >
             Please fix the highlighted fields below.
           </div>
@@ -488,11 +490,11 @@ export default function CreateMemberForm() {
           roleHelp={roleHelp}
         />
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:hidden">
+        <div className="rounded-3xl bg-white p-4 shadow-card ring-1 ring-line lg:hidden">
           <div className="flex gap-3">
             <Link
               href="/dashboard/members"
-              className="flex h-12 flex-1 items-center justify-center rounded-xl border border-slate-200 text-sm font-semibold text-slate-600"
+              className="flex h-12 flex-1 items-center justify-center rounded-full bg-white text-sm font-semibold text-ink ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97]"
             >
               Cancel
             </Link>
@@ -500,7 +502,7 @@ export default function CreateMemberForm() {
             <button
               type="submit"
               disabled={saving}
-              className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-slate-900 text-sm font-semibold text-white disabled:opacity-60"
+              className="flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-primary text-sm font-semibold text-white transition hover:bg-primary-dark active:scale-[0.97] disabled:opacity-60"
             >
               {saving ? (
                 <Loader2 size={17} className="animate-spin" />

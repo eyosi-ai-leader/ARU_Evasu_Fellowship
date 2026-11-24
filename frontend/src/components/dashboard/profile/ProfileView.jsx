@@ -1,29 +1,16 @@
 import { Lock, Pencil } from "lucide-react";
 
 import UserAvatar from "@/components/shared/Avatar/UserAvatar";
-
-function formatDate(value) {
-  if (!value) return "";
-
-  const [year, month, day] = value.split("-").map(Number);
-
-  if (!year || !month || !day) return value;
-
-  return new Date(year, month - 1, day).toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-}
+import { formatEthiopianDate } from "@/lib/ethiopianCalendar";
 
 function Item({ label, value, className = "" }) {
   return (
     <div className={className}>
-      <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">
+      <dt className="text-xs font-semibold uppercase tracking-wide text-body">
         {label}
       </dt>
-      <dd className="mt-1 whitespace-pre-line break-words text-sm font-medium text-slate-800">
-        {value || <span className="font-normal text-slate-400">Not set</span>}
+      <dd className="mt-1 whitespace-pre-line break-words text-sm font-medium text-ink">
+        {value || <span className="font-normal text-body/60">Not set</span>}
       </dd>
     </div>
   );
@@ -35,10 +22,7 @@ export default function ProfileView({ profile, onEdit }) {
     .join(" ");
 
   const memberSince = profile.createdAt
-    ? new Date(profile.createdAt).toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "long",
-      })
+    ? formatEthiopianDate(profile.createdAt)
     : "";
 
   const active = profile.status === "Active";
@@ -46,7 +30,7 @@ export default function ProfileView({ profile, onEdit }) {
   return (
     <div className="space-y-6">
       {/* Summary */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl bg-white p-6 shadow-card ring-1 ring-line">
         <div className="flex flex-col items-center gap-5 sm:flex-row">
           <UserAvatar
             user={profile}
@@ -54,11 +38,11 @@ export default function ProfileView({ profile, onEdit }) {
           />
 
           <div className="min-w-0 flex-1 text-center sm:text-left">
-            <h2 className="truncate text-xl font-bold text-slate-900">
+            <h2 className="truncate font-display text-2xl font-semibold text-ink">
               {fullName}
             </h2>
 
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-body">
               {profile.roleName}
               {memberSince && ` · Joined ${memberSince}`}
             </p>
@@ -67,14 +51,14 @@ export default function ProfileView({ profile, onEdit }) {
               <span
                 className={`mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
                   active
-                    ? "bg-emerald-50 text-emerald-700"
-                    : "bg-slate-100 text-slate-600"
+                    ? "bg-success/10 text-success"
+                    : "bg-surface-muted text-body ring-1 ring-line"
                 }`}
               >
                 <span
                   aria-hidden="true"
                   className={`h-1.5 w-1.5 rounded-full ${
-                    active ? "bg-emerald-500" : "bg-slate-400"
+                    active ? "bg-success" : "bg-body"
                   }`}
                 />
                 {profile.status}
@@ -85,7 +69,7 @@ export default function ProfileView({ profile, onEdit }) {
           <button
             type="button"
             onClick={onEdit}
-            className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-white shadow-card transition hover:bg-primary-dark active:scale-[0.97] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
           >
             <Pencil size={16} aria-hidden="true" />
             Edit profile
@@ -94,8 +78,8 @@ export default function ProfileView({ profile, onEdit }) {
       </section>
 
       {/* Personal */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">
+      <section className="rounded-3xl bg-white p-6 shadow-card ring-1 ring-line">
+        <h2 className="font-display text-lg font-semibold text-ink">
           Personal information
         </h2>
 
@@ -103,15 +87,15 @@ export default function ProfileView({ profile, onEdit }) {
           <Item label="Full name" value={fullName} />
           <Item label="Gender" value={profile.gender} />
           <Item
-            label="Date of birth"
-            value={formatDate(profile.dateOfBirth)}
+            label="Date of birth (E.C.)"
+            value={formatEthiopianDate(profile.dateOfBirth)}
           />
         </dl>
       </section>
 
       {/* Contact */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">
+      <section className="rounded-3xl bg-white p-6 shadow-card ring-1 ring-line">
+        <h2 className="font-display text-lg font-semibold text-ink">
           Contact information
         </h2>
 
@@ -126,22 +110,20 @@ export default function ProfileView({ profile, onEdit }) {
         </dl>
       </section>
 
-      {/* Church record */}
-      <section className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
+      {/* Fellowship record */}
+      <section className="rounded-3xl bg-surface-muted p-6 ring-1 ring-line">
         <div className="flex items-start gap-3">
-          <Lock
-            size={18}
-            className="mt-0.5 text-slate-400"
-            aria-hidden="true"
-          />
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <Lock size={18} aria-hidden="true" />
+          </div>
 
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">
-              Church record
+            <h2 className="font-display text-lg font-semibold text-ink">
+              Fellowship record
             </h2>
-            <p className="mt-1 text-sm text-slate-500">
-              These details are managed by the church office. Contact them if
-              something needs to change.
+            <p className="mt-1 text-sm leading-6 text-body">
+              These details are managed by the fellowship office. Contact them
+              if something needs to change.
             </p>
           </div>
         </div>
@@ -151,8 +133,8 @@ export default function ProfileView({ profile, onEdit }) {
           <Item label="Role" value={profile.roleName} />
           <Item label="Status" value={profile.status} />
           <Item
-            label="Baptism date"
-            value={formatDate(profile.baptismDate)}
+            label="Baptism date (E.C.)"
+            value={formatEthiopianDate(profile.baptismDate)}
           />
         </dl>
       </section>

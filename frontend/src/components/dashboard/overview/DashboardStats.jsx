@@ -63,12 +63,12 @@ export default function DashboardStats({
 
   if (error) {
     return (
-      <section className="rounded-2xl border border-red-200 bg-red-50 p-5">
-        <p className="text-sm font-medium text-red-600">
+      <section className="rounded-3xl border border-danger/30 bg-danger/10 p-5">
+        <p className="text-sm font-semibold text-danger">
           Failed to load dashboard statistics.
         </p>
 
-        <p className="mt-1 text-xs text-red-500">
+        <p className="mt-1 text-xs leading-5 text-danger">
           {error}
         </p>
       </section>

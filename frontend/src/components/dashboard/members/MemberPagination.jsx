@@ -61,18 +61,18 @@ export default function MemberPagination({
   const pages = getPages(page, totalPages);
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-5">
-      <p className="text-center text-xs font-medium text-slate-400 sm:text-left">
+    <div className="flex flex-col gap-3 rounded-3xl bg-white px-4 py-4 shadow-card ring-1 ring-line sm:flex-row sm:items-center sm:justify-between sm:px-5">
+      <p className="text-center text-xs font-medium text-body sm:text-left">
         Showing{" "}
-        <span className="font-semibold text-slate-600">
+        <span className="font-semibold text-ink">
           {start}
         </span>{" "}
         to{" "}
-        <span className="font-semibold text-slate-600">
+        <span className="font-semibold text-ink">
           {end}
         </span>{" "}
         of{" "}
-        <span className="font-semibold text-slate-600">
+        <span className="font-semibold text-ink">
           {total}
         </span>{" "}
         members
@@ -84,13 +84,13 @@ export default function MemberPagination({
           aria-label="Previous page"
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
-          className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 sm:h-9 sm:w-9"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-body ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 sm:h-9 sm:w-9"
         >
           <ChevronLeft size={16} />
         </button>
 
         {/* Phones: one short label instead of every page number */}
-        <span className="px-3 text-xs font-semibold text-slate-500 sm:hidden">
+        <span className="px-3 text-xs font-semibold text-body sm:hidden">
           Page {page} of {totalPages}
         </span>
 
@@ -99,7 +99,7 @@ export default function MemberPagination({
             item === "..." ? (
               <span
                 key={`ellipsis-${index}`}
-                className="flex h-9 w-8 items-center justify-center text-xs text-slate-400"
+                className="flex h-9 w-8 items-center justify-center text-xs text-body"
               >
                 ...
               </span>
@@ -109,10 +109,10 @@ export default function MemberPagination({
                 type="button"
                 onClick={() => onPageChange(item)}
                 aria-current={page === item ? "page" : undefined}
-                className={`flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-xs font-semibold transition ${
+                className={`flex h-9 min-w-9 items-center justify-center rounded-full px-2 text-xs font-semibold transition active:scale-[0.97] ${
                   page === item
-                    ? "bg-slate-900 text-white shadow-sm"
-                    : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+                    ? "bg-primary text-white shadow-card"
+                    : "text-body hover:bg-primary/10 hover:text-primary"
                 }`}
               >
                 {item}
@@ -126,7 +126,7 @@ export default function MemberPagination({
           aria-label="Next page"
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
-          className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 sm:h-9 sm:w-9"
+          className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-body ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 sm:h-9 sm:w-9"
         >
           <ChevronRight size={16} />
         </button>

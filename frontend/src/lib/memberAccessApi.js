@@ -1,4 +1,5 @@
 import { getToken } from "@/lib/authToken";
+import { endSession } from "@/lib/accountApi";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
@@ -20,6 +21,7 @@ async function request(path, { method = "GET", body } = {}) {
         ...(body ? { "Content-Type": "application/json" } : {}),
       },
       body: body ? JSON.stringify(body) : undefined,
+      cache: "no-store",
     });
   } catch {
     throw new Error(
@@ -35,6 +37,12 @@ async function request(path, { method = "GET", body } = {}) {
     /* non-JSON response */
   }
 
+  // The account was made inactive (or the session ended) while signed in.
+  if (response.status === 401 || result.code === "ACCOUNT_INACTIVE") {
+    endSession({ inactive: result.code === "ACCOUNT_INACTIVE" });
+    throw new Error(result.message || "Please sign in again.");
+  }
+
   if (!response.ok) {
     throw new Error(
       result.message || "Something went wrong. Please try again."
@@ -44,11 +52,13 @@ async function request(path, { method = "GET", body } = {}) {
   return result.data;
 }
 
-const query = ({ filter = "never", search = "", page } = {}) => {
+// fellowshipId (optional): only the members of this campus
+const query = ({ filter = "never", search = "", page, fellowshipId } = {}) => {
   const params = new URLSearchParams();
 
   params.set("filter", filter);
   if (search) params.set("search", search);
+  if (fellowshipId) params.set("fellowshipId", String(fellowshipId));
   if (page) params.set("page", String(page));
 
   return params.toString();

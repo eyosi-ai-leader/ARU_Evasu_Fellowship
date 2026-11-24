@@ -51,7 +51,7 @@ function getAccess(member) {
     return {
       label: "Signed in",
       title: "Has signed in",
-      className: "bg-emerald-50 text-emerald-700",
+      className: "bg-success/10 text-success",
     };
   }
 
@@ -59,7 +59,7 @@ function getAccess(member) {
     return {
       label: "Invited",
       title: "Invitation sent. Waiting for them to set a password.",
-      className: "bg-blue-50 text-blue-700",
+      className: "bg-primary/10 text-primary",
     };
   }
 
@@ -67,14 +67,14 @@ function getAccess(member) {
     return {
       label: "Not verified",
       title: "Email not verified yet",
-      className: "bg-amber-50 text-amber-700",
+      className: "bg-accent/20 text-ink ring-1 ring-accent/40",
     };
   }
 
   return {
     label: "Not signed in",
     title: "Has not signed in yet",
-    className: "bg-slate-100 text-slate-600",
+    className: "bg-surface-muted text-body ring-1 ring-line",
   };
 }
 
@@ -235,7 +235,7 @@ function SortButton({
     <button
       type="button"
       onClick={() => onSort(field)}
-      className="group inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400 transition hover:text-slate-700"
+      className="group inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-body transition hover:text-primary"
     >
       {label}
 
@@ -247,11 +247,11 @@ function SortButton({
       )}
 
       {active && sortOrder === "asc" && (
-        <ArrowUp size={12} className="text-slate-700" />
+        <ArrowUp size={12} className="text-primary" />
       )}
 
       {active && sortOrder === "desc" && (
-        <ArrowDown size={12} className="text-slate-700" />
+        <ArrowDown size={12} className="text-primary" />
       )}
     </button>
   );
@@ -260,7 +260,7 @@ function SortButton({
 function Avatar({ info, size = "h-10 w-10" }) {
   return (
     <div
-      className={`flex ${size} shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-900 text-xs font-bold text-white shadow-sm`}
+      className={`flex ${size} shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-ember text-xs font-bold text-white shadow-card`}
     >
       {info.profileImage ? (
         <img
@@ -277,7 +277,7 @@ function Avatar({ info, size = "h-10 w-10" }) {
 
 function MemberName({ info, member, linked }) {
   const className =
-    "block truncate text-sm font-semibold text-slate-900 transition hover:text-slate-600";
+    "block truncate text-sm font-semibold text-ink transition hover:text-primary";
 
   return linked ? (
     <Link
@@ -288,7 +288,7 @@ function MemberName({ info, member, linked }) {
       {info.fullName}
     </Link>
   ) : (
-    <span title={info.fullName} className={className.replace("hover:text-slate-600", "")}>
+    <span title={info.fullName} className={className.replace("hover:text-primary", "")}>
       {info.fullName}
     </span>
   );
@@ -297,15 +297,15 @@ function MemberName({ info, member, linked }) {
 function StatusBadge({ status }) {
   return (
     <span
-      className={`inline-flex max-w-full items-center gap-1.5 rounded-full px-2 py-1 text-[11px] font-semibold ${
+      className={`inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
         status === "Active"
-          ? "bg-emerald-50 text-emerald-700"
-          : "bg-slate-100 text-slate-500"
+          ? "bg-success/10 text-success"
+          : "bg-surface-muted text-body ring-1 ring-line"
       }`}
     >
       <span
         className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-          status === "Active" ? "bg-emerald-500" : "bg-slate-400"
+          status === "Active" ? "bg-success" : "bg-body/50"
         }`}
       />
 
@@ -318,7 +318,7 @@ function RoleBadge({ role }) {
   return (
     <span
       title={role}
-      className="inline-flex max-w-full items-center truncate rounded-lg bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600"
+      className="inline-flex max-w-full items-center truncate rounded-full bg-surface-muted px-2.5 py-1 text-[11px] font-semibold text-body ring-1 ring-line"
     >
       {role}
     </span>
@@ -327,13 +327,13 @@ function RoleBadge({ role }) {
 
 function AccessBadge({ access }) {
   if (!access) {
-    return <span className="text-xs text-slate-300">—</span>;
+    return <span className="text-xs text-body/50">—</span>;
   }
 
   return (
     <span
       title={access.title}
-      className={`inline-flex items-center rounded-full px-2 py-1 text-[11px] font-semibold ${access.className}`}
+      className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${access.className}`}
     >
       {access.label}
     </span>
@@ -342,7 +342,7 @@ function AccessBadge({ access }) {
 
 function AcademicText({ academic }) {
   if (!academic.department && !academic.yearText) {
-    return <span className="text-xs text-slate-300">—</span>;
+    return <span className="text-xs text-body/50">—</span>;
   }
 
   return (
@@ -350,14 +350,14 @@ function AcademicText({ academic }) {
       {academic.department && (
         <p
           title={academic.department}
-          className="truncate text-sm font-medium text-slate-700"
+          className="truncate text-sm font-medium text-ink"
         >
           {academic.department}
         </p>
       )}
 
       {academic.yearText && (
-        <p className="mt-0.5 truncate text-xs text-slate-400">
+        <p className="mt-0.5 truncate text-xs text-body">
           {academic.yearText}
         </p>
       )}
@@ -367,7 +367,7 @@ function AcademicText({ academic }) {
 
 function AttentionChip({ children }) {
   return (
-    <span className="inline-flex rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700">
+    <span className="inline-flex rounded-full bg-accent/20 px-2.5 py-1 text-[11px] font-semibold text-ink ring-1 ring-accent/40">
       {children}
     </span>
   );
@@ -380,7 +380,7 @@ function AttentionChip({ children }) {
 function PlacementText({ placement, mode }) {
   // No campus (for example Staff): nothing to show.
   if (!placement.hasCampus) {
-    return <span className="text-xs text-slate-300">—</span>;
+    return <span className="text-xs text-body/50">—</span>;
   }
 
   // An overseer already knows the small group: show the families only.
@@ -388,7 +388,7 @@ function PlacementText({ placement, mode }) {
     return placement.family ? (
       <p
         title={placement.family}
-        className="truncate text-sm font-medium text-slate-700"
+        className="truncate text-sm font-medium text-ink"
       >
         {placement.family}
       </p>
@@ -405,7 +405,7 @@ function PlacementText({ placement, mode }) {
     <div className="min-w-0">
       <p
         title={placement.smallGroup}
-        className="truncate text-sm font-medium text-slate-700"
+        className="truncate text-sm font-medium text-ink"
       >
         {placement.smallGroup}
       </p>
@@ -413,12 +413,12 @@ function PlacementText({ placement, mode }) {
       {placement.family ? (
         <p
           title={placement.family}
-          className="mt-0.5 truncate text-xs text-slate-400"
+          className="mt-0.5 truncate text-xs text-body"
         >
           {placement.family}
         </p>
       ) : (
-        <p className="mt-0.5 truncate text-xs font-medium text-amber-600">
+        <p className="mt-0.5 truncate text-xs font-medium text-ember">
           Not yet in a family
         </p>
       )}
@@ -456,7 +456,7 @@ function RowActions({
           } invitation to ${info.fullName}`}
           onClick={() => onInvite(member)}
           disabled={Boolean(invitingId)}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-indigo-50 hover:text-indigo-600 disabled:cursor-not-allowed disabled:opacity-50 sm:h-8 sm:w-8"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-body transition hover:bg-primary/10 hover:text-primary active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 sm:h-8 sm:w-8"
         >
           {inviting ? (
             <Loader2 size={15} className="animate-spin" />
@@ -471,7 +471,7 @@ function RowActions({
           href={`/dashboard/members/${member.id}`}
           title="View member"
           aria-label={`View ${info.fullName}`}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-900 sm:h-8 sm:w-8"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-body transition hover:bg-primary/10 hover:text-primary active:scale-[0.97] sm:h-8 sm:w-8"
         >
           <Eye size={16} />
         </Link>
@@ -483,7 +483,7 @@ function RowActions({
             href={`/dashboard/members/${member.id}/edit`}
             title="Edit member"
             aria-label={`Edit ${info.fullName}`}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-900 sm:h-8 sm:w-8"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-body transition hover:bg-primary/10 hover:text-primary active:scale-[0.97] sm:h-8 sm:w-8"
           >
             <Pencil size={15} />
           </Link>
@@ -494,7 +494,7 @@ function RowActions({
               title="Delete member"
               aria-label={`Delete ${info.fullName}`}
               onClick={() => onDelete(member)}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600 sm:h-8 sm:w-8"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-body transition hover:bg-danger/10 hover:text-danger active:scale-[0.97] sm:h-8 sm:w-8"
             >
               <Trash2 size={15} />
             </button>
@@ -527,18 +527,18 @@ function LoadingCards() {
       {[1, 2, 3, 4].map((item) => (
         <div
           key={item}
-          className="animate-pulse rounded-2xl border border-slate-200 bg-white p-4"
+          className="animate-pulse rounded-3xl bg-white p-4 shadow-card ring-1 ring-line"
         >
           <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-full bg-slate-100" />
+            <div className="h-11 w-11 rounded-full bg-surface-muted" />
 
             <div className="space-y-2">
-              <div className="h-3.5 w-36 rounded bg-slate-100" />
-              <div className="h-3 w-24 rounded bg-slate-100" />
+              <div className="h-3.5 w-36 rounded-full bg-surface-muted" />
+              <div className="h-3 w-24 rounded-full bg-surface-muted" />
             </div>
           </div>
 
-          <div className="mt-4 h-3 w-48 rounded bg-slate-100" />
+          <div className="mt-4 h-3 w-48 rounded-full bg-surface-muted" />
         </div>
       ))}
     </div>
@@ -554,15 +554,15 @@ function LoadingRows({ columns }) {
             <td key={column.key} className="px-3 py-4 first:px-4">
               {column.key === "member" ? (
                 <div className="flex animate-pulse items-center gap-3">
-                  <div className="h-10 w-10 shrink-0 rounded-full bg-slate-100" />
+                  <div className="h-10 w-10 shrink-0 rounded-full bg-surface-muted" />
 
                   <div className="min-w-0 space-y-2">
-                    <div className="h-3.5 w-32 rounded bg-slate-100" />
-                    <div className="h-3 w-24 rounded bg-slate-100" />
+                    <div className="h-3.5 w-32 rounded-full bg-surface-muted" />
+                    <div className="h-3 w-24 rounded-full bg-surface-muted" />
                   </div>
                 </div>
               ) : (
-                <div className="h-3 w-20 animate-pulse rounded bg-slate-100" />
+                <div className="h-3 w-20 animate-pulse rounded-full bg-surface-muted" />
               )}
             </td>
           ))}
@@ -614,16 +614,16 @@ export default function MembersTable({
 
   if (!loading && members.length === 0) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-sm">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+      <div className="rounded-3xl bg-white p-12 text-center shadow-card ring-1 ring-line">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <UserRound size={24} />
         </div>
 
-        <h3 className="mt-4 text-sm font-bold text-slate-900">
+        <h3 className="mt-4 font-display text-lg font-semibold text-ink">
           No members found
         </h3>
 
-        <p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-slate-400">
+        <p className="mx-auto mt-1 max-w-sm text-xs leading-5 text-body">
           {isMinistry
             ? "No assignments match this ministry and your current filters. Try selecting another ministry or clearing your filters."
             : mode === "smallGroup"
@@ -669,14 +669,14 @@ export default function MembersTable({
       </div>
 
       {/* Wide screens: the table */}
-      <div className="hidden w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm xl:block">
+      <div className="hidden w-full overflow-hidden rounded-3xl bg-white shadow-card ring-1 ring-line xl:block">
         {onExport && (
-          <div className="flex justify-end border-b border-slate-100 px-4 py-3">
+          <div className="flex justify-end border-b border-line px-4 py-3">
             <button
               type="button"
               onClick={onExport}
               disabled={!members?.length}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-ink ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Download size={16} />
               Export Excel
@@ -687,7 +687,7 @@ export default function MembersTable({
         <div className="w-full overflow-x-auto">
           <table className="w-full min-w-[1100px] border-collapse">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/70">
+              <tr className="border-b border-line bg-surface-muted/60">
                 {columns.map((column) => (
                   <th
                     key={column.key}
@@ -704,7 +704,7 @@ export default function MembersTable({
                         onSort={onSort}
                       />
                     ) : (
-                      <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-body">
                         {column.label}
                       </span>
                     )}
@@ -713,7 +713,7 @@ export default function MembersTable({
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-line">
               {loading ? (
                 <LoadingRows columns={columns} />
               ) : (
@@ -737,7 +737,7 @@ export default function MembersTable({
                             {info.email && (
                               <p
                                 title={info.email}
-                                className="mt-0.5 truncate text-xs text-slate-500"
+                                className="mt-0.5 truncate text-xs text-body"
                               >
                                 {info.email}
                               </p>
@@ -746,7 +746,7 @@ export default function MembersTable({
                             {info.phone && (
                               <p
                                 title={info.phone}
-                                className="truncate text-xs text-slate-400"
+                                className="truncate text-xs text-body/80"
                               >
                                 {info.phone}
                               </p>
@@ -760,7 +760,7 @@ export default function MembersTable({
                       <td key="number" className="max-w-0 px-3 py-4">
                         <span
                           title={info.memberNumber}
-                          className="block max-w-full truncate font-mono text-[11px] font-medium text-slate-500"
+                          className="block max-w-full truncate font-mono text-[11px] font-medium text-body"
                         >
                           {info.memberNumber}
                         </span>
@@ -771,7 +771,7 @@ export default function MembersTable({
                       <td key="campus" className="max-w-0 px-3 py-4">
                         <span
                           title={info.campus}
-                          className="block truncate text-sm text-slate-600"
+                          className="block truncate text-sm text-body"
                         >
                           {info.campus || "—"}
                         </span>
@@ -782,11 +782,11 @@ export default function MembersTable({
                       <td key="ministry" className="max-w-0 px-3 py-4">
                         <span
                           title={info.ministryName}
-                          className="inline-flex max-w-full items-center gap-2 text-sm font-medium text-slate-700"
+                          className="inline-flex max-w-full items-center gap-2 text-sm font-medium text-ink"
                         >
                           <Building2
                             size={14}
-                            className="shrink-0 text-slate-400"
+                            className="shrink-0 text-primary"
                           />
 
                           <span className="truncate">{info.ministryName}</span>
@@ -817,7 +817,7 @@ export default function MembersTable({
                           {info.positions.map((position) => (
                             <span
                               key={position}
-                              className="inline-flex items-center rounded-lg bg-indigo-50 px-2 py-1 text-[11px] font-semibold text-indigo-600"
+                              className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary"
                             >
                               {position}
                             </span>
@@ -854,7 +854,7 @@ export default function MembersTable({
                   return (
                     <tr
                       key={`${member.id}-${member.ministry_id ?? "all"}`}
-                      className="group transition hover:bg-slate-50/80"
+                      className="group transition hover:bg-primary/[0.03]"
                     >
                       {columns.map((column) => cells[column.key])}
                     </tr>

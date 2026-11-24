@@ -75,7 +75,7 @@ function TextArea({
         {...props}
       />
 
-      <p className="mt-1.5 text-right text-xs text-slate-400">
+      <p className="mt-1.5 text-right text-xs text-body/60">
         {value.length}/{maxLength}
       </p>
     </Field>
@@ -95,16 +95,16 @@ function MinistryBlock({
   const ministry = formData[`${prefix}Name`];
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-5">
+    <div className="rounded-2xl bg-surface-muted/60 p-5 ring-1 ring-line">
       <div className="mb-4 flex items-start gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-indigo-600 ring-1 ring-slate-200">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <Icon size={18} aria-hidden="true" />
         </span>
 
         <div>
-          <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+          <h3 className="text-sm font-semibold text-ink">{title}</h3>
 
-          <p className="mt-0.5 text-xs leading-5 text-slate-500">
+          <p className="mt-0.5 text-xs leading-5 text-body">
             {description}
           </p>
         </div>
@@ -312,15 +312,15 @@ export default function PublicRegisterBackgroundInfo({
           hint="Optional. Only fellowship leaders can read this."
         />
 
-        <div className="mt-6 flex items-start gap-3 rounded-2xl bg-slate-50 p-4">
+        <div className="mt-6 flex items-start gap-3 rounded-2xl bg-surface-muted p-4 ring-1 ring-line">
           <ShieldCheck
             size={20}
             aria-hidden="true"
-            className="mt-0.5 shrink-0 text-indigo-600"
+            className="mt-0.5 shrink-0 text-primary"
           />
 
-          <p className="text-sm leading-6 text-slate-600">
-            <span className="font-semibold text-slate-800">
+          <p className="text-sm leading-6 text-body">
+            <span className="font-semibold text-ink">
               Your account will be registered as a Member.
             </span>{" "}
             Your role and account status are managed by the fellowship

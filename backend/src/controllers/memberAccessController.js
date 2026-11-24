@@ -36,6 +36,7 @@ const list = handle(async (req, res) => {
     filter: req.query.filter,
     search: req.query.search,
     page: req.query.page,
+    fellowshipId: req.query.fellowshipId,
   });
 
   return successResponse(res, "Member access retrieved", data);
@@ -45,6 +46,7 @@ const exportRows = handle(async (req, res) => {
   const data = await service.exportRows(req.access, {
     filter: req.query.filter,
     search: req.query.search,
+    fellowshipId: req.query.fellowshipId,
   });
 
   return successResponse(res, "Export ready", data);

@@ -11,7 +11,10 @@ const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 const inputClass =
-  "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10";
+  "w-full rounded-full border border-line bg-white px-4 py-3 text-sm text-ink outline-none transition placeholder:text-body/60 focus:border-primary focus:ring-4 focus:ring-primary/10";
+
+const textareaClass =
+  "w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-ink outline-none transition placeholder:text-body/60 focus:border-primary focus:ring-4 focus:ring-primary/10";
 
 const toForm = (profile) => ({
   firstName: profile.firstName || "",
@@ -28,10 +31,10 @@ function Field({ id, label, required, children }) {
     <div>
       <label
         htmlFor={id}
-        className="mb-2 block text-sm font-medium text-slate-700"
+        className="mb-2 block text-sm font-medium text-ink"
       >
         {label}
-        {required && <span className="text-red-500"> *</span>}
+        {required && <span className="text-danger"> *</span>}
       </label>
       {children}
     </div>
@@ -180,19 +183,19 @@ export default function ProfileForm({ profile, onSaved, onCancel }) {
       {error && (
         <div
           role="alert"
-          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="rounded-2xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger"
         >
           {error}
         </div>
       )}
 
       {/* Photo */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl bg-white p-6 shadow-card ring-1 ring-line">
         <div className="flex flex-col items-center gap-5 sm:flex-row">
           <UserAvatar user={avatarUser} className="h-24 w-24 text-2xl" />
 
           <div className="text-center sm:text-left">
-            <p className="text-sm font-semibold text-slate-900">
+            <p className="font-display text-base font-semibold text-ink">
               Profile photo
             </p>
 
@@ -209,7 +212,7 @@ export default function ProfileForm({ profile, onSaved, onCancel }) {
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-ink ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20"
               >
                 <Camera size={16} aria-hidden="true" />
                 {hasPhoto ? "Change photo" : "Upload photo"}
@@ -219,7 +222,7 @@ export default function ProfileForm({ profile, onSaved, onCancel }) {
                 <button
                   type="button"
                   onClick={handleRemovePhoto}
-                  className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                  className="inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold text-danger transition hover:bg-danger/10 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-danger/20"
                 >
                   <Trash2 size={16} aria-hidden="true" />
                   Remove
@@ -227,7 +230,7 @@ export default function ProfileForm({ profile, onSaved, onCancel }) {
               )}
             </div>
 
-            <p className="mt-2 text-xs text-slate-400">
+            <p className="mt-2 text-xs text-body">
               JPG, PNG or WEBP, up to 10 MB.
             </p>
           </div>
@@ -235,8 +238,8 @@ export default function ProfileForm({ profile, onSaved, onCancel }) {
       </section>
 
       {/* Personal */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">
+      <section className="rounded-3xl bg-white p-6 shadow-card ring-1 ring-line">
+        <h2 className="font-display text-lg font-semibold text-ink">
           Personal information
         </h2>
 
@@ -307,8 +310,8 @@ export default function ProfileForm({ profile, onSaved, onCancel }) {
       </section>
 
       {/* Contact */}
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">
+      <section className="rounded-3xl bg-white p-6 shadow-card ring-1 ring-line">
+        <h2 className="font-display text-lg font-semibold text-ink">
           Contact information
         </h2>
 
@@ -335,15 +338,19 @@ export default function ProfileForm({ profile, onSaved, onCancel }) {
                 value={form.address}
                 onChange={handleChange}
                 maxLength={500}
-                className={inputClass}
+                className={textareaClass}
               />
             </Field>
           </div>
         </div>
       </section>
 
-      <p className="flex items-start gap-2 text-sm text-slate-500">
-        <Info size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
+      <p className="flex items-start gap-2 text-sm leading-6 text-body">
+        <Info
+          size={16}
+          className="mt-1 shrink-0 text-primary"
+          aria-hidden="true"
+        />
         Your email, role, member number and baptism date are managed by the
         fellowship office, so they can&apos;t be edited here.
       </p>
@@ -353,7 +360,7 @@ export default function ProfileForm({ profile, onSaved, onCancel }) {
           type="button"
           onClick={handleCancel}
           disabled={saving}
-          className="rounded-xl border border-slate-300 bg-white px-8 py-3.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-full bg-white px-8 py-3 text-sm font-semibold text-ink ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
         >
           Cancel
         </button>
@@ -361,7 +368,7 @@ export default function ProfileForm({ profile, onSaved, onCancel }) {
         <button
           type="submit"
           disabled={saving || !dirty}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-950 px-8 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-600 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-8 py-3 text-sm font-semibold text-white shadow-card transition hover:bg-primary-dark active:scale-[0.97] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {saving && <Loader2 size={16} className="animate-spin" />}
           {saving ? "Saving..." : "Save changes"}

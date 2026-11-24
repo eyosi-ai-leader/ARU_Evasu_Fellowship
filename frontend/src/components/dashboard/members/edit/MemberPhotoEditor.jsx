@@ -10,9 +10,9 @@ export default function MemberPhotoEditor({
   const initials = `${form.firstName?.[0] || ""}${form.lastName?.[0] || ""}`;
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <div className="rounded-3xl bg-white p-6 shadow-card ring-1 ring-line">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-        <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-900 text-lg font-bold uppercase text-white shadow-sm">
+        <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-primary to-ember text-lg font-bold uppercase text-white shadow-soft">
           {imagePreview ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -26,18 +26,18 @@ export default function MemberPhotoEditor({
         </div>
 
         <div className="min-w-0">
-          <h2 className="text-base font-semibold text-slate-900">
+          <h2 className="font-display text-lg font-semibold text-ink">
             Profile photo
           </h2>
 
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-body">
             JPG, PNG or WEBP. Maximum file size: 10MB.
           </p>
 
           <div className="mt-3 flex flex-wrap gap-2">
             <label
               htmlFor="profileImage"
-              className="inline-flex h-10 cursor-pointer items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-800 focus-within:ring-2 focus-within:ring-slate-400"
+              className="inline-flex h-10 cursor-pointer items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-white transition hover:bg-primary-dark active:scale-[0.97] focus-within:ring-4 focus-within:ring-primary/20"
             >
               {profileImage || imagePreview ? "Change photo" : "Choose photo"}
             </label>
@@ -55,7 +55,7 @@ export default function MemberPhotoEditor({
               <button
                 type="button"
                 onClick={onRemoveImage}
-                className="inline-flex h-10 items-center justify-center rounded-xl border border-red-200 bg-white px-4 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                className="inline-flex h-10 items-center justify-center rounded-full bg-white px-5 text-sm font-semibold text-danger ring-1 ring-danger/30 transition hover:bg-danger/10 active:scale-[0.97]"
               >
                 Remove photo
               </button>

@@ -10,20 +10,22 @@ export default function AuthBrand({ light = false, showHome = false }) {
       href="/"
       aria-label={`${BRAND.name}: back to home`}
       title="Back to home"
-      className="flex items-center gap-3 rounded-2xl transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/25"
+      className="flex items-center gap-3 rounded-2xl transition-opacity hover:opacity-85 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25"
     >
-      <BrandLogo size={34} framed priority />
+      <BrandLogo size={38} framed priority />
 
       <span>
         <span
-          className={`block text-sm font-bold uppercase tracking-wide ${
-            light ? "text-white" : "text-slate-950"
+          className={`block font-display text-sm font-semibold uppercase tracking-wide ${
+            light ? "text-white" : "text-ink"
           }`}
         >
           {BRAND.university}
         </span>
 
-        <span className="block text-xs text-slate-400">
+        <span
+          className={`block text-xs ${light ? "text-white/60" : "text-body"}`}
+        >
           {BRAND.shortName} Portal
         </span>
       </span>
@@ -38,10 +40,10 @@ export default function AuthBrand({ light = false, showHome = false }) {
 
       <Link
         href="/"
-        className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold transition ${
+        className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold transition active:scale-[0.97] ${
           light
             ? "bg-white/10 text-white ring-1 ring-white/15 hover:bg-white/20"
-            : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+            : "bg-surface-muted text-ink ring-1 ring-line hover:text-primary hover:ring-primary/40"
         }`}
       >
         <ArrowLeft size={14} aria-hidden="true" />

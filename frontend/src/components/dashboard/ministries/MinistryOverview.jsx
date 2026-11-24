@@ -177,23 +177,24 @@ export default function MinistryOverview() {
   return (
     <div className="min-h-full space-y-6">
       {/* Heading */}
-      <div className="flex items-center gap-2">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
-          <Building2 size={19} strokeWidth={2} />
+      <div className="flex items-center gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-dark text-accent shadow-soft">
+          <Building2 size={22} strokeWidth={2} />
         </div>
 
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+        <div className="min-w-0">
+          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+            <span className="h-0.5 w-5 rounded-full bg-accent" />
             Management
           </p>
 
-          <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-slate-900">
+          <h1 className="mt-1 font-display text-3xl font-semibold text-ink">
             Ministries
           </h1>
         </div>
       </div>
 
-      <p className="-mt-3 max-w-2xl text-sm leading-6 text-slate-500">
+      <p className="-mt-3 max-w-2xl text-sm leading-6 text-body">
         The teams that serve in your fellowship. Open a ministry to appoint its
         leaders and add its members.
       </p>
@@ -201,16 +202,16 @@ export default function MinistryOverview() {
       {error && (
         <div
           role="alert"
-          className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="flex items-start gap-3 rounded-2xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger"
         >
           <AlertCircle size={18} className="mt-0.5 shrink-0" />
 
-          <span className="flex-1">{error}</span>
+          <span className="min-w-0 flex-1">{error}</span>
 
           <button
             type="button"
             onClick={reload}
-            className="shrink-0 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600"
+            className="shrink-0 rounded-full bg-white px-4 py-1.5 text-xs font-semibold text-danger ring-1 ring-danger/30 transition hover:bg-danger/10 active:scale-[0.97]"
           >
             Try again
           </button>
@@ -220,16 +221,16 @@ export default function MinistryOverview() {
       {notice && (
         <div
           role="status"
-          className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700"
+          className="flex items-center gap-2 rounded-2xl border border-success/30 bg-success/10 px-4 py-3 text-sm font-medium text-success"
         >
-          <CheckCircle2 size={16} />
+          <CheckCircle2 size={16} className="shrink-0" />
 
-          <span className="flex-1">{notice}</span>
+          <span className="min-w-0 flex-1">{notice}</span>
 
           <button
             type="button"
             onClick={() => setNotice("")}
-            className="text-xs font-semibold"
+            className="shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition hover:bg-success/10"
           >
             Dismiss
           </button>
@@ -254,21 +255,21 @@ export default function MinistryOverview() {
           {[1, 2, 3].map((item) => (
             <div
               key={item}
-              className="h-56 animate-pulse rounded-2xl border border-slate-200 bg-white"
+              className="h-56 animate-pulse rounded-3xl bg-surface-muted ring-1 ring-line"
             />
           ))}
         </div>
       ) : ministries.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
-          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+        <div className="rounded-3xl border border-dashed border-line bg-white p-12 text-center shadow-card">
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <Building2 size={22} />
           </span>
 
-          <h2 className="mt-4 text-sm font-semibold text-slate-900">
+          <h2 className="mt-4 font-display text-base font-semibold text-ink">
             No ministries found
           </h2>
 
-          <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-slate-500">
+          <p className="mx-auto mt-1 max-w-sm text-sm leading-6 text-body">
             Change your search or filters, or create the first ministry of
             your campus.
           </p>

@@ -60,7 +60,7 @@ const updateMyProfile = async (req, res) => {
     if (!row || !row.member_id) {
       return errorResponse(
         res,
-        "Your member record was not found. Please contact the church office.",
+        "Your member record was not found. Please contact the fellowship office.",
         409
       );
     }
@@ -68,7 +68,7 @@ const updateMyProfile = async (req, res) => {
     /*
      * Only these fields are editable by the person themselves.
      * Email, role, status, member number and baptism date are
-     * managed by the church office and are never read from the body.
+     * managed by the fellowship office and are never read from the body.
      */
     await memberService.updateMember(
       row.member_id,

@@ -34,6 +34,7 @@ const BASE = `
     m.id AS member_id,
     m.member_number,
     m.fellowship_id,
+   (SELECT f.name FROM fellowships f WHERE f.id = m.fellowship_id) AS campus_name,
     m.status AS member_status,
     m.created_at AS joined_at,
     u.id AS user_id,

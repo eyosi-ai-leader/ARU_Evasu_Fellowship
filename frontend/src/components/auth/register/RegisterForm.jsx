@@ -40,6 +40,10 @@ import PublicRegisterAccountInfo from "./PublicRegisterAccountInfo";
 import TermsDialog from "@/components/shared/Terms/TermsDialog";
 import { TERMS_VERSION } from "@/lib/fellowshipTerms";
 
+// CHANGE THE LEFT-SIDE PHOTO HERE.
+// The file lives in the "public/images" folder of your project.
+const SIDE_IMAGE = "/images/events/Family_4.jpg";
+
 const STEP_META = [
   {
     label: "Campus",
@@ -83,8 +87,6 @@ const initialFormData = {
   entryYear: "",
   studentId: "",
   alumniContactConsent: false,
-
-  
 
   // About you
   firstName: "",
@@ -306,7 +308,7 @@ export default function RegisterForm() {
         newErrors.email = "Please enter a valid email.";
       }
 
-           if (!formData.phone.trim()) {
+      if (!formData.phone.trim()) {
         newErrors.phone = "Phone number is required.";
       } else if (formData.phone.replace(/\D/g, "").length < 9) {
         newErrors.phone = "Please enter a valid phone number.";
@@ -320,7 +322,7 @@ export default function RegisterForm() {
       if (birthProblem) newErrors.dateOfBirth = birthProblem;
     }
 
-       if (stepIndex === 2) {
+    if (stepIndex === 2) {
       const baptismProblem = ecDateProblem(
         formData.baptismDate,
         "Baptism date"
@@ -445,7 +447,7 @@ export default function RegisterForm() {
     try {
       const data = new FormData();
 
-            TEXT_FIELDS.forEach((key) => {
+      TEXT_FIELDS.forEach((key) => {
         const text = String(formData[key] ?? "").trim();
 
         if (text) data.append(key, text);
@@ -502,9 +504,9 @@ export default function RegisterForm() {
         "alumniContactConsent",
         String(formData.alumniContactConsent)
       );
-      
+
       data.append("termsAccepted", "true");
-data.append("termsVersion", TERMS_VERSION);
+      data.append("termsVersion", TERMS_VERSION);
 
       data.append("password", formData.password);
       data.append("confirmPassword", formData.confirmPassword);
@@ -554,10 +556,22 @@ data.append("termsVersion", TERMS_VERSION);
      * around this page. Left = fixed brand panel, right = scrolling form.
      * Phones: the normal page layout.
      */
-    <div className="min-h-screen bg-slate-50 lg:fixed lg:inset-0 lg:z-[100] lg:flex lg:min-h-0">
+    <div className="min-h-screen bg-surface-muted lg:fixed lg:inset-0 lg:z-[100] lg:flex lg:min-h-0">
       {/* Brand panel (desktop only) */}
-      <aside className="relative hidden w-[400px] shrink-0 overflow-y-auto bg-slate-950 text-white [scrollbar-width:none] lg:block xl:w-[440px] [&::-webkit-scrollbar]:hidden">
+      <aside className="relative hidden w-[400px] shrink-0 overflow-y-auto bg-primary-dark text-white [scrollbar-width:none] lg:block xl:w-[440px] [&::-webkit-scrollbar]:hidden">
         <div className="relative flex min-h-full flex-col justify-between gap-8 overflow-hidden p-10 xl:p-12">
+          {/* LEFT-SIDE PHOTO (change the file name at the top of this file) */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url(${SIDE_IMAGE})` }}
+          />
+          {/* Maroon layer so the white text is easy to read.
+              Make the numbers smaller (for example /70) to show more photo. */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 bg-gradient-to-b from-primary-dark/85 via-primary-dark/75 to-primary-dark/95"
+          />
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0"
@@ -573,24 +587,28 @@ data.append("termsVersion", TERMS_VERSION);
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_45%_at_20%_0%,rgba(99,102,241,0.40),transparent)]"
+            className="pointer-events-none absolute -left-24 -top-32 h-96 w-96 rounded-full bg-accent/20 blur-3xl"
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -bottom-32 -right-24 h-96 w-96 rounded-full bg-indigo-500/15 blur-3xl"
+            className="pointer-events-none absolute -bottom-32 -right-24 h-96 w-96 rounded-full bg-ember/20 blur-3xl"
           />
 
           <div className="relative">
-        
             <AuthBrand light showHome />
           </div>
 
           <div className="relative">
-            <h2 className="text-3xl font-bold leading-tight tracking-tight xl:text-4xl">
+            <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-accent">
+              <span className="h-0.5 w-5 rounded-full bg-accent" />
+              Join us
+            </span>
+
+            <h2 className="mt-4 font-display text-3xl font-semibold leading-tight tracking-tight xl:text-4xl">
               Your campus family, all in one place.
             </h2>
 
-            <p className="mt-4 text-sm leading-6 text-slate-300">
+            <p className="mt-4 text-sm leading-6 text-white/70">
               Join the Arsi University Evasu Fellowship and stay connected
               with announcements, your ministries and your community.
             </p>
@@ -607,7 +625,7 @@ data.append("termsVersion", TERMS_VERSION);
                       <span
                         aria-hidden="true"
                         className={`absolute left-[31px] top-[52px] h-6 w-px ${
-                          done ? "bg-indigo-400/60" : "bg-white/10"
+                          done ? "bg-accent/60" : "bg-white/10"
                         }`}
                       />
                     )}
@@ -626,12 +644,12 @@ data.append("termsVersion", TERMS_VERSION);
                       }`}
                     >
                       <span
-                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl ${
                           done
-                            ? "bg-indigo-500 text-white"
+                            ? "bg-accent text-ink"
                             : current
-                              ? "bg-white text-slate-950"
-                              : "bg-white/10 text-slate-300"
+                              ? "bg-white text-primary"
+                              : "bg-white/10 text-white/70"
                         }`}
                       >
                         {done ? (
@@ -646,7 +664,7 @@ data.append("termsVersion", TERMS_VERSION);
                           {item.label}
                         </span>
 
-                        <span className="block text-xs text-slate-400">
+                        <span className="block text-xs text-white/60">
                           {item.short}
                         </span>
                       </span>
@@ -658,13 +676,13 @@ data.append("termsVersion", TERMS_VERSION);
           </div>
 
           {/* Hidden on short screens so the panel never needs a scrollbar */}
-          <figure className="relative border-l-2 border-white/20 pl-5 [@media(max-height:780px)]:hidden">
-            <blockquote className="text-sm italic leading-6 text-slate-300">
+          <figure className="relative border-l-2 border-accent/60 pl-5 [@media(max-height:780px)]:hidden">
+            <blockquote className="text-sm italic leading-6 text-white/70">
               &ldquo;Behold, how good and how pleasant it is for brethren to
               dwell together in unity!&rdquo;
             </blockquote>
 
-            <figcaption className="mt-2 text-xs font-medium text-slate-400">
+            <figcaption className="mt-2 text-xs font-medium text-white/60">
               Psalm 133:1 (KJV)
             </figcaption>
           </figure>
@@ -677,18 +695,18 @@ data.append("termsVersion", TERMS_VERSION);
         className="flex min-h-screen min-w-0 flex-1 flex-col lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain"
       >
         {/* Top bar (small screens) */}
-        <header className="border-b border-slate-200 bg-white/80 px-5 py-4 backdrop-blur-xl lg:hidden">
+        <header className="border-b border-line bg-white/80 px-5 py-4 backdrop-blur-xl lg:hidden">
           <AuthBrand showHome />
 
           <div
-            className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-200"
+            className="mt-4 h-1.5 overflow-hidden rounded-full bg-line"
             role="progressbar"
             aria-valuemin={1}
             aria-valuemax={STEP_META.length}
             aria-valuenow={step + 1}
           >
             <div
-              className="h-full rounded-full bg-indigo-600 transition-all duration-300"
+              className="h-full rounded-full bg-primary transition-all duration-300"
               style={{
                 width: `${((step + 1) / STEP_META.length) * 100}%`,
               }}
@@ -703,17 +721,17 @@ data.append("termsVersion", TERMS_VERSION);
               <span
                 key={item.label}
                 className={`h-1.5 w-10 rounded-full transition-colors ${
-                  index <= step ? "bg-indigo-600" : "bg-slate-200"
+                  index <= step ? "bg-primary" : "bg-line"
                 }`}
               />
             ))}
           </div>
 
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-body">
             Already have an account?{" "}
             <Link
               href="/login"
-              className="font-semibold text-indigo-600 hover:text-indigo-700"
+              className="font-semibold text-primary hover:text-primary-dark"
             >
               Sign in
             </Link>
@@ -727,21 +745,22 @@ data.append("termsVersion", TERMS_VERSION);
         >
           <div className="mx-auto w-full max-w-2xl flex-1 space-y-6 px-5 py-8 sm:px-8 lg:max-w-3xl lg:px-10 lg:py-10 xl:px-12">
             <div>
-              <p className="text-sm font-semibold text-indigo-600">
+              <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                <span className="h-0.5 w-5 rounded-full bg-accent" />
                 Step {step + 1} of {STEP_META.length}
               </p>
 
-              <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900 lg:text-4xl">
+              <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-ink lg:text-4xl">
                 {meta.title}
               </h1>
 
-              <p className="mt-2 text-slate-500 lg:text-lg">{meta.text}</p>
+              <p className="mt-2 text-body lg:text-lg">{meta.text}</p>
             </div>
 
             {submitError && (
               <div
                 role="alert"
-                className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+                className="rounded-2xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger"
               >
                 {submitError}
               </div>
@@ -800,7 +819,6 @@ data.append("termsVersion", TERMS_VERSION);
                 />
 
                 <CheckboxCard
-                
                   checked={agreed}
                   onChange={(event) => {
                     setAgreed(event.target.checked);
@@ -810,33 +828,34 @@ data.append("termsVersion", TERMS_VERSION);
                   description="I confirm that the information I have provided is accurate."
                   error={errors.terms}
                 />
-                <p className="-mt-2 px-1 text-sm text-slate-500">
-  Please read the{" "}
-  <button
-    type="button"
-    onClick={() => setTermsOpen(true)}
-    className="rounded font-semibold text-indigo-600 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-  >
-    Fellowship Terms &amp; Conditions
-  </button>{" "}
-  before you create your account, or{" "}
-  <Link
-    href="/terms"
-    target="_blank"
-    className="font-semibold text-indigo-600 underline-offset-2 hover:underline"
-  >
-    open them in a new tab
-  </Link>
-  .
-</p>
+
+                <p className="-mt-2 px-1 text-sm text-body">
+                  Please read the{" "}
+                  <button
+                    type="button"
+                    onClick={() => setTermsOpen(true)}
+                    className="rounded font-semibold text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  >
+                    Fellowship Terms &amp; Conditions
+                  </button>{" "}
+                  before you create your account, or{" "}
+                  <Link
+                    href="/terms"
+                    target="_blank"
+                    className="font-semibold text-primary underline-offset-2 hover:underline"
+                  >
+                    open them in a new tab
+                  </Link>
+                  .
+                </p>
               </>
             )}
 
-            <p className="pt-2 text-center text-sm text-slate-500 lg:hidden">
+            <p className="pt-2 text-center text-sm text-body lg:hidden">
               Already have an account?{" "}
               <Link
                 href="/login"
-                className="font-semibold text-indigo-600 hover:text-indigo-700"
+                className="font-semibold text-primary hover:text-primary-dark"
               >
                 Sign in
               </Link>
@@ -844,14 +863,14 @@ data.append("termsVersion", TERMS_VERSION);
           </div>
 
           {/* Action bar */}
-          <div className="sticky bottom-0 border-t border-slate-200 bg-white/80 backdrop-blur-xl">
+          <div className="sticky bottom-0 border-t border-line bg-white/80 backdrop-blur-xl">
             <div className="mx-auto flex w-full max-w-2xl items-center gap-3 px-5 py-4 sm:px-8 lg:max-w-3xl lg:px-10 xl:px-12">
               {step > 0 && (
                 <button
                   type="button"
                   onClick={goBack}
                   disabled={isSubmitting}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-3.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-ink ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97] disabled:opacity-60"
                 >
                   <ArrowLeft size={16} aria-hidden="true" />
                   Back
@@ -862,7 +881,7 @@ data.append("termsVersion", TERMS_VERSION);
                 <button
                   type="button"
                   onClick={goNext}
-                  className="group ml-auto flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-950 px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-600 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/25 sm:min-w-48 sm:flex-none"
+                  className="group ml-auto flex flex-1 items-center justify-center gap-2 rounded-full bg-primary px-6 py-3.5 text-sm font-semibold text-white shadow-card transition hover:bg-primary-dark active:scale-[0.97] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 sm:min-w-48 sm:flex-none"
                 >
                   Continue
                   <ArrowRight
@@ -875,7 +894,7 @@ data.append("termsVersion", TERMS_VERSION);
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="ml-auto flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-950 px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-600 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/25 disabled:cursor-not-allowed disabled:opacity-60 sm:min-w-48 sm:flex-none"
+                  className="ml-auto flex flex-1 items-center justify-center gap-2 rounded-full bg-primary px-6 py-3.5 text-sm font-semibold text-white shadow-card transition hover:bg-primary-dark active:scale-[0.97] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60 sm:min-w-48 sm:flex-none"
                 >
                   {isSubmitting ? (
                     <>
@@ -891,7 +910,8 @@ data.append("termsVersion", TERMS_VERSION);
           </div>
         </form>
       </div>
-            <TermsDialog
+
+      <TermsDialog
         open={termsOpen}
         onClose={() => setTermsOpen(false)}
         onAccept={() => {
@@ -899,7 +919,6 @@ data.append("termsVersion", TERMS_VERSION);
           setErrors((current) => ({ ...current, terms: "" }));
         }}
       />
-  
     </div>
   );
 }

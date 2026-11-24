@@ -15,14 +15,24 @@ import { campusLabel, optimizedImage } from "./ministryUtils";
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
+// Design classes for this form (same look as the rest of the dashboard).
+const fieldClass =
+  "h-11 w-full rounded-full border border-line bg-white px-4 text-sm text-ink outline-none transition placeholder:text-body/60 focus:border-primary focus:ring-4 focus:ring-primary/10";
+
 const areaClass =
-  "w-full resize-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-100";
+  "w-full resize-none rounded-2xl border border-line bg-white px-4 py-3 text-sm text-ink outline-none transition placeholder:text-body/60 focus:border-primary focus:ring-4 focus:ring-primary/10";
+
+const primaryPill =
+  "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-white transition hover:bg-primary-dark active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60";
+
+const secondaryPill =
+  "inline-flex h-11 items-center justify-center gap-2 rounded-full bg-white px-5 text-sm font-semibold text-ink ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60";
 
 function Label({ htmlFor, children }) {
   return (
     <label
       htmlFor={htmlFor}
-      className="mb-2 block text-xs font-semibold text-slate-700"
+      className="mb-2 block px-1 text-xs font-semibold text-ink"
     >
       {children}
     </label>
@@ -31,12 +41,12 @@ function Label({ htmlFor, children }) {
 
 function Group({ title, hint, children }) {
   return (
-    <fieldset className="space-y-4 rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
-      <legend className="px-1 text-[11px] font-bold uppercase tracking-wide text-slate-500">
+    <fieldset className="space-y-4 rounded-3xl bg-surface-muted/60 p-4 ring-1 ring-line">
+      <legend className="px-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
         {title}
       </legend>
 
-      {hint && <p className="-mt-2 text-xs text-slate-400">{hint}</p>}
+      {hint && <p className="-mt-2 px-1 text-xs text-body">{hint}</p>}
 
       {children}
     </fieldset>
@@ -186,7 +196,7 @@ export default function MinistryFormModal({
             type="button"
             onClick={onClose}
             disabled={saving}
-            className={secondaryButton}
+            className={secondaryPill}
           >
             Cancel
           </button>
@@ -195,7 +205,7 @@ export default function MinistryFormModal({
             type="submit"
             form="ministry-form"
             disabled={saving}
-            className={primaryButton}
+            className={primaryPill}
           >
             {saving ? (
               <Loader2 size={15} className="animate-spin" />
@@ -217,7 +227,7 @@ export default function MinistryFormModal({
           title="Cover image"
           hint="Shown behind the ministry name. Optional."
         >
-          <div className="relative h-36 overflow-hidden rounded-xl border border-dashed border-slate-300 bg-white">
+          <div className="relative h-36 overflow-hidden rounded-2xl border border-dashed border-line bg-white">
             {shownImage ? (
               <img
                 src={shownImage}
@@ -225,8 +235,10 @@ export default function MinistryFormModal({
                 className="h-full w-full object-cover"
               />
             ) : (
-              <div className="flex h-full flex-col items-center justify-center text-slate-400">
-                <ImagePlus size={28} aria-hidden="true" />
+              <div className="flex h-full flex-col items-center justify-center text-body">
+                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <ImagePlus size={22} aria-hidden="true" />
+                </span>
                 <p className="mt-2 text-xs">JPG, PNG or WEBP, up to 10 MB</p>
               </div>
             )}
@@ -246,7 +258,7 @@ export default function MinistryFormModal({
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={saving}
-              className={secondaryButton}
+              className={secondaryPill}
             >
               <Camera size={14} aria-hidden="true" />
               {shownImage ? "Change image" : "Upload image"}
@@ -257,7 +269,7 @@ export default function MinistryFormModal({
                 type="button"
                 onClick={handleRemoveImage}
                 disabled={saving}
-                className="inline-flex h-11 items-center gap-2 rounded-xl px-4 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50 sm:h-10"
+                className="inline-flex h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold text-danger transition hover:bg-danger/10 active:scale-[0.97] disabled:opacity-50"
               >
                 <Trash2 size={14} aria-hidden="true" />
                 Remove
@@ -275,7 +287,7 @@ export default function MinistryFormModal({
                 id="ministry-campus"
                 value={fellowshipId}
                 onChange={(event) => setFellowshipId(event.target.value)}
-                className={inputClass}
+                className={fieldClass}
               >
                 <option value="">Select campus</option>
 
@@ -299,7 +311,7 @@ export default function MinistryFormModal({
               maxLength={100}
               autoFocus
               placeholder="e.g. Worship Team"
-              className={inputClass}
+              className={fieldClass}
             />
           </div>
 
@@ -313,7 +325,7 @@ export default function MinistryFormModal({
               onChange={(event) => setPurpose(event.target.value)}
               maxLength={255}
               placeholder="e.g. Lead the fellowship into God's presence through song"
-              className={inputClass}
+              className={fieldClass}
             />
           </div>
         </Group>
@@ -332,7 +344,7 @@ export default function MinistryFormModal({
               onChange={(event) => setVerseReference(event.target.value)}
               maxLength={100}
               placeholder="e.g. Psalm 100:1-2"
-              className={inputClass}
+              className={fieldClass}
             />
           </div>
 
@@ -349,7 +361,7 @@ export default function MinistryFormModal({
               className={areaClass}
             />
 
-            <p className="mt-1.5 text-xs text-slate-400">
+            <p className="mt-1.5 px-1 text-xs text-body">
               {verseText.length}/600
             </p>
           </div>
@@ -367,7 +379,7 @@ export default function MinistryFormModal({
                 onChange={(event) => setMeetingSchedule(event.target.value)}
                 maxLength={150}
                 placeholder="e.g. Thursdays at 6:30 PM"
-                className={inputClass}
+                className={fieldClass}
               />
             </div>
 
@@ -381,7 +393,7 @@ export default function MinistryFormModal({
                 onChange={(event) => setMeetingPlace(event.target.value)}
                 maxLength={150}
                 placeholder="e.g. Main hall"
-                className={inputClass}
+                className={fieldClass}
               />
             </div>
           </div>
@@ -397,7 +409,7 @@ export default function MinistryFormModal({
               onChange={(event) => setContactPhone(event.target.value)}
               maxLength={30}
               placeholder="0911 000 000"
-              className={inputClass}
+              className={fieldClass}
             />
           </div>
         </Group>
@@ -419,7 +431,7 @@ export default function MinistryFormModal({
         {error && (
           <div
             role="alert"
-            className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-xs text-red-700"
+            className="rounded-2xl border border-danger/30 bg-danger/10 px-4 py-3 text-xs text-danger"
           >
             {error}
           </div>
