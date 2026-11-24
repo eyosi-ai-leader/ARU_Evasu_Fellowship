@@ -1,4 +1,5 @@
 import { getToken } from "@/lib/authToken";
+import { endSession } from "@/lib/accountApi";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
@@ -29,6 +30,11 @@ async function request(path, { method = "GET" } = {}) {
     result = await response.json();
   } catch {
     /* non-JSON response */
+  }
+
+  if (response.status === 401 || result.code === "ACCOUNT_INACTIVE") {
+    endSession({ inactive: result.code === "ACCOUNT_INACTIVE" });
+    throw new Error(result.message || "Please sign in again.");
   }
 
   if (!response.ok) {

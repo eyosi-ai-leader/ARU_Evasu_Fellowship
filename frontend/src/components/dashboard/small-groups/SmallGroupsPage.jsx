@@ -13,9 +13,11 @@ import { primaryButton, shortCampusName } from "./parts";
 
 function Tile({ label, value }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-      <p className="text-xs font-medium text-slate-400">{label}</p>
-      <p className="mt-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+    <div className="rounded-3xl bg-white p-4 ring-1 ring-line sm:p-5">
+      <p className="text-xs font-semibold uppercase tracking-wide text-body">
+        {label}
+      </p>
+      <p className="mt-2 font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
         {value}
       </p>
     </div>
@@ -76,8 +78,8 @@ export default function SmallGroupsPage() {
 
   if (accessLoading) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center text-sm text-slate-500">
-        <Loader2 size={18} className="mr-2 animate-spin" />
+      <div className="flex min-h-[40vh] items-center justify-center text-sm text-body">
+        <Loader2 size={18} className="mr-2 animate-spin text-primary" />
         Loading...
       </div>
     );
@@ -85,16 +87,16 @@ export default function SmallGroupsPage() {
 
   if (!allowed) {
     return (
-      <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+      <div className="mx-auto max-w-md rounded-3xl bg-white p-10 text-center ring-1 ring-line">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <Lock size={24} />
         </div>
 
-        <h1 className="mt-4 text-sm font-bold text-slate-900">
+        <h1 className="mt-4 font-display text-xl font-semibold text-ink">
           No small groups for your account
         </h1>
 
-        <p className="mt-1 text-xs leading-5 text-slate-400">
+        <p className="mt-2 text-sm leading-6 text-body">
           Small groups are managed by campus leaders and overseen by the
           people they appoint.
         </p>
@@ -107,23 +109,27 @@ export default function SmallGroupsPage() {
       {/* Heading */}
       <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
-              <Home size={19} strokeWidth={2} />
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-dark text-accent shadow-soft">
+              <Home size={21} strokeWidth={2} />
             </div>
 
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+              <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+                <span
+                  aria-hidden="true"
+                  className="h-0.5 w-5 rounded-full bg-accent"
+                />
                 {canManage ? "Management" : "Small Group"}
               </p>
 
-              <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-slate-900">
+              <h1 className="mt-0.5 font-display text-3xl font-semibold tracking-tight text-ink">
                 Small Groups
               </h1>
             </div>
           </div>
 
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-body">
             {canManage
               ? "Create small groups, appoint their overseers, and see who still needs a place in a family."
               : "The small groups you oversee. Open one to look after its families."}
@@ -153,14 +159,14 @@ export default function SmallGroupsPage() {
       {error && (
         <div
           role="alert"
-          className="flex items-center justify-between gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="flex items-center justify-between gap-3 rounded-3xl border border-danger/30 bg-danger/10 px-5 py-3 text-sm text-danger"
         >
           <span>{error}</span>
 
           <button
             type="button"
             onClick={load}
-            className="shrink-0 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600"
+            className="shrink-0 rounded-full bg-white px-4 py-1.5 text-xs font-semibold text-danger ring-1 ring-danger/30 transition hover:bg-danger/10 active:scale-[0.97]"
           >
             Try again
           </button>
@@ -180,19 +186,19 @@ export default function SmallGroupsPage() {
           {[1, 2, 3].map((item) => (
             <div
               key={item}
-              className="h-52 animate-pulse rounded-2xl border border-slate-200 bg-white"
+              className="h-52 animate-pulse rounded-3xl bg-white ring-1 ring-line"
             />
           ))}
         </div>
       )}
 
       {groups && visible.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-          <h2 className="text-sm font-semibold text-slate-800">
+        <div className="rounded-3xl border border-dashed border-line bg-white p-10 text-center">
+          <h2 className="font-display text-lg font-semibold text-ink">
             No small groups yet
           </h2>
 
-          <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-slate-500">
+          <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-body">
             {canManage
               ? "Create the first small group of your campus, then appoint its overseers."
               : "You don't oversee a small group yet."}

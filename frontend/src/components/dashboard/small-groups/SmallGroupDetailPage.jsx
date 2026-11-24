@@ -39,12 +39,14 @@ import { Chip, primaryButton, secondaryButton, shortCampusName } from "./parts";
 function Tile({ label, value, attention = false }) {
   return (
     <div
-      className={`rounded-2xl border p-4 shadow-sm sm:p-5 ${
-        attention ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-white"
+      className={`rounded-3xl p-4 ring-1 sm:p-5 ${
+        attention ? "bg-accent/20 ring-accent/40" : "bg-white ring-line"
       }`}
     >
-      <p className="text-xs font-medium text-slate-400">{label}</p>
-      <p className="mt-2 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+      <p className="text-xs font-semibold uppercase tracking-wide text-body">
+        {label}
+      </p>
+      <p className="mt-2 font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
         {value}
       </p>
     </div>
@@ -284,24 +286,24 @@ export default function SmallGroupDetailPage() {
   if (loading && !data) {
     return (
       <div className="mx-auto max-w-6xl space-y-6">
-        <div className="h-24 animate-pulse rounded-2xl border border-slate-200 bg-white" />
-        <div className="h-64 animate-pulse rounded-2xl border border-slate-200 bg-white" />
+        <div className="h-24 animate-pulse rounded-3xl bg-white ring-1 ring-line" />
+        <div className="h-64 animate-pulse rounded-3xl bg-white ring-1 ring-line" />
       </div>
     );
   }
 
   if (!data) {
     return (
-      <div className="mx-auto max-w-xl rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
-        <h1 className="text-sm font-bold text-red-800">
+      <div className="mx-auto max-w-xl rounded-3xl border border-danger/30 bg-danger/10 p-8 text-center">
+        <h1 className="font-display text-xl font-semibold text-danger">
           We couldn&apos;t open this small group
         </h1>
 
-        <p className="mt-2 text-sm text-red-600">{error}</p>
+        <p className="mt-2 text-sm text-danger/90">{error}</p>
 
         <Link
           href="/dashboard/small-groups"
-          className="mt-5 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
+          className="mt-5 inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark active:scale-[0.97]"
         >
           <ArrowLeft size={16} />
           Back to small groups
@@ -323,7 +325,7 @@ export default function SmallGroupDetailPage() {
       <div>
         <Link
           href="/dashboard/small-groups"
-          className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition hover:text-slate-900"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-body transition hover:text-primary"
         >
           <ArrowLeft size={16} />
           Back to small groups
@@ -332,7 +334,7 @@ export default function SmallGroupDetailPage() {
         <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+              <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">
                 {group.name}
               </h1>
 
@@ -343,29 +345,37 @@ export default function SmallGroupDetailPage() {
             </div>
 
             {group.purpose && (
-              <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-600">
+              <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-ink">
                 {group.purpose}
               </p>
             )}
 
             {group.description && (
-              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-body">
                 {group.description}
               </p>
             )}
 
             {(group.meetingSchedule || group.meetingPlace) && (
-              <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+              <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-body">
                 {group.meetingSchedule && (
                   <span className="inline-flex items-center gap-1.5">
-                    <CalendarClock size={13} aria-hidden="true" />
+                    <CalendarClock
+                      size={13}
+                      aria-hidden="true"
+                      className="text-primary/70"
+                    />
                     {group.meetingSchedule}
                   </span>
                 )}
 
                 {group.meetingPlace && (
                   <span className="inline-flex items-center gap-1.5">
-                    <MapPin size={13} aria-hidden="true" />
+                    <MapPin
+                      size={13}
+                      aria-hidden="true"
+                      className="text-primary/70"
+                    />
                     {group.meetingPlace}
                   </span>
                 )}
@@ -418,7 +428,7 @@ export default function SmallGroupDetailPage() {
       </div>
 
       {!active && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <div className="rounded-3xl border border-accent/40 bg-accent/20 px-5 py-3 text-sm font-medium text-ink">
           This small group is inactive, so it can&apos;t be changed.
           {group.canManage ? " Edit it to make it active again." : ""}
         </div>
@@ -427,7 +437,7 @@ export default function SmallGroupDetailPage() {
       {notice && (
         <div
           role="status"
-          className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700"
+          className="flex items-center gap-2 rounded-3xl border border-success/30 bg-success/10 px-5 py-3 text-sm font-medium text-success"
         >
           <CheckCircle2 size={16} />
           {notice}
@@ -437,7 +447,7 @@ export default function SmallGroupDetailPage() {
       {error && (
         <div
           role="alert"
-          className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="rounded-3xl border border-danger/30 bg-danger/10 px-5 py-3 text-sm text-danger"
         >
           {error}
         </div>
@@ -478,12 +488,14 @@ export default function SmallGroupDetailPage() {
       {/* Families */}
       <section>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-base font-semibold text-slate-900">Families</h2>
+          <h2 className="font-display text-xl font-semibold text-ink">
+            Families
+          </h2>
 
           <div className="relative w-full sm:w-72">
             <Search
               size={15}
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-body/60"
               aria-hidden="true"
             />
 
@@ -493,24 +505,24 @@ export default function SmallGroupDetailPage() {
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search families and people"
               aria-label="Search families and people"
-              className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-9 pr-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-2 focus:ring-slate-100"
+              className="h-11 w-full rounded-full border border-line bg-white pl-10 pr-4 text-sm text-ink outline-none transition placeholder:text-body/60 focus:border-primary focus:ring-4 focus:ring-primary/10"
             />
           </div>
         </div>
 
         {families.length === 0 ? (
-          <div className="mt-3 rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-            <p className="text-sm font-semibold text-slate-800">
+          <div className="mt-3 rounded-3xl border border-dashed border-line bg-white p-10 text-center">
+            <p className="font-display text-lg font-semibold text-ink">
               No families yet
             </p>
 
-            <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-slate-500">
+            <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-body">
               Families are optional. Create one when you are ready, then add a
               father and/or mother and the members they look after.
             </p>
           </div>
         ) : visibleFamilies.length === 0 ? (
-          <p className="mt-3 rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
+          <p className="mt-3 rounded-3xl bg-white p-8 text-center text-sm text-body ring-1 ring-line">
             No family or person matches &quot;{query}&quot;.
           </p>
         ) : (

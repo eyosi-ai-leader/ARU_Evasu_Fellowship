@@ -346,16 +346,16 @@ export default function EditMemberPage() {
 
   if (error && !member) {
     return (
-      <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
-        <h2 className="text-sm font-bold text-red-800">
+      <div className="mx-auto max-w-xl rounded-3xl border border-danger/30 bg-danger/10 p-8 text-center">
+        <h2 className="font-display text-xl font-semibold text-danger">
           Unable to load member
         </h2>
 
-        <p className="mt-2 text-sm text-red-600">{error}</p>
+        <p className="mt-2 text-sm text-danger/90">{error}</p>
 
         <Link
           href="/dashboard/members"
-          className="mt-5 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+          className="mt-5 inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark active:scale-[0.97]"
         >
           <ArrowLeft size={16} />
           Back to Members
@@ -367,21 +367,23 @@ export default function EditMemberPage() {
   // Super Admin, Fellowship Admin and Staff accounts: only a Super Admin edits them.
   if (isPrivilegedRole(member?.role_id) && !isSuperAdmin) {
     return (
-      <div className="mx-auto max-w-xl rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm sm:p-10">
-        <Lock className="mx-auto h-10 w-10 text-slate-300" aria-hidden="true" />
+      <div className="mx-auto max-w-xl rounded-3xl bg-white p-8 text-center ring-1 ring-line sm:p-10">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <Lock className="h-6 w-6" aria-hidden="true" />
+        </div>
 
-        <h1 className="mt-4 text-xl font-semibold text-slate-900">
+        <h1 className="mt-4 font-display text-2xl font-semibold text-ink">
           Protected account
         </h1>
 
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-2 text-sm leading-6 text-body">
           Only a Super Admin can edit Super Admin, Fellowship Admin and Staff
           accounts.
         </p>
 
         <Link
           href={`/dashboard/members/${memberId}`}
-          className="mt-6 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+          className="mt-6 inline-flex h-11 items-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark active:scale-[0.97]"
         >
           <ArrowLeft size={16} />
           Back to member
@@ -413,18 +415,26 @@ export default function EditMemberPage() {
       <div className="flex items-start gap-3">
         <Link
           href={`/dashboard/members/${memberId}`}
-          className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-slate-900"
+          className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-body ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-95"
           title="Back to member"
         >
           <ArrowLeft size={17} />
         </Link>
 
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">
+          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+            <span
+              aria-hidden="true"
+              className="h-0.5 w-5 rounded-full bg-accent"
+            />
+            Member
+          </p>
+
+          <h1 className="mt-1 font-display text-3xl font-semibold tracking-tight text-ink">
             Edit Member
           </h1>
 
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-body">
             Update member information and account settings.
           </p>
         </div>
@@ -433,7 +443,7 @@ export default function EditMemberPage() {
       {error && (
         <div
           role="alert"
-          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"
+          className="rounded-3xl border border-danger/30 bg-danger/10 px-5 py-3 text-sm font-medium text-danger"
         >
           {error}
         </div>
@@ -442,7 +452,7 @@ export default function EditMemberPage() {
       {Object.keys(errors).some((key) => errors[key]) && (
         <div
           role="alert"
-          className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+          className="rounded-3xl border border-accent/40 bg-accent/20 px-5 py-3 text-sm font-medium text-ink"
         >
           Please fix the highlighted fields below.
         </div>
@@ -451,7 +461,7 @@ export default function EditMemberPage() {
       {success && (
         <div
           role="status"
-          className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700"
+          className="flex items-center gap-2 rounded-3xl border border-success/30 bg-success/10 px-5 py-3 text-sm font-medium text-success"
         >
           <Check size={16} />
           {success}
@@ -487,7 +497,7 @@ export default function EditMemberPage() {
             errors={errors}
             onChange={handleChange}
             campusName={member?.fellowship_name || ""}
-                       smallGroup={member?.small_group_names || ""}
+            smallGroup={member?.small_group_names || ""}
             family={member?.family_names || ""}
             departments={departments}
             departmentsLoading={departmentsLoading}
@@ -497,7 +507,7 @@ export default function EditMemberPage() {
             title="Campus & Student Information"
             description="This person belongs to no campus."
           >
-            <p className="text-sm leading-6 text-slate-500">
+            <p className="text-sm leading-6 text-body">
               They have no campus, small group or student details (for example
               a Staff member, who serves full time and is not a student). To
               place them in a campus, use <strong>Change role</strong> below
@@ -565,10 +575,10 @@ export default function EditMemberPage() {
         />
 
         {/* Actions */}
-        <div className="flex flex-col-reverse gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:justify-end">
+        <div className="flex flex-col-reverse gap-3 border-t border-line pt-5 sm:flex-row sm:justify-end">
           <Link
             href={`/dashboard/members/${memberId}`}
-            className="inline-flex h-12 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 sm:h-10"
+            className="inline-flex h-12 items-center justify-center rounded-full bg-white px-6 text-sm font-semibold text-ink ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97] sm:h-11"
           >
             Cancel
           </Link>
@@ -576,7 +586,7 @@ export default function EditMemberPage() {
           <button
             type="submit"
             disabled={saving}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 sm:h-10"
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-60 sm:h-11"
           >
             {saving ? (
               <>
@@ -609,17 +619,17 @@ function LoadingState() {
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6">
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 animate-pulse rounded-xl bg-slate-100" />
+        <div className="h-11 w-11 animate-pulse rounded-full bg-surface-muted" />
 
         <div className="space-y-2">
-          <div className="h-5 w-40 animate-pulse rounded bg-slate-100" />
-          <div className="h-3 w-64 animate-pulse rounded bg-slate-100" />
+          <div className="h-5 w-40 animate-pulse rounded-full bg-surface-muted" />
+          <div className="h-3 w-64 animate-pulse rounded-full bg-surface-muted" />
         </div>
       </div>
 
-      <div className="h-32 animate-pulse rounded-2xl border border-slate-200 bg-white" />
-      <div className="h-72 animate-pulse rounded-2xl border border-slate-200 bg-white" />
-      <div className="h-52 animate-pulse rounded-2xl border border-slate-200 bg-white" />
+      <div className="h-32 animate-pulse rounded-3xl bg-white ring-1 ring-line" />
+      <div className="h-72 animate-pulse rounded-3xl bg-white ring-1 ring-line" />
+      <div className="h-52 animate-pulse rounded-3xl bg-white ring-1 ring-line" />
     </div>
   );
 }

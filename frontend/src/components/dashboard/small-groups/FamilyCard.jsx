@@ -19,23 +19,23 @@ import { Avatar, Chip } from "./parts";
 
 function PersonRow({ person, label, linkable, busy, disabled, items }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/60 p-2.5">
+    <div className="flex items-center gap-3 rounded-2xl bg-surface-muted p-2.5 ring-1 ring-line">
       <Avatar name={person.name} />
 
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-body">
           {label}
         </p>
 
         {linkable ? (
           <Link
             href={`/dashboard/members/${person.memberId}`}
-            className="block truncate text-sm font-semibold text-slate-800 hover:text-indigo-600"
+            className="block truncate text-sm font-semibold text-ink transition hover:text-primary"
           >
             {person.name}
           </Link>
         ) : (
-          <p className="truncate text-sm font-semibold text-slate-800">
+          <p className="truncate text-sm font-semibold text-ink">
             {person.name}
           </p>
         )}
@@ -43,7 +43,7 @@ function PersonRow({ person, label, linkable, busy, disabled, items }) {
         {person.phone && (
           <a
             href={`tel:${person.phone}`}
-            className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-900"
+            className="inline-flex items-center gap-1 text-xs text-body transition hover:text-primary"
           >
             <Phone size={11} aria-hidden="true" />
             {person.phone}
@@ -51,14 +51,14 @@ function PersonRow({ person, label, linkable, busy, disabled, items }) {
         )}
 
         {person.familyCount > 1 && (
-          <p className="text-[11px] font-medium text-indigo-600">
+          <p className="text-[11px] font-semibold text-primary">
             In {person.familyCount} families
           </p>
         )}
       </div>
 
       {busy ? (
-        <Loader2 size={16} className="animate-spin text-slate-400" />
+        <Loader2 size={16} className="animate-spin text-primary" />
       ) : (
         <PersonMenu
           items={items}
@@ -76,9 +76,9 @@ function EmptySlot({ label, disabled, onClick }) {
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex w-full items-center gap-3 rounded-xl border border-dashed border-slate-300 p-2.5 text-left text-sm font-medium text-slate-500 transition hover:border-slate-400 hover:bg-slate-50 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex w-full items-center gap-3 rounded-2xl border border-dashed border-line p-2.5 text-left text-sm font-medium text-body transition hover:border-primary/50 hover:bg-primary/[0.03] hover:text-primary active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
     >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
         <Plus size={15} aria-hidden="true" />
       </span>
       {label}
@@ -151,15 +151,15 @@ export default function FamilyCard({
   );
 
   return (
-    <article className="flex flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <article className="flex flex-col rounded-3xl bg-white p-5 shadow-card ring-1 ring-line transition duration-300 hover:shadow-soft">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate text-base font-bold text-slate-900">
+          <h3 className="truncate font-display text-lg font-semibold text-ink">
             {family.name}
           </h3>
 
           {family.description && (
-            <p className="mt-1 line-clamp-2 text-sm text-slate-500">
+            <p className="mt-1 line-clamp-2 text-sm text-body">
               {family.description}
             </p>
           )}
@@ -171,7 +171,7 @@ export default function FamilyCard({
             onClick={() => onEdit(family)}
             disabled={disabled}
             aria-label={`Edit ${family.name}`}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-900 disabled:opacity-50"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-body transition hover:bg-primary/10 hover:text-primary active:scale-95 disabled:opacity-50"
           >
             <Pencil size={15} />
           </button>
@@ -181,7 +181,7 @@ export default function FamilyCard({
             onClick={() => setConfirmDelete((value) => !value)}
             disabled={disabled}
             aria-label={`Delete ${family.name}`}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+            className="flex h-9 w-9 items-center justify-center rounded-full text-body transition hover:bg-danger/10 hover:text-danger active:scale-95 disabled:opacity-50"
           >
             <Trash2 size={15} />
           </button>
@@ -198,13 +198,13 @@ export default function FamilyCard({
         <div
           role="alertdialog"
           aria-label={`Confirm deleting ${family.name}`}
-          className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3"
+          className="mt-3 rounded-2xl border border-danger/30 bg-danger/10 p-4"
         >
-          <p className="text-sm font-semibold text-red-900">
+          <p className="text-sm font-semibold text-danger">
             Delete {family.name}?
           </p>
 
-          <p className="mt-1 text-xs text-red-800">
+          <p className="mt-1 text-xs leading-5 text-danger/90">
             Its people stay in the small group and appear under &quot;Members
             without a family yet&quot;.
           </p>
@@ -214,7 +214,7 @@ export default function FamilyCard({
               type="button"
               onClick={() => setConfirmDelete(false)}
               disabled={deleting}
-              className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-900 hover:bg-red-100 disabled:opacity-60"
+              className="rounded-full bg-white px-4 py-1.5 text-xs font-semibold text-ink ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97] disabled:opacity-60"
             >
               Keep it
             </button>
@@ -226,7 +226,7 @@ export default function FamilyCard({
                 setConfirmDelete(false);
               }}
               disabled={deleting}
-              className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-full bg-danger px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-danger/90 active:scale-[0.97] disabled:opacity-60"
             >
               {deleting && <Loader2 size={13} className="animate-spin" />}
               Yes, delete
@@ -258,7 +258,7 @@ export default function FamilyCard({
       </div>
 
       <div className="mt-5 flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+        <p className="text-xs font-semibold uppercase tracking-wide text-body">
           Children ({family.childCount})
         </p>
 
@@ -266,7 +266,7 @@ export default function FamilyCard({
           type="button"
           onClick={() => onAdd(family, "Child")}
           disabled={disabled}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 transition hover:text-slate-900 disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-primary transition hover:bg-primary/10 active:scale-[0.97] disabled:opacity-50"
         >
           <Plus size={13} aria-hidden="true" />
           Add children
@@ -274,7 +274,7 @@ export default function FamilyCard({
       </div>
 
       {family.children.length === 0 ? (
-        <p className="mt-2 text-sm text-slate-400">No children yet.</p>
+        <p className="mt-2 text-sm text-body">No children yet.</p>
       ) : (
         <ul className="mt-2 space-y-2">
           {family.children.map((child) => (

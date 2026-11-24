@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, CheckCheck, Loader2, Megaphone } from "lucide-react";
+import { Bell, CheckCheck, Loader2, Pin } from "lucide-react";
 
 import useInboxSummary from "./useInboxSummary";
 import {
@@ -12,6 +12,10 @@ import {
   notifyInboxChanged,
 } from "@/lib/inboxApi";
 import { timeAgo } from "@/lib/timeAgo";
+import {
+  PriorityBadge,
+  priorityStyle,
+} from "@/components/dashboard/announcements/parts";
 
 export default function NotificationBell() {
   const router = useRouter();
@@ -77,6 +81,9 @@ export default function NotificationBell() {
   }
 
   const badge = unread > 99 ? "99+" : String(unread);
+  const urgentUnread = latest.some(
+    (item) => !item.read && item.priority === "urgent"
+  );
 
   return (
     <div ref={wrapperRef} className="relative">
@@ -100,7 +107,9 @@ export default function NotificationBell() {
         {unread > 0 && (
           <span
             aria-hidden="true"
-            className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white"
+            className={`absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white ${
+              urgentUnread ? "bg-red-600" : "bg-red-500"
+            }`}
           >
             {badge}
           </span>
@@ -161,54 +170,66 @@ export default function NotificationBell() {
             </div>
           ) : (
             <ul className="max-h-96 divide-y divide-slate-100 overflow-y-auto">
-              {latest.map((item) => (
-                <li key={item.id}>
-                  <button
-                    type="button"
-                    onClick={() => openItem(item)}
-                    className={`flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-400 ${
-                      item.read ? "" : "bg-indigo-50/50"
-                    }`}
-                  >
-                    <span
-                      className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-                        item.read
-                          ? "bg-slate-100 text-slate-400"
-                          : "bg-indigo-100 text-indigo-600"
+              {latest.map((item) => {
+                const style = priorityStyle(item.priority);
+                const Icon = style.icon;
+
+                return (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      onClick={() => openItem(item)}
+                      className={`flex w-full items-start gap-3 px-4 py-3 text-left transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-400 ${
+                        item.read ? "" : "bg-indigo-50/50"
                       }`}
                     >
-                      <Megaphone size={15} aria-hidden="true" />
-                    </span>
-
-                    <span className="min-w-0 flex-1">
                       <span
-                        className={`block truncate text-sm ${
-                          item.read
-                            ? "font-medium text-slate-700"
-                            : "font-bold text-slate-900"
+                        className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                          item.read && item.priority === "normal"
+                            ? "bg-slate-100 text-slate-400"
+                            : style.iconBox
                         }`}
                       >
-                        {item.subject}
+                        <Icon size={15} aria-hidden="true" />
                       </span>
 
-                      <span className="mt-0.5 block line-clamp-2 text-xs text-slate-500">
-                        {item.message}
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-2">
+                          <span
+                            className={`truncate text-sm ${
+                              item.read
+                                ? "font-medium text-slate-700"
+                                : "font-bold text-slate-900"
+                            }`}
+                          >
+                            {item.subject}
+                          </span>
+
+                          <PriorityBadge priority={item.priority} />
+                        </span>
+
+                        <span className="mt-0.5 block line-clamp-2 text-xs text-slate-500">
+                          {item.message}
+                        </span>
+
+                        <span className="mt-1 flex items-center gap-1.5 text-[11px] text-slate-400">
+                          {item.pinned && (
+                            <Pin size={11} aria-label="Pinned" />
+                          )}
+                          {item.sender} · {timeAgo(item.createdAt)}
+                        </span>
                       </span>
 
-                      <span className="mt-1 block text-[11px] text-slate-400">
-                        {item.sender} · {timeAgo(item.createdAt)}
-                      </span>
-                    </span>
-
-                    {!item.read && (
-                      <span
-                        aria-label="Unread"
-                        className="mt-2 h-2 w-2 shrink-0 rounded-full bg-indigo-500"
-                      />
-                    )}
-                  </button>
-                </li>
-              ))}
+                      {!item.read && (
+                        <span
+                          aria-label="Unread"
+                          className="mt-2 h-2 w-2 shrink-0 rounded-full bg-indigo-500"
+                        />
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           )}
 

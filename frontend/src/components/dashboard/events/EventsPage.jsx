@@ -182,22 +182,28 @@ export default function EventsPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            Events
-          </h1>
+        <div className="flex items-center gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-dark text-accent shadow-soft">
+            <CalendarDays size={21} strokeWidth={2} />
+          </div>
 
-          <p className="mt-1 text-sm text-slate-500">
-            {canCreate
-              ? "Add and manage events for your campus, ministries and small groups."
-              : "Upcoming gatherings and activities for you."}
-          </p>
+          <div>
+            <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">
+              Events
+            </h1>
+
+            <p className="mt-0.5 text-sm text-body">
+              {canCreate
+                ? "Add and manage events for your campus, ministries and small groups."
+                : "Upcoming gatherings and activities for you."}
+            </p>
+          </div>
         </div>
 
         {canCreate && (
           <Link
             href="/dashboard/events/new"
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2"
+            className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             <Plus size={17} aria-hidden="true" />
             Add event
@@ -209,7 +215,7 @@ export default function EventsPage() {
         <div
           role="tablist"
           aria-label="Event period"
-          className="inline-flex rounded-xl bg-slate-100 p-1"
+          className="inline-flex gap-1 rounded-full bg-white p-1 ring-1 ring-line"
         >
           {TABS.map((entry) => (
             <button
@@ -218,10 +224,10 @@ export default function EventsPage() {
               role="tab"
               aria-selected={tab === entry.id}
               onClick={() => changeTab(entry.id)}
-              className={`rounded-lg px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+              className={`rounded-full px-5 py-2 text-sm font-semibold transition duration-200 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 tab === entry.id
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-500 hover:text-slate-800"
+                  ? "bg-primary text-white shadow-soft"
+                  : "text-body hover:text-ink"
               }`}
             >
               {entry.label}
@@ -238,7 +244,7 @@ export default function EventsPage() {
                 setItems(null);
               }}
               aria-label="Campus"
-              className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 outline-none focus:border-indigo-500"
+              className="h-11 rounded-full border border-line bg-white px-4 text-sm font-medium text-ink outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
             >
               <option value="">All campuses</option>
 
@@ -253,7 +259,7 @@ export default function EventsPage() {
           <div className="relative w-full sm:w-64">
             <Search
               size={16}
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+              className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-body/60"
               aria-hidden="true"
             />
 
@@ -263,7 +269,7 @@ export default function EventsPage() {
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Search events"
               aria-label="Search events"
-              className="h-10 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+              className="h-11 w-full rounded-full border border-line bg-white pl-11 pr-4 text-sm text-ink outline-none transition placeholder:text-body/60 focus:border-primary focus:ring-4 focus:ring-primary/10"
             />
           </div>
         </div>
@@ -272,7 +278,7 @@ export default function EventsPage() {
       {notice && (
         <div
           role="status"
-          className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
+          className="flex items-center gap-3 rounded-3xl border border-success/30 bg-success/10 px-5 py-3 text-sm text-success"
         >
           <CheckCircle2 size={18} className="shrink-0" aria-hidden="true" />
           <span className="flex-1">{notice}</span>
@@ -280,7 +286,7 @@ export default function EventsPage() {
             type="button"
             onClick={() => setNotice("")}
             aria-label="Dismiss message"
-            className="rounded-md p-1 transition hover:bg-emerald-100"
+            className="rounded-full p-1.5 transition hover:bg-success/20"
           >
             <X size={16} />
           </button>
@@ -290,7 +296,7 @@ export default function EventsPage() {
       {error && (
         <div
           role="alert"
-          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          className="rounded-3xl border border-danger/30 bg-danger/10 px-5 py-3 text-sm text-danger"
         >
           {error}
         </div>
@@ -299,22 +305,20 @@ export default function EventsPage() {
       {!items && !error && (
         <div
           role="status"
-          className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white py-16 text-sm text-slate-500"
+          className="flex items-center justify-center gap-2 rounded-3xl bg-white py-16 text-sm text-body ring-1 ring-line"
         >
-          <Loader2 size={18} className="animate-spin" />
+          <Loader2 size={18} className="animate-spin text-primary" />
           Loading events...
         </div>
       )}
 
       {items && items.length === 0 && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center">
-          <CalendarDays
-            size={30}
-            className="mx-auto text-slate-300"
-            aria-hidden="true"
-          />
+        <div className="rounded-3xl bg-white p-12 text-center ring-1 ring-line">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <CalendarDays size={24} aria-hidden="true" />
+          </div>
 
-          <p className="mt-3 text-sm font-medium text-slate-600">
+          <p className="mt-4 font-display text-lg font-semibold text-ink">
             {searching
               ? "No events match your search."
               : tab === "upcoming"
@@ -325,7 +329,7 @@ export default function EventsPage() {
           {canCreate && tab === "upcoming" && !searching && (
             <Link
               href="/dashboard/events/new"
-              className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-indigo-600 hover:text-indigo-700"
+              className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary transition hover:text-primary-dark"
             >
               <Plus size={15} aria-hidden="true" />
               Add the first event
@@ -347,7 +351,7 @@ export default function EventsPage() {
       ))}
 
       {items && total > 0 && (
-        <p className="text-center text-xs text-slate-400">
+        <p className="text-center text-xs font-medium text-body">
           Showing {items.length} of {total}
         </p>
       )}
@@ -358,7 +362,7 @@ export default function EventsPage() {
             type="button"
             onClick={loadMore}
             disabled={loadingMore}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-6 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60"
+            className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-ink ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-60"
           >
             {loadingMore && <Loader2 size={15} className="animate-spin" />}
             Load more

@@ -1,12 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  CheckCheck,
-  ChevronDown,
-  Loader2,
-  Megaphone,
-} from "lucide-react";
+import { CheckCheck, ChevronDown, Loader2, Megaphone, Pin } from "lucide-react";
 
 import {
   getInboxItem,
@@ -16,6 +11,7 @@ import {
   notifyInboxChanged,
 } from "@/lib/inboxApi";
 import { timeAgo } from "@/lib/timeAgo";
+import { ActionLink, Pill, PriorityBadge, priorityStyle } from "./parts";
 
 const FILTERS = [
   { id: "all", label: "All" },
@@ -73,9 +69,7 @@ export default function AnnouncementInbox({ openId }) {
   function markReadLocal(id) {
     setItems((current) =>
       current
-        ? current.map((item) =>
-            item.id === id ? { ...item, read: true } : item
-          )
+        ? current.map((item) => (item.id === id ? { ...item, read: true } : item))
         : current
     );
 
@@ -145,6 +139,7 @@ export default function AnnouncementInbox({ openId }) {
 
       setItems((current) => {
         const known = new Set(current.map((item) => item.id));
+
         return [...current, ...data.items.filter((item) => !known.has(item.id))];
       });
 
@@ -244,10 +239,7 @@ export default function AnnouncementInbox({ openId }) {
       )}
 
       {loading && loaded && (
-        <p
-          role="status"
-          className="flex items-center gap-2 text-sm text-slate-500"
-        >
+        <p role="status" className="flex items-center gap-2 text-sm text-slate-500">
           <Loader2 size={15} className="animate-spin" />
           Updating...
         </p>
@@ -255,33 +247,36 @@ export default function AnnouncementInbox({ openId }) {
 
       {items && items.length === 0 && (
         <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
-          <Megaphone
-            size={28}
-            className="mx-auto text-slate-300"
-            aria-hidden="true"
-          />
+          <Megaphone size={28} className="mx-auto text-slate-300" aria-hidden="true" />
+
           <p className="mt-3 text-sm font-medium text-slate-600">
             {filter === "unread"
               ? "No unread announcements."
               : "No announcements yet."}
           </p>
+
           <p className="mt-1 text-xs text-slate-400">
-            Announcements from church leaders will appear here.
+            Announcements from your leaders will appear here.
           </p>
         </div>
       )}
 
       {items?.map((item) => {
         const expanded = expandedId === item.id;
+        const style = priorityStyle(item.priority);
+        const Icon = style.icon;
+
+        const border =
+          item.priority !== "normal"
+            ? style.border
+            : item.read
+              ? "border-slate-200"
+              : "border-indigo-200 ring-1 ring-indigo-100";
 
         return (
           <article
             key={item.id}
-            className={`rounded-2xl border bg-white shadow-sm transition ${
-              item.read
-                ? "border-slate-200"
-                : "border-indigo-200 ring-1 ring-indigo-100"
-            }`}
+            className={`rounded-2xl border bg-white shadow-sm transition ${border}`}
           >
             <button
               type="button"
@@ -291,18 +286,18 @@ export default function AnnouncementInbox({ openId }) {
             >
               <span
                 className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
-                  item.read
+                  item.read && item.priority === "normal"
                     ? "bg-slate-100 text-slate-400"
-                    : "bg-indigo-100 text-indigo-600"
+                    : style.iconBox
                 }`}
               >
-                <Megaphone size={17} aria-hidden="true" />
+                <Icon size={17} aria-hidden="true" />
               </span>
 
               <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-2">
+                <span className="flex flex-wrap items-center gap-2">
                   <span
-                    className={`truncate text-base ${
+                    className={`text-base ${
                       item.read
                         ? "font-semibold text-slate-800"
                         : "font-bold text-slate-900"
@@ -310,6 +305,17 @@ export default function AnnouncementInbox({ openId }) {
                   >
                     {item.subject}
                   </span>
+
+                  <PriorityBadge priority={item.priority} />
+
+                  {item.pinned && (
+                    <Pill tone="info">
+                      <Pin size={11} aria-hidden="true" />
+                      Pinned
+                    </Pill>
+                  )}
+
+                  {item.category && <Pill>{item.category}</Pill>}
 
                   {!item.read && (
                     <span className="shrink-0 rounded-full bg-indigo-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
@@ -345,6 +351,12 @@ export default function AnnouncementInbox({ openId }) {
                 <p className="whitespace-pre-wrap break-words text-sm leading-7 text-slate-700">
                   {item.message}
                 </p>
+
+                {item.actionUrl && (
+                  <div className="mt-4">
+                    <ActionLink url={item.actionUrl} label={item.actionLabel} />
+                  </div>
+                )}
 
                 <p className="mt-4 text-xs text-slate-400">
                   {new Date(item.createdAt).toLocaleString()}

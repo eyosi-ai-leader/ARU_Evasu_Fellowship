@@ -2,29 +2,35 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  CalendarClock,
   CheckCircle2,
   ChevronDown,
   Loader2,
+  Pin,
+  PinOff,
   RotateCcw,
   Search,
   Trash2,
+  XCircle,
 } from "lucide-react";
 
 import AnnouncementDetails from "./AnnouncementDetails";
+import { Pill, PriorityBadge, formatWhen } from "./parts";
 import {
+  cancelAnnouncement,
   deleteAnnouncement,
   listAnnouncements,
+  pinAnnouncement,
   retryAnnouncement,
 } from "@/lib/announcementApi";
 
 const STATUS = {
+  scheduled: { label: "Scheduled", className: "bg-indigo-50 text-indigo-700" },
   sending: { label: "Sending", className: "bg-blue-50 text-blue-700" },
   sent: { label: "Sent", className: "bg-emerald-50 text-emerald-700" },
-  partial: {
-    label: "Partly sent",
-    className: "bg-amber-50 text-amber-700",
-  },
+  partial: { label: "Partly sent", className: "bg-amber-50 text-amber-700" },
   failed: { label: "Failed", className: "bg-red-50 text-red-700" },
+  cancelled: { label: "Cancelled", className: "bg-slate-100 text-slate-600" },
 };
 
 const IN_DASHBOARD = {
@@ -38,23 +44,33 @@ const DELIVERY_LABEL = {
   email: "Email only",
 };
 
+const FILTERS = [
+  { value: "", label: "All" },
+  { value: "scheduled", label: "Scheduled" },
+  { value: "sending", label: "Sending" },
+  { value: "sent", label: "Sent" },
+  { value: "partial", label: "Partly sent" },
+  { value: "failed", label: "Failed" },
+  { value: "cancelled", label: "Cancelled" },
+];
+
 export default function AnnouncementHistory() {
   const [items, setItems] = useState(null);
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
 
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
-  const [retrying, setRetrying] = useState(null);
+  const [busy, setBusy] = useState(null); // { id, action }
   const [expandedId, setExpandedId] = useState(null);
   const [confirmId, setConfirmId] = useState(null);
-  const [deletingId, setDeletingId] = useState(null);
 
-  // First page, and again whenever the search text changes.
+  // First page, and again whenever the search or filter changes.
   useEffect(() => {
     let cancelled = false;
 
@@ -63,6 +79,7 @@ export default function AnnouncementHistory() {
         try {
           const data = await listAnnouncements({
             search: search.trim(),
+            status,
             page: 1,
           });
 
@@ -84,13 +101,14 @@ export default function AnnouncementHistory() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [search]);
+  }, [search, status]);
 
-  // Updates the progress of items already on screen.
+  // Updates the items already on screen (progress, scheduled -> sent).
   const refresh = useCallback(async () => {
     try {
       const data = await listAnnouncements({
         search: search.trim(),
+        status,
         page: 1,
       });
 
@@ -104,19 +122,19 @@ export default function AnnouncementHistory() {
     } catch {
       /* keep what is on screen */
     }
-  }, [search]);
+  }, [search, status]);
 
   const hasSending = items?.some((item) => item.status === "sending");
+  const hasScheduled = items?.some((item) => item.status === "scheduled");
 
   useEffect(() => {
-    if (!hasSending) return;
+    if (!hasSending && !hasScheduled) return;
 
-    const timer = setInterval(refresh, 4000);
+    const timer = setInterval(refresh, hasSending ? 4000 : 30000);
 
     return () => clearInterval(timer);
-  }, [hasSending, refresh]);
+  }, [hasSending, hasScheduled, refresh]);
 
-  // The "deleted" message disappears by itself.
   useEffect(() => {
     if (!notice) return;
 
@@ -134,11 +152,13 @@ export default function AnnouncementHistory() {
     try {
       const data = await listAnnouncements({
         search: search.trim(),
+        status,
         page: page + 1,
       });
 
       setItems((current) => {
         const known = new Set(current.map((item) => item.id));
+
         return [...current, ...data.items.filter((item) => !known.has(item.id))];
       });
 
@@ -152,44 +172,56 @@ export default function AnnouncementHistory() {
     }
   }
 
-  async function handleRetry(id) {
-    if (retrying) return;
+  async function run(item, action, work, onDone) {
+    if (busy) return;
 
-    setRetrying(id);
+    setBusy({ id: item.id, action });
     setError("");
 
     try {
-      await retryAnnouncement(id);
-      await refresh();
+      await work();
+      await onDone();
     } catch (err) {
       setError(err.message);
     } finally {
-      setRetrying(null);
+      setBusy(null);
+      setConfirmId(null);
     }
   }
 
-  async function handleDelete(id) {
-    if (deletingId) return;
+  const handleRetry = (item) =>
+    run(item, "retry", () => retryAnnouncement(item.id), refresh);
 
-    setDeletingId(id);
-    setError("");
+  const handlePin = (item) =>
+    run(item, "pin", () => pinAnnouncement(item.id, !item.pinned), () => {
+      setItems((current) =>
+        current.map((entry) =>
+          entry.id === item.id ? { ...entry, pinned: !item.pinned } : entry
+        )
+      );
 
-    try {
-      await deleteAnnouncement(id);
+      setNotice(
+        item.pinned
+          ? "The announcement was unpinned."
+          : "The announcement is pinned to the top of the inbox."
+      );
+    });
 
-      setItems((current) => current.filter((item) => item.id !== id));
+  const handleCancel = (item) =>
+    run(item, "cancel", () => cancelAnnouncement(item.id), async () => {
+      setNotice("The scheduled announcement was cancelled. Nothing was sent.");
+      await refresh();
+    });
+
+  const handleDelete = (item) =>
+    run(item, "delete", () => deleteAnnouncement(item.id), () => {
+      setItems((current) => current.filter((entry) => entry.id !== item.id));
       setTotal((current) => Math.max(0, current - 1));
 
-      if (expandedId === id) setExpandedId(null);
+      if (expandedId === item.id) setExpandedId(null);
 
       setNotice("The announcement was deleted.");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setConfirmId(null);
-      setDeletingId(null);
-    }
-  }
+    });
 
   if (!items && !error) {
     return (
@@ -203,27 +235,45 @@ export default function AnnouncementHistory() {
     );
   }
 
-  const searching = search.trim().length > 0;
+  const searching = search.trim().length > 0 || status !== "";
 
   return (
     <div className="space-y-4">
       {(total > 0 || searching) && (
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="relative w-full sm:max-w-xs">
-            <Search
-              size={16}
-              className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-              aria-hidden="true"
-            />
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+            <div className="relative w-full sm:w-64">
+              <Search
+                size={16}
+                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                aria-hidden="true"
+              />
 
-            <input
-              type="search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search by subject"
-              aria-label="Search announcements"
-              className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
-            />
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search by subject or audience"
+                aria-label="Search announcements"
+                className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
+              />
+            </div>
+
+            <select
+              value={status}
+              onChange={(event) => {
+                setStatus(event.target.value);
+                setItems(null);
+              }}
+              aria-label="Filter by status"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-600 outline-none focus:border-slate-400"
+            >
+              {FILTERS.map((filter) => (
+                <option key={filter.value} value={filter.value}>
+                  {filter.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <p className="text-sm text-slate-500">
@@ -254,28 +304,32 @@ export default function AnnouncementHistory() {
       {items && items.length === 0 && (
         <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500">
           {searching
-            ? "No announcements match your search."
+            ? "No announcements match."
             : "No announcements have been sent yet."}
         </div>
       )}
 
       {items?.map((item) => {
+        const scheduled = item.status === "scheduled";
+        const cancelled = item.status === "cancelled";
+        const unsent = scheduled || cancelled;
+
         const hasEmails = item.emailTotal > 0;
         const dashboardOnly = item.delivery !== "email" && !hasEmails;
         const showsInDashboard = item.delivery !== "email";
 
-        const status = dashboardOnly
-          ? IN_DASHBOARD
-          : STATUS[item.status] || STATUS.sending;
+        const badge = unsent
+          ? STATUS[item.status]
+          : dashboardOnly
+            ? IN_DASHBOARD
+            : STATUS[item.status] || STATUS.sending;
 
         const done = item.sent + item.failed;
-        const percent = hasEmails
-          ? Math.round((done / item.emailTotal) * 100)
-          : 0;
+        const percent = hasEmails ? Math.round((done / item.emailTotal) * 100) : 0;
 
         const expanded = expandedId === item.id;
         const confirming = confirmId === item.id;
-        const isSending = item.status === "sending";
+        const working = busy?.id === item.id ? busy.action : null;
 
         return (
           <article
@@ -284,9 +338,22 @@ export default function AnnouncementHistory() {
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="truncate text-base font-semibold text-slate-900">
-                  {item.subject}
-                </h3>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="truncate text-base font-semibold text-slate-900">
+                    {item.subject}
+                  </h3>
+
+                  <PriorityBadge priority={item.priority} />
+
+                  {item.pinned && (
+                    <Pill tone="info">
+                      <Pin size={11} aria-hidden="true" />
+                      Pinned
+                    </Pill>
+                  )}
+
+                  {item.category && <Pill>{item.category}</Pill>}
+                </div>
 
                 <p className="mt-1 text-xs text-slate-500">
                   {item.audience} · {DELIVERY_LABEL[item.delivery]} · by{" "}
@@ -295,40 +362,49 @@ export default function AnnouncementHistory() {
               </div>
 
               <span
-                className={`rounded-full px-3 py-1 text-xs font-semibold ${status.className}`}
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${badge.className}`}
               >
-                {status.label}
+                {badge.label}
               </span>
             </div>
 
-            <div className="mt-4">
-              {hasEmails && (
-                <div
-                  role="progressbar"
-                  aria-valuenow={percent}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-label="Email sending progress"
-                  className="h-2 overflow-hidden rounded-full bg-slate-100"
-                >
-                  <div
-                    className="h-full rounded-full bg-slate-900 transition-all"
-                    style={{ width: `${percent}%` }}
-                  />
-                </div>
-              )}
-
-              <p className={`${hasEmails ? "mt-2" : ""} text-xs text-slate-500`}>
-                {hasEmails &&
-                  `${item.sent} of ${item.emailTotal} emailed${
-                    item.failed > 0 ? ` · ${item.failed} failed` : ""
-                  }`}
-                {hasEmails && showsInDashboard && " · "}
-                {showsInDashboard &&
-                  `${item.readCount} of ${item.total} read in the dashboard`}
-                {item.optedOut > 0 && ` · ${item.optedOut} opted out of email`}
+            {scheduled && (
+              <p className="mt-4 flex items-center gap-2 rounded-xl bg-indigo-50 px-4 py-3 text-sm font-medium text-indigo-800">
+                <CalendarClock size={16} aria-hidden="true" />
+                Goes out {formatWhen(item.scheduledAt)}
               </p>
-            </div>
+            )}
+
+            {!unsent && (
+              <div className="mt-4">
+                {hasEmails && (
+                  <div
+                    role="progressbar"
+                    aria-valuenow={percent}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label="Email sending progress"
+                    className="h-2 overflow-hidden rounded-full bg-slate-100"
+                  >
+                    <div
+                      className="h-full rounded-full bg-slate-900 transition-all"
+                      style={{ width: `${percent}%` }}
+                    />
+                  </div>
+                )}
+
+                <p className={`${hasEmails ? "mt-2" : ""} text-xs text-slate-500`}>
+                  {hasEmails &&
+                    `${item.sent} of ${item.emailTotal} emailed${
+                      item.failed > 0 ? ` · ${item.failed} failed` : ""
+                    }`}
+                  {hasEmails && showsInDashboard && " · "}
+                  {showsInDashboard &&
+                    `${item.readCount} of ${item.total} read in the dashboard`}
+                  {item.optedOut > 0 && ` · ${item.optedOut} opted out of email`}
+                </p>
+              </div>
+            )}
 
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
               <button
@@ -341,21 +417,35 @@ export default function AnnouncementHistory() {
                 <ChevronDown
                   size={16}
                   aria-hidden="true"
-                  className={`transition-transform ${
-                    expanded ? "rotate-180" : ""
-                  }`}
+                  className={`transition-transform ${expanded ? "rotate-180" : ""}`}
                 />
               </button>
 
               <div className="flex flex-wrap items-center gap-2">
+                {item.canCancel && (
+                  <button
+                    type="button"
+                    onClick={() => handleCancel(item)}
+                    disabled={Boolean(busy)}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60"
+                  >
+                    {working === "cancel" ? (
+                      <Loader2 size={15} className="animate-spin" />
+                    ) : (
+                      <XCircle size={15} aria-hidden="true" />
+                    )}
+                    Cancel sending
+                  </button>
+                )}
+
                 {item.canRetry && (
                   <button
                     type="button"
-                    onClick={() => handleRetry(item.id)}
-                    disabled={retrying === item.id}
+                    onClick={() => handleRetry(item)}
+                    disabled={Boolean(busy)}
                     className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60"
                   >
-                    {retrying === item.id ? (
+                    {working === "retry" ? (
                       <Loader2 size={15} className="animate-spin" />
                     ) : (
                       <RotateCcw size={15} aria-hidden="true" />
@@ -364,12 +454,30 @@ export default function AnnouncementHistory() {
                   </button>
                 )}
 
+                {!cancelled && item.delivery !== "email" && (
+                  <button
+                    type="button"
+                    onClick={() => handlePin(item)}
+                    disabled={Boolean(busy)}
+                    className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60"
+                  >
+                    {working === "pin" ? (
+                      <Loader2 size={15} className="animate-spin" />
+                    ) : item.pinned ? (
+                      <PinOff size={15} aria-hidden="true" />
+                    ) : (
+                      <Pin size={15} aria-hidden="true" />
+                    )}
+                    {item.pinned ? "Unpin" : "Pin"}
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => setConfirmId(confirming ? null : item.id)}
-                  disabled={isSending}
+                  disabled={item.status === "sending" || Boolean(busy)}
                   title={
-                    isSending
+                    item.status === "sending"
                       ? "Wait until sending finishes to delete this announcement."
                       : undefined
                   }
@@ -392,17 +500,18 @@ export default function AnnouncementHistory() {
                 </p>
 
                 <p className="mt-1 text-sm text-red-800">
-                  {showsInDashboard
-                    ? "It will be removed from this list and from every member's dashboard and notifications. "
-                    : "It will be removed from this list. "}
-                  Emails that were already sent can&apos;t be recalled.
+                  {unsent
+                    ? "It will be removed from this list and will not be sent."
+                    : showsInDashboard
+                      ? "It will be removed from this list and from every member's dashboard and notifications. Emails that were already sent can't be recalled."
+                      : "It will be removed from this list. Emails that were already sent can't be recalled."}
                 </p>
 
                 <div className="mt-3 flex flex-wrap gap-3">
                   <button
                     type="button"
                     onClick={() => setConfirmId(null)}
-                    disabled={deletingId === item.id}
+                    disabled={Boolean(busy)}
                     className="rounded-xl border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-900 transition hover:bg-red-100 disabled:opacity-60"
                   >
                     Keep it
@@ -410,25 +519,40 @@ export default function AnnouncementHistory() {
 
                   <button
                     type="button"
-                    onClick={() => handleDelete(item.id)}
-                    disabled={deletingId === item.id}
+                    onClick={() => handleDelete(item)}
+                    disabled={Boolean(busy)}
                     className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
                   >
-                    {deletingId === item.id && (
+                    {working === "delete" && (
                       <Loader2 size={15} className="animate-spin" />
                     )}
-                    {deletingId === item.id ? "Deleting..." : "Yes, delete"}
+                    {working === "delete" ? "Deleting..." : "Yes, delete"}
                   </button>
                 </div>
               </div>
             )}
 
-            {expanded && (
-              <AnnouncementDetails
-                announcementId={item.id}
-                onChanged={refresh}
-              />
-            )}
+            {expanded &&
+              (unsent ? (
+                <div className="mt-4 space-y-3 border-t border-slate-100 pt-5">
+                  <p className="whitespace-pre-wrap break-words rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
+                    {item.message}
+                  </p>
+
+                  <p className="text-xs text-slate-500">
+                    {cancelled
+                      ? "This announcement was cancelled and nothing was sent."
+                      : "The people it reaches are worked out at the moment it is sent."}
+                    {item.expiresAt &&
+                      ` Hidden from the inbox after ${formatWhen(item.expiresAt)}.`}
+                  </p>
+                </div>
+              ) : (
+                <AnnouncementDetails
+                  announcementId={item.id}
+                  onChanged={refresh}
+                />
+              ))}
           </article>
         );
       })}

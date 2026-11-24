@@ -30,6 +30,7 @@ import { ROLES } from "@/lib/roles";
 import { endSession } from "@/lib/accountApi";
 import { getStoredUser } from "@/lib/userStorage";
 import { useAccess } from "@/components/dashboard/access/AccessProvider";
+import CampusBadge from "@/components/dashboard/access/CampusBadge";
 import SidebarUserMenu from "@/components/dashboard/SidebarUserMenu";
 import BrandLogo from "@/components/shared/BrandLogo/BrandLogo";
 import { BRAND } from "@/data/brand";
@@ -276,6 +277,7 @@ export default function DashboardSidebar({ open = false, onClose }) {
         <Link
           href="/dashboard"
           aria-label="Overview dashboard"
+           title="Overview dashboard"
           aria-current={overviewActive ? "page" : undefined}
           className={`group flex items-center gap-3 rounded-3xl border px-3 py-2.5 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
             overviewActive
@@ -302,14 +304,22 @@ export default function DashboardSidebar({ open = false, onClose }) {
               {roleLabel}
             </p>
 
-            <p
-              className={`mt-0.5 flex items-center gap-1.5 text-xs font-medium ${
-                overviewActive ? "text-white/75" : "text-body"
-              }`}
-            >
-              <LayoutDashboard size={12} aria-hidden="true" />
-              Overview
-            </p>
+                        <div className="mt-0.5 min-w-0">
+              <CampusBadge
+                variant="inline"
+                onDark={overviewActive}
+                fallback={
+                  <span
+                    className={`flex items-center gap-1.5 text-xs font-medium ${
+                      overviewActive ? "text-white/75" : "text-slate-400"
+                    }`}
+                  >
+                    <LayoutDashboard size={12} aria-hidden="true" />
+                    Overview
+                  </span>
+                }
+              />
+            </div>
           </div>
 
           <ChevronRight

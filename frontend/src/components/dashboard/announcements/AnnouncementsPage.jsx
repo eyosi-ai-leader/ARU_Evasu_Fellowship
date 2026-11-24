@@ -1,64 +1,66 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle2, Lock, X } from "lucide-react";
+import { useState } from "react";
+import { CheckCircle2, Megaphone, X } from "lucide-react";
 
+import { useAccess } from "@/components/dashboard/access/AccessProvider";
+
+import AnnouncementHistory from "./AnnouncementHistory";
 import AnnouncementInbox from "./AnnouncementInbox";
 import ComposeAnnouncement from "./ComposeAnnouncement";
-import AnnouncementHistory from "./AnnouncementHistory";
-import { getStoredUser } from "@/lib/userStorage";
+import { formatWhen } from "./parts";
 
-// Admin, Pastor, Ministry Leader can send. Everyone can read.
-const STAFF_ROLES = [1, 2, 4];
+// Anyone who manages a campus, leads a ministry or oversees a small group
+// can send. Everyone can read.
+const SENDER_CAPABILITIES = [
+  "fellowship:manage",
+  "general:manage",
+  "ministry:lead",
+  "smallgroup:lead",
+];
+
 const TABS = ["inbox", "compose", "sent"];
 
 export default function AnnouncementsPage() {
   const router = useRouter();
   const params = useSearchParams();
+  const { access, loading } = useAccess();
 
-  const [user, setUser] = useState(undefined);
   const [notice, setNotice] = useState("");
 
-  useEffect(() => {
-    setUser(getStoredUser());
-  }, []);
+  if (loading) return null;
 
-  if (user === undefined) return null;
-
-  if (!user) {
-    return (
-      <div className="mx-auto max-w-2xl rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-        <Lock className="mx-auto h-10 w-10 text-slate-300" aria-hidden="true" />
-        <h1 className="mt-4 text-xl font-semibold text-slate-900">
-          Please sign in
-        </h1>
-      </div>
-    );
-  }
-
-  const isStaff = STAFF_ROLES.includes(Number(user.roleId));
+  const canSend = SENDER_CAPABILITIES.some((capability) =>
+    access?.capabilities?.includes(capability)
+  );
 
   const requested = params.get("tab");
   const openId = Number(params.get("open")) || null;
 
-  const tab = isStaff && TABS.includes(requested) ? requested : "inbox";
+  const tab = canSend && TABS.includes(requested) ? requested : "inbox";
 
   const goToTab = (id) =>
     router.replace(`/dashboard/announcements?tab=${id}`, { scroll: false });
 
   function handleSent(result) {
-    const people = result.total === 1 ? "person" : "people";
+    const count = result.total === 1 ? "person" : "people";
 
-    setNotice(
-      result.delivery === "dashboard"
-        ? `Your announcement was published to ${result.total} ${people}.`
-        : result.emails > 0
-        ? `Your announcement is live and ${result.emails} ${
-            result.emails === 1 ? "email is" : "emails are"
-          } being sent. You can follow the progress below.`
-        : `Your announcement was published to ${result.total} ${people}.`
-    );
+    if (result.scheduled) {
+      setNotice(
+        `Your announcement is scheduled for ${formatWhen(
+          result.scheduledAt
+        )}. It goes out by itself, and you can cancel it until then.`
+      );
+    } else if (result.delivery === "dashboard" || result.emails === 0) {
+      setNotice(`Your announcement was published to ${result.total} ${count}.`);
+    } else {
+      setNotice(
+        `Your announcement is live and ${result.emails} ${
+          result.emails === 1 ? "email is" : "emails are"
+        } being sent. You can follow the progress below.`
+      );
+    }
 
     goToTab("sent");
   }
@@ -66,27 +68,34 @@ export default function AnnouncementsPage() {
   const tabs = [
     { id: "inbox", label: "Inbox" },
     { id: "compose", label: "New announcement" },
-    { id: "sent", label: "Sent announcements" },
+    { id: "sent", label: "Sent & scheduled" },
   ];
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Announcements
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          {isStaff
-            ? "Read announcements, or send one to church members."
-            : "News and updates from your church leaders."}
-        </p>
+    <div className={`mx-auto space-y-6 ${tab === "compose" ? "max-w-6xl" : "max-w-4xl"}`}>
+      <div className="flex items-center gap-3">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-dark text-accent shadow-soft">
+          <Megaphone size={21} strokeWidth={2} />
+        </div>
+
+        <div>
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">
+            Announcements
+          </h1>
+
+          <p className="mt-0.5 text-sm text-body">
+            {canSend
+              ? "Read announcements, or send one to your campus, ministries and small groups."
+              : "News and updates from your leaders."}
+          </p>
+        </div>
       </div>
 
-      {isStaff && (
+      {canSend && (
         <div
           role="tablist"
           aria-label="Announcements"
-          className="inline-flex flex-wrap rounded-xl bg-slate-100 p-1"
+          className="inline-flex flex-wrap gap-1 rounded-full bg-white p-1 ring-1 ring-line"
         >
           {tabs.map((item) => (
             <button
@@ -95,10 +104,10 @@ export default function AnnouncementsPage() {
               role="tab"
               aria-selected={tab === item.id}
               onClick={() => goToTab(item.id)}
-              className={`rounded-lg px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+              className={`rounded-full px-5 py-2 text-sm font-semibold transition duration-200 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 tab === item.id
-                  ? "bg-white text-slate-900 shadow-sm"
-                  : "text-slate-500 hover:text-slate-800"
+                  ? "bg-primary text-white shadow-soft"
+                  : "text-body hover:text-ink"
               }`}
             >
               {item.label}
@@ -110,15 +119,17 @@ export default function AnnouncementsPage() {
       {notice && tab === "sent" && (
         <div
           role="status"
-          className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
+          className="flex items-center gap-3 rounded-3xl border border-success/30 bg-success/10 px-5 py-3 text-sm text-success"
         >
           <CheckCircle2 size={18} className="shrink-0" aria-hidden="true" />
+
           <span className="flex-1">{notice}</span>
+
           <button
             type="button"
             onClick={() => setNotice("")}
             aria-label="Dismiss message"
-            className="rounded-md p-1 transition hover:bg-emerald-100"
+            className="rounded-full p-1.5 transition hover:bg-success/20"
           >
             <X size={16} />
           </button>

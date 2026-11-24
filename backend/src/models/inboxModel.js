@@ -1,8 +1,9 @@
 const db = require("../config/db");
 
 /*
- * Announcements this person can see in the dashboard:
- * delivered to them, not deleted, and not "email only".
+ * Announcements this person can see in the dashboard: delivered to them,
+ * not deleted, not "email only", already sent, and not expired.
+ * Parameters: [userId, nowStr]  (nowStr is the church's local time)
  */
 const VISIBLE = `
   FROM announcement_recipients ar
@@ -11,13 +12,21 @@ const VISIBLE = `
   LEFT JOIN roles r ON r.id = u.role_id
   WHERE ar.user_id = ?
     AND a.deleted_at IS NULL
+    AND a.status NOT IN ('scheduled', 'cancelled')
     AND a.delivery IN ('both', 'dashboard')
+    AND (a.expires_at IS NULL OR a.expires_at > ?)
 `;
 
 const COLUMNS = `
   a.id,
   a.subject,
   a.message,
+  a.priority,
+  a.category,
+  a.pinned,
+  a.action_label,
+  a.action_url,
+  DATE_FORMAT(a.expires_at, '%Y-%m-%d %H:%i:%s') AS expires_at,
   a.created_at,
   u.first_name,
   u.last_name,
@@ -25,8 +34,12 @@ const COLUMNS = `
   ar.read_at
 `;
 
+// Pinned announcements stay on top, then the newest first.
+const ORDER = "ORDER BY a.pinned DESC, a.id DESC";
+
 const listInbox = async ({
   userId,
+  nowStr,
   unreadOnly = false,
   limit = 15,
   offset = 0,
@@ -35,35 +48,35 @@ const listInbox = async ({
 
   const [countRows] = await db.query(
     `SELECT COUNT(*) AS total ${VISIBLE}${extra}`,
-    [userId]
+    [userId, nowStr]
   );
 
   const [rows] = await db.query(
     `
       SELECT ${COLUMNS}
       ${VISIBLE}${extra}
-      ORDER BY a.id DESC
+      ${ORDER}
       LIMIT ${Number(limit)} OFFSET ${Number(offset)}
     `,
-    [userId]
+    [userId, nowStr]
   );
 
   return { rows, total: Number(countRows[0]?.total || 0) };
 };
 
-const countUnread = async (userId) => {
+const countUnread = async (userId, nowStr) => {
   const [rows] = await db.query(
     `SELECT COUNT(*) AS total ${VISIBLE} AND ar.read_at IS NULL`,
-    [userId]
+    [userId, nowStr]
   );
 
   return Number(rows[0]?.total || 0);
 };
 
-const getInboxItem = async (userId, announcementId) => {
+const getInboxItem = async (userId, nowStr, announcementId) => {
   const [rows] = await db.query(
     `SELECT ${COLUMNS} ${VISIBLE} AND a.id = ? LIMIT 1`,
-    [userId, announcementId]
+    [userId, nowStr, announcementId]
   );
 
   return rows[0] || null;

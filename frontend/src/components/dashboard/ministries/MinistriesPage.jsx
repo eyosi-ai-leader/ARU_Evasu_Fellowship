@@ -17,8 +17,8 @@ export default function MinistriesPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center text-sm text-slate-500">
-        <Loader2 size={18} className="mr-2 animate-spin" />
+      <div className="flex min-h-[40vh] items-center justify-center text-sm text-body">
+        <Loader2 size={18} className="mr-2 animate-spin text-primary" />
         Loading...
       </div>
     );
@@ -38,16 +38,16 @@ export default function MinistriesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+    <div className="mx-auto max-w-md rounded-3xl bg-white p-10 text-center ring-1 ring-line">
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
         <Lock size={24} />
       </div>
 
-      <h1 className="mt-4 text-sm font-bold text-slate-900">
+      <h1 className="mt-4 font-display text-xl font-semibold text-ink">
         No ministries for your account
       </h1>
 
-      <p className="mt-1 text-xs leading-5 text-slate-400">
+      <p className="mt-2 text-sm leading-6 text-body">
         Ministries are managed by campus leaders and led by the people they
         appoint.
       </p>

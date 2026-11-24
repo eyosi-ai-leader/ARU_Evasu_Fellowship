@@ -46,8 +46,8 @@ export default function MinistryLeaderPage() {
 
   if (!ministries && !error) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center text-sm text-slate-500">
-        <Loader2 size={18} className="mr-2 animate-spin" />
+      <div className="flex min-h-[40vh] items-center justify-center text-sm text-body">
+        <Loader2 size={18} className="mr-2 animate-spin text-primary" />
         Loading your ministry...
       </div>
     );
@@ -57,7 +57,7 @@ export default function MinistryLeaderPage() {
     return (
       <div
         role="alert"
-        className="mx-auto flex max-w-xl items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700"
+        className="mx-auto flex max-w-xl items-start gap-3 rounded-3xl border border-danger/30 bg-danger/10 p-6 text-sm text-danger"
       >
         <AlertCircle size={18} className="mt-0.5 shrink-0" />
 
@@ -76,16 +76,16 @@ export default function MinistryLeaderPage() {
 
   if (ministries.length === 0) {
     return (
-      <div className="mx-auto max-w-md rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+      <div className="mx-auto max-w-md rounded-3xl bg-white p-10 text-center ring-1 ring-line">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <Building2 size={24} />
         </div>
 
-        <h1 className="mt-4 text-sm font-bold text-slate-900">
+        <h1 className="mt-4 font-display text-xl font-semibold text-ink">
           No ministry assigned
         </h1>
 
-        <p className="mt-1 text-xs leading-5 text-slate-400">
+        <p className="mt-2 text-sm leading-6 text-body">
           Your account does not lead an active ministry yet. Ask your campus
           leader to appoint you.
         </p>
@@ -108,10 +108,10 @@ export default function MinistryLeaderPage() {
               role="tab"
               aria-selected={String(item.id) === selectedId}
               onClick={() => setSelectedId(String(item.id))}
-              className={`rounded-xl border px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 ${
+              className={`rounded-full px-5 py-2.5 text-sm font-semibold ring-1 transition duration-200 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
                 String(item.id) === selectedId
-                  ? "border-slate-900 bg-slate-900 text-white"
-                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  ? "bg-primary text-white shadow-soft ring-primary"
+                  : "bg-white text-ink ring-line hover:ring-primary/40"
               }`}
             >
               {item.name}

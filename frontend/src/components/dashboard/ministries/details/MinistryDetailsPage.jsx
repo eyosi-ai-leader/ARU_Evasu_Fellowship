@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   ArrowLeft,
   Building2,
+  Loader2,
   RefreshCw,
   AlertCircle,
 } from "lucide-react";
@@ -95,7 +96,8 @@ export default function MinistryDetailsPage() {
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center text-sm text-slate-500">
+      <div className="flex items-center justify-center gap-2 rounded-3xl bg-white p-12 text-sm text-body ring-1 ring-line">
+        <Loader2 size={18} className="animate-spin text-primary" />
         Loading ministry details...
       </div>
     );
@@ -106,7 +108,7 @@ export default function MinistryDetailsPage() {
       <div className="space-y-4">
         <Link
           href="/dashboard/ministries"
-          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-blue-700"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-body transition hover:text-primary"
         >
           <ArrowLeft size={16} />
           Back to ministries
@@ -114,7 +116,7 @@ export default function MinistryDetailsPage() {
 
         <div
           role="alert"
-          className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700"
+          className="rounded-3xl border border-danger/30 bg-danger/10 p-6 text-sm text-danger"
         >
           <div className="flex items-center gap-2 font-semibold">
             <AlertCircle size={18} />
@@ -126,7 +128,7 @@ export default function MinistryDetailsPage() {
           <button
             type="button"
             onClick={loadDetails}
-            className="mt-4 rounded-lg bg-white px-4 py-2 font-semibold text-red-700 ring-1 ring-red-200"
+            className="mt-4 rounded-full bg-white px-5 py-2 font-semibold text-danger ring-1 ring-danger/30 transition hover:bg-danger/10 active:scale-[0.97]"
           >
             Try again
           </button>
@@ -137,14 +139,14 @@ export default function MinistryDetailsPage() {
 
   if (!ministry) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center">
-        <h2 className="font-semibold text-slate-900">
+      <div className="rounded-3xl bg-white p-10 text-center ring-1 ring-line">
+        <h2 className="font-display text-xl font-semibold text-ink">
           Ministry not found
         </h2>
 
         <Link
           href="/dashboard/ministries"
-          className="mt-4 inline-block text-sm font-semibold text-blue-700 hover:text-blue-800"
+          className="mt-4 inline-block text-sm font-semibold text-primary transition hover:text-primary-dark"
         >
           Return to ministries
         </Link>
@@ -156,7 +158,7 @@ export default function MinistryDetailsPage() {
     <div className="mx-auto max-w-[1600px] space-y-6">
       <Link
         href="/dashboard/ministries"
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-blue-700"
+        className="inline-flex items-center gap-2 text-sm font-semibold text-body transition hover:text-primary"
       >
         <ArrowLeft size={16} />
         All ministries
@@ -165,61 +167,68 @@ export default function MinistryDetailsPage() {
       {error && (
         <div
           role="alert"
-          className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+          className="rounded-3xl border border-danger/30 bg-danger/10 p-4 text-sm text-danger"
         >
           {error}
         </div>
       )}
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-          <div className="flex items-start gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
-              <Building2 size={27} />
-            </div>
+      <section className="overflow-hidden rounded-3xl bg-white shadow-card ring-1 ring-line">
+        <div
+          aria-hidden="true"
+          className="h-2 bg-gradient-to-r from-primary via-ember to-accent"
+        />
 
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-                  {ministry.name}
-                </h1>
-
-                <MinistryStatusBadge status={ministry.status} />
+        <div className="p-6">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary-dark text-accent shadow-soft">
+                <Building2 size={27} />
               </div>
 
-              <p className="mt-2 max-w-3xl whitespace-pre-wrap text-sm leading-6 text-slate-600">
-                {ministry.description || "No description provided."}
-              </p>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-3">
+                  <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">
+                    {ministry.name}
+                  </h1>
 
-              <p className="mt-3 text-xs text-slate-400">
-                Ministry ID: {ministry.id}
-              </p>
+                  <MinistryStatusBadge status={ministry.status} />
+                </div>
+
+                <p className="mt-2 max-w-3xl whitespace-pre-wrap text-sm leading-6 text-body">
+                  {ministry.description || "No description provided."}
+                </p>
+
+                <p className="mt-3 text-xs text-body/70">
+                  Ministry ID: {ministry.id}
+                </p>
+              </div>
             </div>
-          </div>
 
-          <div className="flex shrink-0 gap-2">
-            <button
-              type="button"
-              onClick={loadDetails}
-              disabled={loading}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-            >
-              <RefreshCw size={16} />
-              Refresh
-            </button>
+            <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                onClick={loadDetails}
+                disabled={loading}
+                className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-ink ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97] disabled:opacity-50"
+              >
+                <RefreshCw size={16} />
+                Refresh
+              </button>
 
-            <button
-              type="button"
-              disabled={updatingStatus}
-              onClick={handleToggleStatus}
-              className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-            >
-              {updatingStatus
-                ? "Updating..."
-                : ministry.status === "Active"
-                  ? "Deactivate"
-                  : "Activate"}
-            </button>
+              <button
+                type="button"
+                disabled={updatingStatus}
+                onClick={handleToggleStatus}
+                className="rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-ink ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97] disabled:opacity-50"
+              >
+                {updatingStatus
+                  ? "Updating..."
+                  : ministry.status === "Active"
+                    ? "Deactivate"
+                    : "Activate"}
+              </button>
+            </div>
           </div>
         </div>
       </section>

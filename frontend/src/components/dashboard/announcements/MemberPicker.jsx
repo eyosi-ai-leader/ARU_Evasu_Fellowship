@@ -4,26 +4,45 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Loader2, Search, X } from "lucide-react";
 
 import { searchMembers } from "@/lib/announcementApi";
+import { groupByCampus } from "./parts";
+
+const selectClass =
+  "rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-slate-400";
+
+function GroupedOptions({ items }) {
+  return groupByCampus(items).map(([label, list]) => (
+    <optgroup key={label} label={label}>
+      {list.map((item) => (
+        <option key={item.id} value={item.id}>
+          {item.name}
+        </option>
+      ))}
+    </optgroup>
+  ));
+}
 
 export default function MemberPicker({
   selected,
   onChange,
-  ministries = [],
+  options,
   delivery = "both",
+  max = 300,
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [campusId, setCampusId] = useState("");
   const [ministryId, setMinistryId] = useState("");
+  const [smallGroupId, setSmallGroupId] = useState("");
 
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const [unavailable, setUnavailable] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
-    const [unavailable, setUnavailable] = useState([]);
 
   const wrapperRef = useRef(null);
 
@@ -50,6 +69,8 @@ export default function MemberPicker({
     };
   }, [open]);
 
+  const filters = { campusId, ministryId, smallGroupId };
+
   // Load the first page whenever the list is open and the filters change.
   useEffect(() => {
     if (!open) return;
@@ -64,7 +85,9 @@ export default function MemberPicker({
         try {
           const data = await searchMembers({
             search: query.trim(),
+            campusId,
             ministryId,
+            smallGroupId,
             page: 1,
             delivery,
           });
@@ -74,8 +97,8 @@ export default function MemberPicker({
           setItems(data.items);
           setTotal(data.total);
           setHasMore(data.hasMore);
+          setUnavailable(data.unavailable || []);
           setPage(1);
-           setUnavailable(data.unavailable || []);
         } catch (err) {
           if (!cancelled) setError(err.message);
         } finally {
@@ -89,7 +112,7 @@ export default function MemberPicker({
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [open, query, ministryId , delivery]);
+  }, [open, query, campusId, ministryId, smallGroupId, delivery]);
 
   async function loadMore() {
     if (loadingMore) return;
@@ -100,13 +123,14 @@ export default function MemberPicker({
     try {
       const data = await searchMembers({
         search: query.trim(),
-        ministryId,
+        ...filters,
         page: page + 1,
         delivery,
       });
 
       setItems((current) => {
         const known = new Set(current.map((member) => member.id));
+
         return [...current, ...data.items.filter((m) => !known.has(m.id))];
       });
 
@@ -120,13 +144,15 @@ export default function MemberPicker({
   }
 
   const selectedIds = new Set(selected.map((member) => member.id));
+  const atMax = selected.length >= max;
+
   const allShownSelected =
     items.length > 0 && items.every((member) => selectedIds.has(member.id));
 
   function toggle(member) {
     if (selectedIds.has(member.id)) {
       onChange(selected.filter((item) => item.id !== member.id));
-    } else {
+    } else if (!atMax) {
       onChange([...selected, member]);
     }
   }
@@ -135,17 +161,21 @@ export default function MemberPicker({
     if (allShownSelected) {
       const shown = new Set(items.map((member) => member.id));
       onChange(selected.filter((member) => !shown.has(member.id)));
-    } else {
-      onChange([
-        ...selected,
-        ...items.filter((member) => !selectedIds.has(member.id)),
-      ]);
+      return;
     }
+
+    const room = max - selected.length;
+    const additions = items
+      .filter((member) => !selectedIds.has(member.id))
+      .slice(0, Math.max(0, room));
+
+    onChange([...selected, ...additions]);
   }
 
-  function remove(id) {
-    onChange(selected.filter((member) => member.id !== id));
-  }
+  const showFilters =
+    options.campuses.length > 1 ||
+    options.ministries.length > 0 ||
+    options.smallGroups.length > 0;
 
   return (
     <div ref={wrapperRef} className="space-y-3">
@@ -167,7 +197,7 @@ export default function MemberPicker({
             onFocus={() => setOpen(true)}
             placeholder="Search by name, email or member number"
             aria-label="Search members"
-            className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"
+            className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-400 focus:ring-4 focus:ring-slate-100"
           />
         </div>
 
@@ -178,7 +208,7 @@ export default function MemberPicker({
           aria-controls="member-browse-panel"
           className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         >
-          Browse list
+          Browse
           <ChevronDown
             size={16}
             aria-hidden="true"
@@ -199,25 +229,54 @@ export default function MemberPicker({
                 checked={allShownSelected}
                 onChange={toggleAllShown}
                 disabled={items.length === 0}
-                className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
               />
               Select all shown
             </label>
 
-            {ministries.length > 1 && (
-              <select
-                value={ministryId}
-                onChange={(event) => setMinistryId(event.target.value)}
-                aria-label="Filter by ministry"
-                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
-              >
-                <option value="">All ministries</option>
-                {ministries.map((ministry) => (
-                  <option key={ministry.id} value={ministry.id}>
-                    {ministry.name}
-                  </option>
-                ))}
-              </select>
+            {showFilters && (
+              <div className="flex flex-wrap gap-2">
+                {options.campuses.length > 1 && (
+                  <select
+                    value={campusId}
+                    onChange={(event) => setCampusId(event.target.value)}
+                    aria-label="Filter by campus"
+                    className={selectClass}
+                  >
+                    <option value="">All campuses</option>
+
+                    {options.campuses.map((campus) => (
+                      <option key={campus.id} value={campus.id}>
+                        {campus.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                {options.ministries.length > 0 && (
+                  <select
+                    value={ministryId}
+                    onChange={(event) => setMinistryId(event.target.value)}
+                    aria-label="Filter by ministry"
+                    className={selectClass}
+                  >
+                    <option value="">All ministries</option>
+                    <GroupedOptions items={options.ministries} />
+                  </select>
+                )}
+
+                {options.smallGroups.length > 0 && (
+                  <select
+                    value={smallGroupId}
+                    onChange={(event) => setSmallGroupId(event.target.value)}
+                    aria-label="Filter by small group"
+                    className={selectClass}
+                  >
+                    <option value="">All small groups</option>
+                    <GroupedOptions items={options.smallGroups} />
+                  </select>
+                )}
+              </div>
             )}
           </div>
 
@@ -237,8 +296,10 @@ export default function MemberPicker({
             </p>
           ) : items.length === 0 && !error ? (
             <p className="px-4 py-6 text-sm text-slate-500">
-              No members found. Only active members with a verified email can
-              be selected.
+              No members found.
+              {delivery === "email"
+                ? " For email, only members with a verified email can be selected."
+                : " Only active members can be selected."}
             </p>
           ) : (
             <ul className="max-h-72 divide-y divide-slate-100 overflow-y-auto">
@@ -249,26 +310,34 @@ export default function MemberPicker({
                       type="checkbox"
                       checked={selectedIds.has(member.id)}
                       onChange={() => toggle(member)}
-                      className="h-4 w-4 shrink-0 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      disabled={atMax && !selectedIds.has(member.id)}
+                      className="h-4 w-4 shrink-0 rounded border-slate-300 text-slate-900 focus:ring-slate-500"
                     />
 
-                    <span className="min-w-0">
+                    <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium text-slate-900">
                         {member.name}
                       </span>
+
                       <span className="block truncate text-xs text-slate-500">
-                        {member.memberNumber && `${member.memberNumber} · `}
-                        {member.email}
+                        {[member.memberNumber, member.email]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </span>
                     </span>
+
+                    {member.campusName && options.campuses.length > 1 && (
+                      <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-500">
+                        {member.campusName}
+                      </span>
+                    )}
                   </label>
                 </li>
               ))}
             </ul>
           )}
-       
 
-                 {unavailable.length > 0 && (
+          {unavailable.length > 0 && (
             <div className="border-t border-slate-100 bg-amber-50 px-4 py-3">
               <p className="text-xs font-semibold text-amber-800">
                 Found, but can&apos;t receive announcements
@@ -277,18 +346,15 @@ export default function MemberPicker({
               <ul className="mt-2 space-y-2">
                 {unavailable.map((member) => (
                   <li key={member.id} className="text-xs text-amber-900">
-                    <span className="font-medium">{member.name}</span>
-                    {" · "}
+                    <span className="font-medium">{member.name}</span> ·{" "}
                     {member.email}
-                    <span className="block text-amber-700">
-                      {member.reason}
-                    </span>
+                    <span className="block text-amber-700">{member.reason}</span>
                   </li>
                 ))}
               </ul>
             </div>
           )}
-          
+
           <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-4 py-3 text-xs text-slate-500">
             <span>
               Showing {items.length} of {total}
@@ -307,6 +373,13 @@ export default function MemberPicker({
             )}
           </div>
         </div>
+      )}
+
+      {atMax && (
+        <p className="text-xs text-amber-700">
+          You can pick up to {max} people. For more, choose a campus, ministry
+          or small group instead.
+        </p>
       )}
 
       {selected.length > 0 && (
@@ -332,9 +405,12 @@ export default function MemberPicker({
                 className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 py-1 pl-3 pr-1.5 text-sm text-slate-700"
               >
                 {member.name}
+
                 <button
                   type="button"
-                  onClick={() => remove(member.id)}
+                  onClick={() =>
+                    onChange(selected.filter((item) => item.id !== member.id))
+                  }
                   aria-label={`Remove ${member.name}`}
                   className="rounded-full p-1 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                 >

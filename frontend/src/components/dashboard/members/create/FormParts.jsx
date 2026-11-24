@@ -6,20 +6,26 @@
  */
 
 export const fieldClass = (error) =>
-  `h-11 w-full rounded-xl border bg-white px-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 ${
+  `h-11 w-full rounded-2xl border bg-white px-4 text-sm text-ink outline-none transition placeholder:text-body/60 focus:ring-4 disabled:cursor-not-allowed disabled:bg-surface-muted disabled:text-body/60 ${
     error
-      ? "border-red-300 focus:border-red-400 focus:ring-red-100"
-      : "border-slate-200 focus:border-slate-400 focus:ring-slate-100"
+      ? "border-danger/50 focus:border-danger focus:ring-danger/10"
+      : "border-line focus:border-primary focus:ring-primary/10"
   }`;
 
 export function Section({ title, description, children }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+    <section className="rounded-3xl bg-white p-5 shadow-card ring-1 ring-line sm:p-7">
       <div className="mb-5 sm:mb-6">
-        <h2 className="text-base font-semibold text-slate-900">{title}</h2>
+        <h2 className="flex items-center gap-3 font-display text-lg font-semibold text-ink">
+          <span
+            aria-hidden="true"
+            className="h-5 w-1 rounded-full bg-accent"
+          />
+          {title}
+        </h2>
 
         {description && (
-          <p className="mt-1 text-sm text-slate-500">{description}</p>
+          <p className="mt-1 pl-4 text-sm text-body">{description}</p>
         )}
       </div>
 
@@ -33,20 +39,20 @@ export function Field({ id, label, required, error, help, children }) {
     <div>
       <label
         htmlFor={id}
-        className="mb-2 block text-sm font-medium text-slate-700"
+        className="mb-2 block text-sm font-semibold text-ink"
       >
         {label}
-        {required && <span className="text-red-500"> *</span>}
+        {required && <span className="text-danger"> *</span>}
       </label>
 
       {children}
 
       {help && !error && (
-        <p className="mt-1.5 text-xs text-slate-400">{help}</p>
+        <p className="mt-1.5 text-xs text-body">{help}</p>
       )}
 
       {error && (
-        <p role="alert" className="mt-1.5 text-xs text-red-500">
+        <p role="alert" className="mt-1.5 text-xs font-medium text-danger">
           {error}
         </p>
       )}
@@ -57,7 +63,7 @@ export function Field({ id, label, required, error, help, children }) {
 export function ReadOnlyBox({ children, mono = false }) {
   return (
     <div
-      className={`flex h-11 items-center rounded-xl border border-slate-200 bg-slate-50 px-3.5 text-sm font-medium text-slate-500 ${
+      className={`flex h-11 items-center rounded-2xl bg-surface-muted px-4 text-sm font-medium text-body ring-1 ring-line ${
         mono ? "font-mono" : ""
       }`}
     >
