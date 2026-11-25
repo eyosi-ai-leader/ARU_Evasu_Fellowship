@@ -1,5 +1,5 @@
 import WelcomeActions from "./WelcomeActions";
-import welcome from "@/data/welcome";
+import welcome from "../../../data/welcome";
 
 export default function WelcomeContent() {
   return (

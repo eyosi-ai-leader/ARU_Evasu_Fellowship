@@ -4,7 +4,7 @@ import clsx from "clsx";
 import { motion, useReducedMotion } from "framer-motion";
 
 import Button from "@/components/shared/Button";
-import heroContent from "@/data/heroContent";
+import heroContent from "../../../data/heroContent";
 import HeroHighlights from "./HeroHighlights";
 
 function Line({ text, className }) {

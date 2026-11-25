@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 
-import ministries from "@/data/ministries";
+import ministries from "../../../data/ministries";
 import { MinistryDetailsPage } from "@/components/pages/ministry-details";
 
 

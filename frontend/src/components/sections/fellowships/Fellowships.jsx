@@ -5,8 +5,8 @@ import { useState } from "react";
 import Reveal from "@/components/shared/Reveal/Reveal";
 import SectionContainer from "@/components/shared/SectionContainer/SectionContainer";
 import SectionHeader from "@/components/shared/SectionHeader/SectionHeader";
-import { fellowships } from "@/data/fellowships";
-import { fellowshipsIntro } from "@/data/homeSections";
+import { fellowships } from "../../../data/fellowships";
+import { fellowshipsIntro } from "../../../data/homeSections";
 import FellowshipPanel from "./FellowshipPanel";
 
 export default function Fellowships() {

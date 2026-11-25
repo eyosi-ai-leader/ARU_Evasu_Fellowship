@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 
-import mission from "@/data/mission";
+import mission from "../../../data/mission";
 
 const wordClass = "mr-[0.28em] inline-block";
 

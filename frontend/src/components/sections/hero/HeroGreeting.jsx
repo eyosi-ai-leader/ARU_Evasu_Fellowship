@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import heroGreetings from "@/data/heroGreetings";
+import heroGreetings from "../../../data/heroGreetings";
 
 const HeroGreeting = () => {
   const [index, setIndex] = useState(0);

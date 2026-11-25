@@ -6,7 +6,7 @@ import {
 
 import Button from "@/components/shared/Button";
 
-import serviceTimes from "@/data/serviceTimes";
+import serviceTimes from "../../../data/serviceTimes";
 
 export default function LiveStreamBanner() {
 

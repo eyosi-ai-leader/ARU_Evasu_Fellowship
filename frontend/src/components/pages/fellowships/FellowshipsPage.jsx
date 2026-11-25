@@ -4,7 +4,7 @@ import { ArrowRight, CalendarDays, MapPin } from "lucide-react";
 
 import Reveal from "@/components/shared/Reveal/Reveal";
 import SectionContainer from "@/components/shared/SectionContainer/SectionContainer";
-import { fellowships, getInitials } from "@/data/fellowships";
+import { fellowships, getInitials } from "../../../data/fellowships";
 
 // Change this line to use a different hero photo
 const HERO_IMAGE = "/images/hero/GC_3.jpg";

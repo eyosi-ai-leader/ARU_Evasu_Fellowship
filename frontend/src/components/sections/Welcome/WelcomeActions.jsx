@@ -1,5 +1,5 @@
 import Link from "next/link";
-import welcome from "@/data/welcome";
+import welcome from "../../../data/welcome";
 import Button from "@/components/shared/Button";
 
 export default function WelcomeActions() {

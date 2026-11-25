@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 import Button from "@/components/shared/Button";
-import giving from "@/data/giving";
+import giving from "../../../data/giving";
 
 function CopyButton({ value, label }) {
   const [copied, setCopied] = useState(false);

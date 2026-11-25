@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import navigation from "@/data/navigation";
+import navigation from "../../../data/navigation";
 import NavItem from "./navitem";
 import FellowshipsNavItem from "./FellowshipsNavItem";
 import { getCurrentHref } from "./nav-config";

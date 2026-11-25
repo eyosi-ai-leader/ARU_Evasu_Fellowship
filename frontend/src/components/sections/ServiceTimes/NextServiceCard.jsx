@@ -9,7 +9,7 @@ import {
 import { Card } from "@/components/shared/Card";
 import Button from "@/components/shared/Button";
 
-import serviceTimes from "@/data/serviceTimes";
+import serviceTimes from "../../../data/serviceTimes";
 
 export default function NextServiceCard() {
   const nextService = serviceTimes.find(

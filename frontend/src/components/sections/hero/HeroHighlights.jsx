@@ -1,4 +1,4 @@
-import heroContent from "@/data/heroContent";
+import heroContent from "../../../data/heroContent";
 
 export default function HeroHighlights() {
   return (

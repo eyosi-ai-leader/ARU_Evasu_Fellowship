@@ -1,4 +1,4 @@
-import { sermons } from "@/data/sermons";
+import { sermons } from "../../../data/sermons";
 
 import SermonCard from "./SermonCard";
 

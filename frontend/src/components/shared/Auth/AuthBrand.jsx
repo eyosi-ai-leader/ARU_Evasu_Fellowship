@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 
 import BrandLogo from "../BrandLogo/BrandLogo";
-import { BRAND } from "@/data/brand";
+import { BRAND } from "../../../data/brand";
 
 export default function AuthBrand({ light = false, showHome = false }) {
   const brand = (

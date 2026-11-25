@@ -1,5 +1,5 @@
 import ServiceTimeCard from "./ServiceTimeCard";
-import serviceTimes from "@/data/serviceTimes";
+import serviceTimes from "../../../data/serviceTimes";
 
 
 // export default function ServiceTimesGrid(){

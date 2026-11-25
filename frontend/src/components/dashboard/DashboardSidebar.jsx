@@ -9,8 +9,6 @@ import {
   Users,
   HeartHandshake,
   CalendarDays,
-  Sparkles,
-  BarChart3,
   ChevronDown,
   ChevronRight,
   UserRound,
@@ -33,20 +31,7 @@ import { useAccess } from "@/components/dashboard/access/AccessProvider";
 import CampusBadge from "@/components/dashboard/access/CampusBadge";
 import SidebarUserMenu from "@/components/dashboard/SidebarUserMenu";
 import BrandLogo from "@/components/shared/BrandLogo/BrandLogo";
-import { BRAND } from "@/data/brand";
-
-const INTELLIGENCE = {
-  label: "Intelligence",
-  items: [
-    {
-      name: "Fellowship AI",
-      href: "/dashboard/ai",
-      icon: Sparkles,
-      badge: "AI",
-    },
-    { name: "Insights", href: "/dashboard/insights", icon: BarChart3 },
-  ],
-};
+import { BRAND } from "../../data/brand";
 
 /*
  * The menu is built from what the person may DO (capabilities from
@@ -69,12 +54,7 @@ function buildNavigation(access) {
     if (manages) {
       items.push(
         { name: "Members", href: "/dashboard/members", icon: Users },
-        {
-          name: "Graduates",
-          href: "/dashboard/graduates",
-          icon: GraduationCap,
-          comingSoon: true,
-        },
+       
         {
           name: "Small Groups",
           href: "/dashboard/small-groups",
@@ -102,15 +82,19 @@ function buildNavigation(access) {
         name: "Member Access",
         href: "/dashboard/account-access",
         icon: KeyRound,
-      });
+      },
+     {
+          name: "Graduates",
+          href: "/dashboard/graduates",
+          icon: GraduationCap,
+          comingSoon: true,
+        },);
     }
 
     sections.push({
       label: access.isSuperAdmin ? "Management" : "Fellowship Management",
       items,
     });
-
-    sections.push(INTELLIGENCE);
 
     return sections;
   }

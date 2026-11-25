@@ -6,9 +6,9 @@ import Button from "@/components/shared/Button";
 import Reveal from "@/components/shared/Reveal/Reveal";
 import SectionContainer from "@/components/shared/SectionContainer/SectionContainer";
 import SectionHeader from "@/components/shared/SectionHeader/SectionHeader";
-import { BRAND } from "@/data/brand";
-import { contactPage } from "@/data/contactPage";
-import { fellowships } from "@/data/fellowships";
+import { BRAND } from "../../../data/brand";
+import { contactPage } from "../../../data/contactPage";
+import { fellowships } from "../../../data/fellowships";
 import ContactForm from "./ContactForm";
 
 const telOf = (phone) => phone.replace(/\s+/g, "");

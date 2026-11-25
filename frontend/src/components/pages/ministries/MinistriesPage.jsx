@@ -1,4 +1,4 @@
-import ministriesPage from "@/data/ministriesPage";
+import ministriesPage from "../../../data/ministriesPage";
 
 import {
   MinistriesHero,

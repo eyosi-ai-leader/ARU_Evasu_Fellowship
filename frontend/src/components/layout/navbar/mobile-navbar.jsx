@@ -7,8 +7,8 @@ import { Menu, X, Heart, LayoutDashboard, LogOut, LogIn } from "lucide-react";
 
 import NavItem from "./navitem";
 import BrandLogo from "@/components/shared/BrandLogo/BrandLogo";
-import { BRAND } from "@/data/brand";
-import navigation from "@/data/navigation";
+import { BRAND } from "../../../data/brand";
+import navigation from "../../../data/navigation";
 import useAuthUser from "@/hooks/useAuthUser";
 
 const MobileNav = ({ onGive }) => {

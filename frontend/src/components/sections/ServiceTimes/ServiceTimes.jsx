@@ -1,5 +1,5 @@
 import {SectionHeader} from "@/components/shared/SectionHeader";
-import serviceTimes from "@/data/serviceTimes";
+import serviceTimes from "../../../data/serviceTimes";
 import CountdownBanner from "./CountdownBanner";
 import NextServiceCard from "./NextServiceCard";
 import ServiceTimesGrid from "./ServiceTimesGrid";

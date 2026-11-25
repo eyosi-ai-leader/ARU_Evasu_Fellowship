@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import BrandLogo from "@/components/shared/BrandLogo/BrandLogo";
-import { BRAND } from "@/data/brand";
+import { BRAND } from "../../../data/brand";
 
 const Logo = () => {
   return (

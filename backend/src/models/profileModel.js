@@ -22,6 +22,12 @@ const getProfileByUserId = async (userId) => {
         DATE_FORMAT(m.date_of_birth, '%Y-%m-%d') AS date_of_birth,
         DATE_FORMAT(m.baptism_date, '%Y-%m-%d') AS baptism_date,
         m.address,
+        m.home_region,
+        m.home_town,
+        m.telegram_username,
+        m.emergency_contact_name,
+        m.emergency_contact_phone,
+        m.emergency_contact_relation,
         m.status
 
       FROM users u

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 
-import { BRAND } from "@/data/brand";
+import { BRAND } from "../../../data/brand";
 
 export default function BrandLogo({
   size = 40,

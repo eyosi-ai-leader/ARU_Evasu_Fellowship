@@ -17,14 +17,14 @@ export const BRAND = {
   },
 
   // PLACEHOLDERS: change to the real contact details later.
-  email: "info@arsievasu.example",
-  phone: "+251 900 000 000",
+  email: "info@arsi-u-fellowship.com",
+  phone: "+251 992912263",
 
   // PLACEHOLDERS: change to the real links later.
   socials: [
     { name: "Facebook", href: "https://facebook.com/your-fellowship" },
-    { name: "Telegram", href: "https://t.me/your-fellowship" },
-    { name: "YouTube", href: "https://youtube.com/@your-fellowship" },
+    { name: "Telegram", href: "https://t.me/Arsiufellow" },
+    { name: "YouTube", href: "https://youtube.com/@arsi_u_fellowship?si=KDFRt5PAAWR_rBU6" },
     { name: "Instagram", href: "https://instagram.com/your-fellowship" },
   ],
 

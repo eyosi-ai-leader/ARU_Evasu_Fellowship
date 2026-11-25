@@ -4,7 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/layout/navbar";
 import Footer from "@/components/layout/footer";
 import SiteChrome from "@/components/layout/SiteChrome";
-import { BRAND } from "@/data/brand";
+import { BRAND } from "../data/brand";
 
 const inter = Inter({
   variable: "--font-inter",

@@ -3,8 +3,8 @@ import { Send } from "lucide-react";
 import Button from "@/components/shared/Button";
 import Reveal from "@/components/shared/Reveal/Reveal";
 import SectionContainer from "@/components/shared/SectionContainer/SectionContainer";
-import { BRAND } from "@/data/brand";
-import { visitCta } from "@/data/homeSections";
+import { BRAND } from "../../../data/brand";
+import { visitCta } from "../../../data/homeSections";
 
 export default function VisitCta() {
   const telegram = BRAND.socials.find((social) => social.name === "Telegram");

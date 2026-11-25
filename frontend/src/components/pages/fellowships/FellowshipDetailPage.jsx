@@ -21,7 +21,7 @@ import {
   fullTimeStaff,
   getInitials,
   regionalCoordinator,
-} from "@/data/fellowships";
+} from "../../../data/fellowships";
 
 const telOf = (phone) => phone.replace(/\s+/g, "");
 

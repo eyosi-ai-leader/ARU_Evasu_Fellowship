@@ -7,7 +7,7 @@ export const eventsPage = {
     title: "What's happening on our campuses",
     description:
       "See what is coming up in every fellowship, and look back at the moments we have shared together.",
-    image: "/images/events/Kairos_1.jpg",
+    image: "/images/events/NLS_3.jpg",
   },
 
   introduction: {
@@ -69,6 +69,8 @@ export const eventsPage = {
             "Kairos_10",
             "Kairos_12",
             "Kairos_14",
+            "Kairos_15",
+
           ]),
           ...images("about", ["Kairos_2", "Kairos_8"]),
           ...images("Welcome", ["Kairos_6", "Kairos_13"]),
@@ -85,6 +87,8 @@ export const eventsPage = {
           "Dera_mission_4",
           "Dera_mission_5",
           "Dera_mission_6",
+          "Dera_mission_7",
+          "Dera_mission_8",
         ]),
       },
       {
@@ -94,6 +98,7 @@ export const eventsPage = {
           "Asela_mission",
           "Asela_mission_1",
           "Asela_mission_2",
+         
         ]),
       },
       {
@@ -104,6 +109,8 @@ export const eventsPage = {
             "Eteya_mission_1",
             "Eteya_mission_2",
             "Eteya_mission_4",
+            "Eteya_mission_5",
+
           ]),
           ...images("hero", ["Eteya_mission_3"]),
         ],
@@ -115,7 +122,7 @@ export const eventsPage = {
           ...images("Welcome", ["Family_1", "Family_3"]),
           ...images("ministries", ["Family_2"]),
           ...images("events", ["Family_4", "Family_5", "Family_7"]),
-          ...images("hero", ["Family_6"]),
+          ...images("hero", ["Family_6" , "Family_E2"]),
         ],
       },
       {
@@ -127,17 +134,22 @@ export const eventsPage = {
         id: "fellowship",
         title: "Conferences & Fellowship",
         photos: [
-          ...images("about", ["GC_1", "NLS_2"]),
+          ...images("about", ["GC_1", "NLS_2" , "Art_Ardu_1","Art_Ardu_2", "Art_Ardu_3" ]),
           ...images("events", [
             "GC_2",
             "GC_4",
             "GF_2",
             "NLS_1",
             "Fellowship_2",
+            "Fellowship_3",
+            "Fellowship_4",
+            "Fellowship_5",
             "Images_3",
+            "NLS_2", "NLS_3" ,"NLS_4", "NLS_5"
+
           ]),
-          ...images("hero", ["GC_3", "Fellowship"]),
-          ...images("sermons", ["GF_1"]),
+          ...images("hero", ["GC_3", "Fellowship" ,"GF_2"]),
+          ...images("sermons", ["GF_1" ]),
           ...images("Welcome", ["Fellowship_1", "Images_2"]),
           ...images("ministries", ["Images_1"]),
         ],

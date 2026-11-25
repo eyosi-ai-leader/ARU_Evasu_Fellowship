@@ -1,4 +1,4 @@
-import { ministries } from "@/data/ministries";
+import { ministries } from "../../../data/ministries";
 
 import { SectionHeader } from "@/components/shared/SectionHeader";
 import FeaturedMinistry from "./FeaturedMinistry";

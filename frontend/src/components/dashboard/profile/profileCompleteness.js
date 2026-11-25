@@ -3,7 +3,8 @@ const ITEMS = [
   { key: "profileImage", label: "Add a profile photo" },
   { key: "dateOfBirth", label: "Add your date of birth" },
   { key: "phone", label: "Add your phone number" },
-  { key: "address", label: "Add your address" },
+  { key: "homeRegion", label: "Add where you are from" },
+  { key: "emergencyContactName", label: "Add an emergency contact" },
 ];
 
 export function getProfileCompleteness(profile) {

@@ -9,7 +9,7 @@ import { Phone, Quote } from "lucide-react";
 import Button from "@/components/shared/Button";
 import SectionContainer from "@/components/shared/SectionContainer/SectionContainer";
 import SectionHeader from "@/components/shared/SectionHeader/SectionHeader";
-import { getInitials } from "@/data/fellowships";
+import { getInitials } from "../../../data/fellowships";
 
 // Shows the photo when there is one, otherwise the initials
 function Avatar({ person, className }) {

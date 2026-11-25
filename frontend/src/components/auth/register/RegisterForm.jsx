@@ -24,11 +24,6 @@ import {
 import { registerUser } from "@/lib/authApi";
 import { getFellowships, getDepartments } from "@/lib/fellowshipApi";
 import { OTHER_OPTION } from "@/lib/ethiopiaLocations";
-import {
-  ecDateProblem,
-  ecGraduationToGregorian,
-  ecValueToIso,
-} from "@/lib/ethiopianCalendar";
 
 import { CheckboxCard } from "./RegisterFields";
 import PublicRegisterProfileImage from "./PublicRegisterProfileImage";
@@ -43,6 +38,30 @@ import { TERMS_VERSION } from "@/lib/fellowshipTerms";
 // CHANGE THE LEFT-SIDE PHOTO HERE.
 // The file lives in the "public/images" folder of your project.
 const SIDE_IMAGE = "/images/events/Family_4.jpg";
+
+/**
+ * Checks an optional Gregorian date typed as YYYY-MM-DD.
+ * Returns an error message, or "" when the date is empty or fine.
+ */
+function gcDateProblem(value, label) {
+  if (!value) return "";
+
+  const date = new Date(`${value}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return `${label} is not a valid date.`;
+  }
+
+  if (date.getFullYear() < 1900) {
+    return `${label} is not a valid date.`;
+  }
+
+  if (date > new Date()) {
+    return `${label} cannot be in the future.`;
+  }
+
+  return "";
+}
 
 const STEP_META = [
   {
@@ -314,7 +333,7 @@ export default function RegisterForm() {
         newErrors.phone = "Please enter a valid phone number.";
       }
 
-      const birthProblem = ecDateProblem(
+      const birthProblem = gcDateProblem(
         formData.dateOfBirth,
         "Date of birth"
       );
@@ -323,7 +342,7 @@ export default function RegisterForm() {
     }
 
     if (stepIndex === 2) {
-      const baptismProblem = ecDateProblem(
+      const baptismProblem = gcDateProblem(
         formData.baptismDate,
         "Baptism date"
       );
@@ -332,7 +351,6 @@ export default function RegisterForm() {
 
       if (
         formData.homeCity === OTHER_OPTION &&
-
         !formData.homeTownOther.trim()
       ) {
         newErrors.homeTownOther = "Please write your city or town.";
@@ -453,21 +471,17 @@ export default function RegisterForm() {
         if (text) data.append(key, text);
       });
 
-      // Dates are typed in the Ethiopian calendar (E.C.) and sent as
-      // Gregorian (G.C.), which is what the database and reports use.
-      const birthDate = ecValueToIso(formData.dateOfBirth);
+      // Dates are Gregorian (YYYY-MM-DD) and are sent exactly as chosen.
+      if (formData.dateOfBirth) {
+        data.append("dateOfBirth", formData.dateOfBirth);
+      }
 
-      if (birthDate) data.append("dateOfBirth", birthDate);
+      if (formData.baptismDate) {
+        data.append("baptismDate", formData.baptismDate);
+      }
 
-      const baptismDate = ecValueToIso(formData.baptismDate);
-
-      if (baptismDate) data.append("baptismDate", baptismDate);
-
-      // Entry year: the E.C. year + 8 is the G.C. year.
-      data.append(
-        "entryYear",
-        String((formData.entryYear))
-      );
+      // Entry year (Gregorian), sent as chosen.
+      data.append("entryYear", String(formData.entryYear));
 
       // City or town: the chosen one, or the one they typed.
       const homeTown =

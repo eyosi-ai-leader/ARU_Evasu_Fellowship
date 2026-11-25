@@ -14,12 +14,12 @@ const socialLinks = [
   {
     name: "YouTube",
     icon: Play,
-    href: "#",
+    href: "https://youtube.com/@arsi_u_fellowship?si=KDFRt5PAAWR_rBU6",
   },
   {
     name: "Telegram",
     icon: Send,
-    href: "#",
+    href: "https://t.me/Arsiufellow",
   },
 ];
 

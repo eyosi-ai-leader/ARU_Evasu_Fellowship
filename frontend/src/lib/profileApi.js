@@ -1,4 +1,5 @@
 import { getToken } from "@/lib/authToken";
+import { endSession } from "@/lib/accountApi";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
@@ -19,6 +20,7 @@ async function request(path, options = {}) {
         ...(options.headers || {}),
         Authorization: `Bearer ${token}`,
       },
+      cache: "no-store",
     });
   } catch {
     throw new Error(
@@ -32,6 +34,12 @@ async function request(path, options = {}) {
     result = await response.json();
   } catch {
     /* non-JSON response */
+  }
+
+  // The account was made inactive (or the session ended) while signed in.
+  if (response.status === 401 || result.code === "ACCOUNT_INACTIVE") {
+    endSession({ inactive: result.code === "ACCOUNT_INACTIVE" });
+    throw new Error(result.message || "Please sign in again.");
   }
 
   if (!response.ok) {

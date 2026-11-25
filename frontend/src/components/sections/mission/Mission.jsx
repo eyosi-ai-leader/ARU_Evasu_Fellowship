@@ -1,7 +1,7 @@
 import Button from "@/components/shared/Button";
 import Reveal from "@/components/shared/Reveal/Reveal";
 import SectionContainer from "@/components/shared/SectionContainer/SectionContainer";
-import mission from "@/data/mission";
+import mission from "../../../data/mission";
 import MissionPillar from "./MissionPillar";
 import MissionStatement from "./MissionStatement";
 

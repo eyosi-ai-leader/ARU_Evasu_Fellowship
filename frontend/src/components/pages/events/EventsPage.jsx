@@ -4,7 +4,7 @@ import { Megaphone, Sparkles, XCircle } from "lucide-react";
 import Reveal from "@/components/shared/Reveal/Reveal";
 import SectionContainer from "@/components/shared/SectionContainer/SectionContainer";
 import { VisitCta } from "@/components/sections/visit";
-import { eventsPage } from "@/data/eventsPage";
+import { eventsPage } from "../../../data/eventsPage";
 import { formatEventDate, formatEventWhen } from "@/lib/eventFormat";
 import { getPublicEvents } from "@/lib/publicEventsApi";
 import EventPhoto from "./EventPhoto";

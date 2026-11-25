@@ -5,7 +5,7 @@ import FeaturedSermon from "./FeaturedSermon";
 import SermonGrid from "./SermonGrid";
 import SermonCTA from "./SermonCTA";
 
-import { sermonsPage } from "@/data/sermonsPage";
+import { sermonsPage } from "../../../data/sermonsPage";
 
 export default function SermonsPage() {
   return (

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { FellowshipDetailPage } from "@/components/pages/fellowships";
-import { fellowships, getFellowship } from "@/data/fellowships";
+import { fellowships, getFellowship } from "../../../data/fellowships";
 
 export function generateStaticParams() {
   return fellowships.map((item) => ({ slug: item.slug }));

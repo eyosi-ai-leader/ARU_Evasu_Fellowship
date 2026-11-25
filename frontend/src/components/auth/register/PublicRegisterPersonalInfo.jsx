@@ -2,7 +2,7 @@
 
 import { UserRound } from "lucide-react";
 
-import EthiopianDateField from "./EthiopianDateField";
+import GregorianDateField from "./GregorianDateField";
 import {
   SectionCard,
   SegmentedRadio,
@@ -66,13 +66,14 @@ export default function PublicRegisterPersonalInfo({
           ]}
         />
 
-        <EthiopianDateField
+        <GregorianDateField
           className="sm:col-span-3"
           label="Date of birth"
           name="dateOfBirth"
           value={formData.dateOfBirth}
           onChange={onChange}
           error={errors.dateOfBirth}
+          autoComplete="bday"
           newestYearsAgo={10}
           oldestYearsAgo={80}
         />

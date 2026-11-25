@@ -13,7 +13,7 @@ import Reveal from "@/components/shared/Reveal/Reveal";
 import SectionContainer from "@/components/shared/SectionContainer/SectionContainer";
 import SectionHeader from "@/components/shared/SectionHeader/SectionHeader";
 import { VisitCta } from "@/components/sections/visit";
-import aboutPage from "@/data/aboutPage";
+import aboutPage from "../../../data/aboutPage";
 import StaffMessages from "./StaffMessages";
 
 const ICONS = {

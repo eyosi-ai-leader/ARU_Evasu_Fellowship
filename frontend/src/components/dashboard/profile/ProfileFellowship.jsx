@@ -16,17 +16,17 @@ import { formatMonth } from "./profileFormat";
 
 function Card({ icon: Icon, title, description, children }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="rounded-3xl bg-white p-6 shadow-card ring-1 ring-line sm:p-7">
       <div className="flex items-center gap-3">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+        <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
           <Icon size={19} strokeWidth={1.8} aria-hidden="true" />
         </span>
 
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-          {description && (
-            <p className="text-sm text-slate-500">{description}</p>
-          )}
+          <h2 className="font-display text-lg font-semibold text-ink">
+            {title}
+          </h2>
+          {description && <p className="text-sm text-body">{description}</p>}
         </div>
       </div>
 
@@ -38,15 +38,18 @@ function Card({ icon: Icon, title, description, children }) {
 function Item({ label, value }) {
   return (
     <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">
+      <dt className="text-xs font-semibold uppercase tracking-wide text-body">
         {label}
       </dt>
-      <dd className="mt-1 text-sm font-medium text-slate-800">
-        {value || <span className="font-normal text-slate-400">Not set</span>}
+      <dd className="mt-1 text-sm font-medium text-ink">
+        {value || <span className="font-normal text-body/60">Not set</span>}
       </dd>
     </div>
   );
 }
+
+const pillLink =
+  "inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-ink ring-1 ring-line transition hover:text-primary hover:ring-primary/40 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
 
 /*
  * state: { status: "loading" | "ready" | "error", data, error }
@@ -58,9 +61,9 @@ export default function ProfileFellowship({ state, onRetry }) {
     return (
       <div
         role="status"
-        className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white py-14 text-sm text-slate-500"
+        className="flex items-center justify-center gap-2 rounded-3xl bg-white py-14 text-sm text-body ring-1 ring-line"
       >
-        <Loader2 size={18} className="animate-spin" />
+        <Loader2 size={18} className="animate-spin text-primary" />
         Loading your fellowship details...
       </div>
     );
@@ -70,14 +73,14 @@ export default function ProfileFellowship({ state, onRetry }) {
     return (
       <div
         role="alert"
-        className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center"
+        className="rounded-3xl border border-danger/30 bg-danger/10 p-6 text-center"
       >
-        <p className="text-sm text-red-700">{state.error}</p>
+        <p className="text-sm text-danger">{state.error}</p>
 
         <button
           type="button"
           onClick={onRetry}
-          className="mt-4 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+          className="mt-4 inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-dark active:scale-[0.97]"
         >
           <RotateCw size={15} aria-hidden="true" />
           Try again
@@ -90,14 +93,16 @@ export default function ProfileFellowship({ state, onRetry }) {
 
   if (!member) {
     return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
-        <Building2 className="mx-auto text-slate-300" size={28} aria-hidden="true" />
+      <div className="rounded-3xl bg-white p-8 text-center ring-1 ring-line">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <Building2 size={26} aria-hidden="true" />
+        </div>
 
-        <p className="mt-3 text-sm font-semibold text-slate-800">
+        <p className="mt-4 font-display text-lg font-semibold text-ink">
           Your account is not linked to a member record
         </p>
 
-        <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-slate-500">
+        <p className="mx-auto mt-1 max-w-md text-sm leading-6 text-body">
           Membership details such as campus, small group and ministries appear
           here once your account is linked to a fellowship member record.
         </p>
@@ -131,7 +136,7 @@ export default function ProfileFellowship({ state, onRetry }) {
         </dl>
 
         {!member.campusName && (
-          <p className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <p className="mt-5 rounded-2xl border border-accent/40 bg-accent/20 px-4 py-3 text-sm font-medium text-ink">
             You have not been placed in a campus yet. Your fellowship leaders
             will place you soon.
           </p>
@@ -150,15 +155,15 @@ export default function ProfileFellowship({ state, onRetry }) {
             <Item label="Entry year" value={member.entryYear} />
             <Item label="Expected graduation" value={member.graduationYear} />
             <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">
+              <dt className="text-xs font-semibold uppercase tracking-wide text-body">
                 Academic status
               </dt>
               <dd className="mt-1">
                 <span
-                  className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                  className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
                     member.academicStatus === "Graduate"
-                      ? "bg-slate-100 text-slate-600"
-                      : "bg-indigo-50 text-indigo-600"
+                      ? "bg-surface-muted text-body ring-1 ring-line"
+                      : "bg-primary/10 text-primary"
                   }`}
                 >
                   {member.academicStatus || "Student"}
@@ -178,11 +183,12 @@ export default function ProfileFellowship({ state, onRetry }) {
           <ul className="flex flex-wrap gap-2">
             {ministriesLed.map((ministry) => (
               <li key={`m-${ministry.id}`}>
-                <Link
-                  href="/dashboard/ministries"
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
-                >
-                  <HeartHandshake size={15} aria-hidden="true" />
+                <Link href="/dashboard/ministries" className={pillLink}>
+                  <HeartHandshake
+                    size={15}
+                    aria-hidden="true"
+                    className="text-primary"
+                  />
                   {ministry.name || "Ministry"}
                 </Link>
               </li>
@@ -192,9 +198,9 @@ export default function ProfileFellowship({ state, onRetry }) {
               <li key={`g-${group.id}`}>
                 <Link
                   href={`/dashboard/small-groups/${group.id}`}
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+                  className={pillLink}
                 >
-                  <Users size={15} aria-hidden="true" />
+                  <Users size={15} aria-hidden="true" className="text-primary" />
                   {group.name || "Small group"}
                 </Link>
               </li>

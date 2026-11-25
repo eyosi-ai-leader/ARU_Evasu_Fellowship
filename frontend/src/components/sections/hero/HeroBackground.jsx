@@ -5,7 +5,7 @@ import Image from "next/image";
 import clsx from "clsx";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
-import heroMedia from "@/data/heroMedia";
+import heroMedia from "../../../data/heroMedia";
 
 const DELAY = 6500;
 

@@ -9,7 +9,7 @@ import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import Button from "@/components/shared/Button";
 import SectionContainer from "@/components/shared/SectionContainer/SectionContainer";
 import SectionHeader from "@/components/shared/SectionHeader/SectionHeader";
-import { eventsPage } from "@/data/eventsPage";
+import { eventsPage } from "../../../data/eventsPage";
 
 const PAGE_SIZE = 12;
 

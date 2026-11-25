@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Lock } from "lucide-react";
 
 import ProfileFellowship from "./ProfileFellowship";
 import ProfileHeader from "./ProfileHeader";
@@ -15,20 +14,28 @@ const TABS = [
 function Item({ label, value, className = "" }) {
   return (
     <div className={className}>
-      <dt className="text-xs font-medium uppercase tracking-wide text-slate-400">
+      <dt className="text-xs font-semibold uppercase tracking-wide text-body">
         {label}
       </dt>
-      <dd className="mt-1 whitespace-pre-line break-words text-sm font-medium text-slate-800">
-        {value || <span className="font-normal text-slate-400">Not set</span>}
+      <dd className="mt-1 whitespace-pre-line break-words text-sm font-medium text-ink">
+        {value || <span className="font-normal text-body/60">Not set</span>}
       </dd>
     </div>
   );
 }
 
-function Section({ title, children }) {
+function Section({ title, description, children }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+    <section className="rounded-3xl bg-white p-6 shadow-card ring-1 ring-line sm:p-7">
+      <h2 className="flex items-center gap-3 font-display text-lg font-semibold text-ink">
+        <span aria-hidden="true" className="h-5 w-1 rounded-full bg-accent" />
+        {title}
+      </h2>
+
+      {description && (
+        <p className="mt-1 pl-4 text-sm text-body">{description}</p>
+      )}
+
       {children}
     </section>
   );
@@ -46,7 +53,9 @@ export default function ProfileView({
     .filter(Boolean)
     .join(" ");
 
-  const campusName = fellowship?.data?.member?.campusName || "";
+  const telegram = profile.telegramUsername
+    ? `@${profile.telegramUsername.replace(/^@/, "")}`
+    : "";
 
   return (
     <div className="space-y-6">
@@ -55,7 +64,7 @@ export default function ProfileView({
       <div
         role="tablist"
         aria-label="Profile sections"
-        className="inline-flex rounded-xl bg-slate-100 p-1"
+        className="inline-flex gap-1 rounded-full bg-white p-1 ring-1 ring-line"
       >
         {TABS.map((item) => (
           <button
@@ -66,10 +75,10 @@ export default function ProfileView({
             aria-selected={tab === item.id}
             aria-controls={`profile-panel-${item.id}`}
             onClick={() => setTab(item.id)}
-            className={`rounded-lg px-5 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+            className={`rounded-full px-6 py-2 text-sm font-semibold transition duration-200 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
               tab === item.id
-                ? "bg-white text-slate-900 shadow-sm"
-                : "text-slate-500 hover:text-slate-800"
+                ? "bg-primary text-white shadow-soft"
+                : "text-body hover:text-ink"
             }`}
           >
             {item.label}
@@ -92,6 +101,10 @@ export default function ProfileView({
                 label="Date of birth"
                 value={formatDate(profile.dateOfBirth)}
               />
+              <Item
+                label="Baptism date"
+                value={formatDate(profile.baptismDate)}
+              />
             </dl>
           </Section>
 
@@ -99,45 +112,35 @@ export default function ProfileView({
             <dl className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
               <Item label="Email" value={profile.email} />
               <Item label="Phone number" value={profile.phone} />
+              <Item label="Telegram" value={telegram} />
+            </dl>
+          </Section>
+
+          <Section
+            title="Where you are from"
+            description="Where you or your family lived before coming to campus."
+          >
+            <dl className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <Item label="Region" value={profile.homeRegion} />
+              <Item label="City or town" value={profile.homeTown} />
               <Item
-                label="Address"
+                label="Specific place or area"
                 value={profile.address}
                 className="sm:col-span-2"
               />
             </dl>
           </Section>
 
-          {/* Church record */}
-          <section className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
-            <div className="flex items-start gap-3">
-              <Lock
-                size={18}
-                className="mt-0.5 text-slate-400"
-                aria-hidden="true"
-              />
-
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900">
-                  Fellowship record
-                </h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  These details are managed by your fellowship leaders. Contact
-                  them if something needs to change.
-                </p>
-              </div>
-            </div>
-
+          <Section
+            title="Emergency contact"
+            description="Someone your leaders can call if they cannot reach you."
+          >
             <dl className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <Item label="Member number" value={profile.memberNumber} />
-              <Item label="Campus" value={campusName} />
-              <Item label="Role" value={profile.roleName} />
-              <Item label="Status" value={profile.status} />
-              <Item
-                label="Baptism date"
-                value={formatDate(profile.baptismDate)}
-              />
+              <Item label="Name" value={profile.emergencyContactName} />
+              <Item label="Phone number" value={profile.emergencyContactPhone} />
+              <Item label="Relation" value={profile.emergencyContactRelation} />
             </dl>
-          </section>
+          </Section>
         </div>
       )}
 

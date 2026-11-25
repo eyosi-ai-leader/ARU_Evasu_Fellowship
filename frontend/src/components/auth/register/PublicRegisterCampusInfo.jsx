@@ -2,8 +2,6 @@
 
 import { Building2, Check, GraduationCap } from "lucide-react";
 
-import { getEntryYearOptions } from "@/lib/studentBatch";
-
 import {
   CheckboxCard,
   FieldError,
@@ -12,6 +10,19 @@ import {
   SelectInput,
   TextInput,
 } from "./RegisterFields";
+
+// Gregorian entry years, newest first.
+// Students: this year back to 7 years ago. Graduates: the last 30 years.
+function getEntryYears(isStudent) {
+  const thisYear = new Date().getFullYear();
+  const count = isStudent ? 8 : 31;
+
+  return Array.from({ length: count }, (_, index) => {
+    const year = thisYear - index;
+
+    return { value: String(year), label: String(year) };
+  });
+}
 
 export default function PublicRegisterCampusInfo({
   formData,
@@ -26,9 +37,7 @@ export default function PublicRegisterCampusInfo({
 }) {
   const isGraduate = formData.academicStatus === "Graduate";
 
-  // Entry year (E.C.): the year they started at the university.
-  // Students: this year back to 7 years ago. Graduates: the last 30 years.
-  const years = getEntryYearOptions(!isGraduate);
+  const years = getEntryYears(!isGraduate);
 
   const needsDepartment =
     formData.academicStatus === "Student" && departments.length > 0;
@@ -132,7 +141,7 @@ export default function PublicRegisterCampusInfo({
           />
 
           <SelectInput
-            label="Entry year (E.C.)"
+            label="Entry year"
             required
             name="entryYear"
             value={formData.entryYear}

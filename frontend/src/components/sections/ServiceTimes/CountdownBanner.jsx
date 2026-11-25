@@ -3,7 +3,7 @@
 import { CalendarDays, Clock } from "lucide-react";
 
 import Button from "@/components/shared/Button";
-import serviceTimes from "@/data/serviceTimes";
+import serviceTimes from "../../../data/serviceTimes";
 import useCountdown from "@/hooks/useCountdown";
 
 export default function CountdownBanner() {

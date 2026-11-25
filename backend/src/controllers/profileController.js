@@ -24,6 +24,12 @@ const toProfile = (row) => ({
   dateOfBirth: row.date_of_birth || "",
   baptismDate: row.baptism_date || "",
   address: row.address || "",
+  homeRegion: row.home_region || "",
+  homeTown: row.home_town || "",
+  telegramUsername: row.telegram_username || "",
+  emergencyContactName: row.emergency_contact_name || "",
+  emergencyContactPhone: row.emergency_contact_phone || "",
+  emergencyContactRelation: row.emergency_contact_relation || "",
   status: row.status || "",
   createdAt: row.user_created_at,
 });
@@ -67,7 +73,7 @@ const updateMyProfile = async (req, res) => {
 
     /*
      * Only these fields are editable by the person themselves.
-     * Email, role, status, member number and baptism date are
+     * Email, role, status, member number, campus and baptism date are
      * managed by the fellowship office and are never read from the body.
      */
     await memberService.updateMember(
@@ -80,6 +86,12 @@ const updateMyProfile = async (req, res) => {
         gender: text(req.body.gender),
         dateOfBirth: text(req.body.dateOfBirth),
         address: text(req.body.address),
+        homeRegion: text(req.body.homeRegion),
+        homeTown: text(req.body.homeTown),
+        telegramUsername: text(req.body.telegramUsername),
+        emergencyContactName: text(req.body.emergencyContactName),
+        emergencyContactPhone: text(req.body.emergencyContactPhone),
+        emergencyContactRelation: text(req.body.emergencyContactRelation),
         removeProfileImage: req.body.removeProfileImage === "true",
       },
       req.file || null

@@ -22,8 +22,8 @@ import {
 
 import Button from "@/components/shared/Button";
 import BrandLogo from "@/components/shared/BrandLogo/BrandLogo";
-import { BRAND } from "@/data/brand";
-import navigation from "@/data/navigation";
+import { BRAND } from "../../../data/brand";
+import navigation from "../../../data/navigation";
 import useAuthUser from "@/hooks/useAuthUser";
 import GiveModal from "./give-modal";
 

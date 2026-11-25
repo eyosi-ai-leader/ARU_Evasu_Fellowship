@@ -2,8 +2,8 @@ import Button from "@/components/shared/Button";
 import Reveal from "@/components/shared/Reveal/Reveal";
 import SectionContainer from "@/components/shared/SectionContainer/SectionContainer";
 import SectionHeader from "@/components/shared/SectionHeader/SectionHeader";
-import moments from "@/data/moments";
-import { momentsIntro } from "@/data/homeSections";
+import moments from "../../../data/moments";
+import { momentsIntro } from "../../../data/homeSections";
 import MomentTile from "./MomentTile";
 
 export default function Moments() {

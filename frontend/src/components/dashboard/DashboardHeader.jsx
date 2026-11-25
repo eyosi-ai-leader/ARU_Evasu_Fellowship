@@ -29,7 +29,7 @@ import {
 import { ROLES } from "@/lib/roles";
 import { getFellowshipRoleName } from "@/lib/fellowshipRoles";
 import { getStoredUser } from "@/lib/userStorage";
-import { BRAND } from "@/data/brand";
+import { BRAND } from "../../data/brand";
 import UserAvatar from "@/components/shared/Avatar/UserAvatar";
 import NotificationBell from "@/components/dashboard/notifications/NotificationBell";
 

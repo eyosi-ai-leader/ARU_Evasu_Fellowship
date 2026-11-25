@@ -8,7 +8,7 @@ import clsx from "clsx";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, ChevronDown } from "lucide-react";
 
-import { fellowships, getInitials } from "@/data/fellowships";
+import { fellowships, getInitials } from "../../../data/fellowships";
 import NavItem from "./navitem";
 
 export default function FellowshipsNavItem({

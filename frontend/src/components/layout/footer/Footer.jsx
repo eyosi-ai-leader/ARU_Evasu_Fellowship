@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 import BrandLogo from "@/components/shared/BrandLogo/BrandLogo";
-import { BRAND } from "@/data/brand";
+import { BRAND } from "../../../data/brand";
 
 const QUICK_LINKS = [
   { name: "Home", href: "/" },

@@ -9,7 +9,7 @@ import { ArrowRight, Clock, MapPin, Repeat } from "lucide-react";
 import Button from "@/components/shared/Button";
 import SectionContainer from "@/components/shared/SectionContainer/SectionContainer";
 import SectionHeader from "@/components/shared/SectionHeader/SectionHeader";
-import { eventsPage } from "@/data/eventsPage";
+import { eventsPage } from "../../../data/eventsPage";
 import {
   formatEventDate,
   formatEventWhen,

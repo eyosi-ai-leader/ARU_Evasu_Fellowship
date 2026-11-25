@@ -4,15 +4,15 @@ import { Mail, Phone, MapPin } from "lucide-react";
 const contactInfo = [
   {
     icon: Mail,
-    text: "info@church.com",
+    text: "info@arsi-u-fellowship.com",
   },
   {
     icon: Phone,
-    text: "+251 900 000 000",
+    text: "+251 992912263",
   },
   {
     icon: MapPin,
-    text: "Texas, United States",
+    text: "Asella, Arsi University, Arsi Zone, Oromia Region, Ethiopia",
   },
 ];
 
