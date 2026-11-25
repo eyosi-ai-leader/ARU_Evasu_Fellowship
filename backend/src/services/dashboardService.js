@@ -4,6 +4,7 @@ const {
   getManagedCampusIds,
   pickCampusIds,
 } = require("../utils/accessScope");
+const time = require("../utils/churchTime");
 
 /**
  * Builds the dashboard from what the person may do.
@@ -120,6 +121,93 @@ async function getDashboardOverview(access, { fellowshipId } = {}) {
   return data;
 }
 
+/**
+ * The signed-in person's own fellowship details: campus, studies, small
+ * groups, families and ministries. Lighter than the full dashboard.
+ */
+async function getMyFellowshipProfile(access) {
+  if (!access.member) return { member: null, fellowship: null };
+
+  const [row, fellowship] = await Promise.all([
+    dashboardModel.getProfileMember(access.user.id),
+    dashboardModel.getMyFellowship(access.member.id),
+  ]);
+
+  return {
+    member: row
+      ? {
+          memberNumber: row.member_number,
+          status: row.status,
+          joinedAt: row.created_at,
+          campusId: row.fellowship_id,
+          campusName: String(row.campus_name || "").replace(
+            /\s+Fellowship$/i,
+            ""
+          ),
+          department: row.department_name || "",
+          studentId: row.student_id || "",
+          academicStatus: row.academic_status,
+          entryYear: row.entry_year,
+          graduationYear: row.graduation_year,
+        }
+      : null,
+    fellowship,
+  };
+}
+
+const fullName = (first, last) => `${first || ""} ${last || ""}`.trim();
+
+/* Announcements for the signed-in person's dashboard. */
+async function getMyAnnouncements(access) {
+  const rows = await dashboardModel.getMyAnnouncements(
+    access.user.id,
+    time.nowInChurch()
+  );
+
+  const items = rows.map((row) => ({
+    id: row.id,
+    subject: row.subject,
+    message: row.message,
+    priority: row.priority,
+    category: row.category,
+    pinned: Boolean(row.pinned),
+    actionLabel: row.action_label,
+    actionUrl: row.action_url,
+    sender: fullName(row.first_name, row.last_name),
+    createdAt: row.created_at,
+    read: Boolean(row.read_at),
+  }));
+
+  return {
+    items,
+    unread: items.filter((item) => !item.read).length,
+  };
+}
+
+async function markAnnouncementRead(access, id) {
+  await dashboardModel.markAnnouncementRead(access.user.id, id);
+}
+
+const CIRCLE_LOADERS = {
+  "small-groups": dashboardModel.getMySmallGroupCircles,
+  families: dashboardModel.getMyFamilyCircles,
+  ministries: dashboardModel.getMyMinistryCircles,
+};
+
+/* The groups, families or ministries the signed-in member belongs to, with people. */
+async function getMyCircles(access, type) {
+  const load = CIRCLE_LOADERS[type];
+
+  if (!load || !access.member) return { items: [] };
+
+  return { items: await load(access.member.id) };
+}
+
 module.exports = {
   getDashboardOverview,
+  getMyFellowshipProfile,
+  getMyAnnouncements,
+  markAnnouncementRead,
+  getMyCircles,
+  
 };

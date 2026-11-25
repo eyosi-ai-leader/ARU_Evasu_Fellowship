@@ -21,4 +21,32 @@ router.get(
   dashboardController.getDashboardOverview
 );
 
+router.get(
+  "/my-fellowship",
+  authMiddleware,
+  loadAccess,
+  dashboardController.getMyFellowshipProfile
+);
+
+router.get(
+  "/my-announcements",
+  authMiddleware,
+  loadAccess,
+  dashboardController.getMyAnnouncements
+);
+
+router.patch(
+  "/my-announcements/:id/read",
+  authMiddleware,
+  loadAccess,
+  dashboardController.markAnnouncementRead
+);
+
+router.get(
+  "/my-circles/:type",
+  authMiddleware,
+  loadAccess,
+  dashboardController.getMyCircles
+);
+
 module.exports = router;

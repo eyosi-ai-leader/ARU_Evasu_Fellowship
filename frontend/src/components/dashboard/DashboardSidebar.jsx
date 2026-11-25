@@ -146,20 +146,27 @@ function buildNavigation(access) {
     });
   }
 
-  sections.push({
+    sections.push({
     label: "My Fellowship",
     items: [
+      { name: "My Small Group", href: "/dashboard/my-small-group", icon: Users },
+      { name: "My Family", href: "/dashboard/my-family", icon: Home },
+      {
+        name: "My Ministry",
+        href: "/dashboard/my-ministry",
+        icon: HeartHandshake,
+      },
       { name: "Events", href: "/dashboard/events", icon: CalendarDays },
+      {
+        name: "Announcements",
+        href: "/dashboard/announcements",
+        icon: Megaphone,
+      },
       {
         name: "My Attendance",
         href: "/dashboard/attendance",
         icon: ClipboardList,
         comingSoon: true,
-      },
-      {
-        name: "Announcements",
-        href: "/dashboard/announcements",
-        icon: Megaphone,
       },
     ],
   });

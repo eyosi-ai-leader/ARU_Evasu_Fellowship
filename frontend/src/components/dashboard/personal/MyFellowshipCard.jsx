@@ -1,6 +1,9 @@
 "use client";
 
-import { Home, HeartHandshake, Users } from "lucide-react";
+import { useState } from "react";
+import { ChevronDown, HeartHandshake, Home, Users } from "lucide-react";
+
+import { formatEthiopianDate } from "@/lib/ethiopianCalendar"; // <- adjust path
 
 function Card({ icon: Icon, title, children }) {
   return (
@@ -20,49 +23,153 @@ function Card({ icon: Icon, title, children }) {
 
 function Notice({ children }) {
   return (
-    <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-800">
+    <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
       {children}
     </p>
   );
 }
 
-function Row({ label, value }) {
+function Detail({ label, children }) {
+  if (!children) return null;
+
   return (
-    <div className="flex items-center justify-between gap-4 py-2">
-      <span className="text-sm text-slate-500">{label}</span>
+    <div className="flex items-start justify-between gap-4 py-1.5">
+      <span className="text-xs text-slate-500">{label}</span>
       <span className="text-right text-sm font-medium text-slate-700">
-        {value || "Not assigned yet"}
+        {children}
       </span>
     </div>
   );
 }
 
+function Person({ name, phone }) {
+  if (!name) return null;
+
+  return (
+    <span>
+      {name}
+      {phone && (
+        <>
+          {" · "}
+          <a
+            href={`tel:${phone}`}
+            className="text-indigo-600 hover:underline"
+          >
+            {phone}
+          </a>
+        </>
+      )}
+    </span>
+  );
+}
+
+function People({ people }) {
+  if (!people || people.length === 0) return null;
+
+  return (
+    <div className="flex flex-col items-end gap-0.5">
+      {people.map((person, index) => (
+        <Person key={index} name={person.name} phone={person.phone} />
+      ))}
+    </div>
+  );
+}
+
+/* One clickable row that opens its details. */
+function Item({ title, subtitle, badge, open, onToggle, children }) {
+  return (
+    <li className="py-1 first:pt-0 last:pb-0">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-3 rounded-lg px-2 py-2.5 text-left transition hover:bg-slate-50"
+      >
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-semibold text-slate-800">
+            {title}
+          </span>
+
+          {subtitle && (
+            <span className="mt-0.5 block truncate text-xs text-slate-500">
+              {subtitle}
+            </span>
+          )}
+        </span>
+
+        <span className="flex shrink-0 items-center gap-2">
+          {badge && (
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+              {badge}
+            </span>
+          )}
+
+          <ChevronDown
+            size={16}
+            className={`text-slate-400 transition ${open ? "rotate-180" : ""}`}
+            aria-hidden="true"
+          />
+        </span>
+      </button>
+
+      {open && (
+        <div className="mx-2 mb-2 divide-y divide-slate-100 rounded-xl border border-slate-100 bg-slate-50 px-4 py-2">
+          {children}
+        </div>
+      )}
+    </li>
+  );
+}
+
+const plural = (count, word) => `${count} ${word}${count === 1 ? "" : "s"}`;
+
 /*
- * A member can be in several small groups and several families, or none.
+ * A member can be in several small groups, families and ministries, or none.
+ * Only the member's own belonging is shown here.
  */
 export default function MyFellowshipCard({ fellowship }) {
   const smallGroups = fellowship?.smallGroups ?? [];
   const families = fellowship?.families ?? [];
   const ministries = fellowship?.ministries ?? [];
 
+  // Which row is open, per card: "group-3", "family-7", "ministry-2".
+  const [openKey, setOpenKey] = useState(null);
+
+  const toggle = (key) => setOpenKey((current) => (current === key ? null : key));
+
   return (
     <section className="grid gap-6 lg:grid-cols-3">
       <Card icon={Users} title="My Small Groups">
         {smallGroups.length > 0 ? (
           <ul className="divide-y divide-slate-100">
-            {smallGroups.map((group) => (
-              <li key={group.id} className="py-3 first:pt-0 last:pb-0">
-                <p className="text-sm font-semibold text-slate-800">
-                  {group.name}
-                </p>
+            {smallGroups.map((group) => {
+              const key = `group-${group.id}`;
+              const contacts = group.overseerContacts ?? [];
 
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {group.overseers.length > 0
-                    ? `${group.overseers.length > 1 ? "Overseers" : "Overseer"}: ${group.overseers.join(", ")}`
-                    : "No overseer assigned yet"}
-                </p>
-              </li>
-            ))}
+              return (
+                <Item
+                  key={group.id}
+                  title={group.name}
+                  subtitle={
+                    group.overseers.length > 0
+                      ? `${group.overseers.length > 1 ? "Overseers" : "Overseer"}: ${group.overseers.join(", ")}`
+                      : "No overseer assigned yet"
+                  }
+                  open={openKey === key}
+                  onToggle={() => toggle(key)}
+                >
+                  <Detail label={contacts.length > 1 ? "Overseers" : "Overseer"}>
+                    {contacts.length > 0 ? (
+                      <People people={contacts} />
+                    ) : (
+                      "Not assigned yet"
+                    )}
+                  </Detail>
+                  <Detail label="Members">{plural(group.memberCount, "member")}</Detail>
+                  <Detail label="Families">{plural(group.familyCount, "family")}</Detail>
+                </Item>
+              );
+            })}
           </ul>
         ) : (
           <Notice>
@@ -75,26 +182,40 @@ export default function MyFellowshipCard({ fellowship }) {
       <Card icon={Home} title="My Families">
         {families.length > 0 ? (
           <ul className="divide-y divide-slate-100">
-            {families.map((family) => (
-              <li key={family.id} className="py-3 first:pt-0 last:pb-0">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-slate-800">
-                    {family.name}
-                  </p>
+            {families.map((family) => {
+              const key = `family-${family.id}`;
 
-                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
-                    {family.myRole}
-                  </span>
-                </div>
-
-                <p className="mt-0.5 text-xs text-slate-500">
-                  {family.smallGroupName}
-                </p>
-
-                <Row label="Father" value={family.father} />
-                <Row label="Mother" value={family.mother} />
-              </li>
-            ))}
+              return (
+                <Item
+                  key={family.id}
+                  title={family.name}
+                  subtitle={family.smallGroupName}
+                  badge={family.myRole}
+                  open={openKey === key}
+                  onToggle={() => toggle(key)}
+                >
+                  <Detail label="Father">
+                    {family.father ? (
+                      <Person name={family.father} phone={family.fatherPhone} />
+                    ) : (
+                      "Not assigned yet"
+                    )}
+                  </Detail>
+                  <Detail label="Mother">
+                    {family.mother ? (
+                      <Person name={family.mother} phone={family.motherPhone} />
+                    ) : (
+                      "Not assigned yet"
+                    )}
+                  </Detail>
+                  <Detail label="My role">{family.myRole}</Detail>
+                  <Detail label="Small group">{family.smallGroupName}</Detail>
+                  <Detail label="Family size">
+                    {plural(family.memberCount, "member")}
+                  </Detail>
+                </Item>
+              );
+            })}
           </ul>
         ) : smallGroups.length > 0 ? (
           <Notice>
@@ -102,37 +223,51 @@ export default function MyFellowshipCard({ fellowship }) {
             overseer will connect you when it is time.
           </Notice>
         ) : (
-          <p className="text-sm leading-6 text-slate-500">
+          <Notice>
             Families belong to a small group. Once you are in a small group
             you can be placed in a family.
-          </p>
+          </Notice>
         )}
       </Card>
 
       <Card icon={HeartHandshake} title="My Ministries">
         {ministries.length > 0 ? (
           <ul className="divide-y divide-slate-100">
-            {ministries.map((ministry) => (
-              <li
-                key={ministry.id}
-                className="flex items-center justify-between gap-3 py-2.5"
-              >
-                <span className="text-sm font-medium text-slate-700">
-                  {ministry.name}
-                </span>
+            {ministries.map((ministry) => {
+              const key = `ministry-${ministry.id}`;
+              const isLeader = ministry.role === "Ministry Leader";
 
-                {ministry.role === "Ministry Leader" && (
-                  <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-600">
-                    Leader
-                  </span>
-                )}
-              </li>
-            ))}
+              return (
+                <Item
+                  key={ministry.id}
+                  title={ministry.name}
+                  subtitle={plural(ministry.memberCount, "member")}
+                  badge={isLeader ? "Leader" : null}
+                  open={openKey === key}
+                  onToggle={() => toggle(key)}
+                >
+                  {ministry.description && (
+                    <p className="py-2 text-sm leading-6 text-slate-600">
+                      {ministry.description}
+                    </p>
+                  )}
+                  <Detail label="My role">{ministry.role}</Detail>
+                  <Detail label={ministry.leaders?.length > 1 ? "Leaders" : "Leader"}>
+                    {ministry.leaders?.length > 0 ? (
+                      <People people={ministry.leaders} />
+                    ) : null}
+                  </Detail>
+                  <Detail label="Joined">
+                    {ministry.assignedAt
+                      ? formatEthiopianDate(ministry.assignedAt)
+                      : null}
+                  </Detail>
+                </Item>
+              );
+            })}
           </ul>
         ) : (
-          <p className="text-sm leading-6 text-slate-500">
-            You have not joined a ministry yet.
-          </p>
+          <Notice>You have not joined a ministry yet.</Notice>
         )}
       </Card>
     </section>

@@ -18,6 +18,7 @@ import {
   Settings,
   HelpCircle,
   UserRound,
+  House,
   ClipboardList,
   Megaphone,
   Activity,
@@ -220,8 +221,23 @@ const quickActionsByRole = {
     },
     {
       name: "My Events",
-      href: "/dashboard/my-events",
+      href: "/dashboard/events",
       icon: CalendarDays,
+    },
+    {
+      name: "Announcements",
+      href: "/dashboard/announcements",
+      icon: Megaphone,
+    },
+    {
+      name: "My Ministry",
+      href: "/dashboard/my-ministry",
+      icon: HeartHandshake,
+    },
+    {
+      name: "My Family",
+      href: "/dashboard/my-family",
+      icon: House,
     },
   ],
 };

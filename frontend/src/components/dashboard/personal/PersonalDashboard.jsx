@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import PersonalProfileHeader from "./PersonalProfileHeader";
 
 import MyFellowshipCard from "./MyFellowshipCard";
+import MyUpdates from "./MyUpdates";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
@@ -181,35 +182,10 @@ export default function PersonalDashboard({
            {/* Small group, family and ministries */}
       <MyFellowshipCard fellowship={fellowship} />
 
-      {/* Future features */}
-      <section className="grid gap-6 lg:grid-cols-3">
-        <ComingSoonCard
-          title="Attendance"
-          description="Your attendance history will appear here."
-        />
 
-        <ComingSoonCard
-          title="Events"
-          description="Upcoming fellowship events will appear here."
-        />
+      {/* Events and announcements */}
+      <MyUpdates />
 
-        <ComingSoonCard
-          title="Announcements"
-          description="Important announcements will appear here."
-        />
-      </section>
-
-      <section className="grid gap-6 lg:grid-cols-2">
-        <ComingSoonCard
-          title="Events"
-          description="Upcoming church events and activities will appear here."
-        />
-
-        <ComingSoonCard
-          title="Announcements"
-          description="Important church announcements will appear here."
-        />
-      </section>
     </div>
   );
 }

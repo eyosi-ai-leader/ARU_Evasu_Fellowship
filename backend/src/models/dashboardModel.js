@@ -461,11 +461,23 @@ async function getSmallGroupsLed(groupIds) {
   }));
 }
 
-// Where a member belongs: small groups, families and ministries.
+// Where a member belongs: small groups, families and ministries, with details.
 async function getMyFellowship(memberId) {
   const [groups] = await db.execute(
     `
-      SELECT sg.id, sg.name
+      SELECT
+        sg.id,
+        sg.name,
+        (
+          SELECT COUNT(*)
+          FROM small_group_members x
+          INNER JOIN members mm ON mm.id = x.member_id
+          WHERE x.small_group_id = sg.id AND mm.status = 'Active'
+        ) AS memberCount,
+        (
+          SELECT COUNT(*) FROM families f
+          WHERE f.small_group_id = sg.id AND f.status = 'Active'
+        ) AS familyCount
       FROM small_group_members sgm
       INNER JOIN small_groups sg ON sg.id = sgm.small_group_id
       WHERE sgm.member_id = ? AND sg.status = 'Active'
@@ -479,7 +491,11 @@ async function getMyFellowship(memberId) {
   if (groups.length > 0) {
     [overseers] = await db.query(
       `
-        SELECT l.small_group_id AS groupId, u.first_name, u.last_name
+        SELECT
+          l.small_group_id AS groupId,
+          u.first_name,
+          u.last_name,
+          COALESCE(m.phone, u.phone) AS phone
         FROM small_group_leaders l
         INNER JOIN members m ON m.id = l.member_id
         INNER JOIN users u ON u.id = m.user_id
@@ -496,7 +512,10 @@ async function getMyFellowship(memberId) {
         fa.id,
         fa.name,
         sg.name AS smallGroupName,
-        fm.family_role
+        fm.family_role,
+        (
+          SELECT COUNT(*) FROM family_members x WHERE x.family_id = fa.id
+        ) AS memberCount
       FROM family_members fm
       INNER JOIN families fa ON fa.id = fm.family_id AND fa.status = 'Active'
       INNER JOIN small_groups sg ON sg.id = fa.small_group_id
@@ -515,7 +534,8 @@ async function getMyFellowship(memberId) {
           fm.family_id AS familyId,
           fm.family_role,
           u.first_name,
-          u.last_name
+          u.last_name,
+          COALESCE(m.phone, u.phone) AS phone
         FROM family_members fm
         INNER JOIN members m ON m.id = fm.member_id
         INNER JOIN users u ON u.id = m.user_id
@@ -527,7 +547,20 @@ async function getMyFellowship(memberId) {
 
   const [ministries] = await db.execute(
     `
-      SELECT mi.id, mi.name, mm.assignment_role
+      SELECT
+        mi.id,
+        mi.name,
+        mi.description,
+        mm.assignment_role,
+        mm.assigned_at,
+        (
+          SELECT COUNT(*)
+          FROM ministry_members x
+          INNER JOIN members m2 ON m2.id = x.member_id
+          WHERE x.ministry_id = mi.id
+            AND x.status = 'Active'
+            AND m2.status = 'Active'
+        ) AS memberCount
       FROM ministry_members mm
       INNER JOIN ministries mi ON mi.id = mm.ministry_id
       WHERE mm.member_id = ?
@@ -538,38 +571,345 @@ async function getMyFellowship(memberId) {
     [memberId]
   );
 
+  let ministryLeaders = [];
+
+  if (ministries.length > 0) {
+    [ministryLeaders] = await db.query(
+      `
+        SELECT
+          mm.ministry_id AS ministryId,
+          u.first_name,
+          u.last_name,
+          COALESCE(m.phone, u.phone) AS phone
+        FROM ministry_members mm
+        INNER JOIN members m ON m.id = mm.member_id
+        INNER JOIN users u ON u.id = m.user_id
+        WHERE mm.ministry_id IN (?)
+          AND mm.status = 'Active'
+          AND mm.assignment_role = 'Ministry Leader'
+        ORDER BY u.first_name ASC
+      `,
+      [ministries.map((ministry) => ministry.id)]
+    );
+  }
+
   const nameOf = (person) =>
     person ? [person.first_name, person.last_name].filter(Boolean).join(" ") : null;
 
-  const parentName = (familyId, role) =>
-    nameOf(
-      parents.find(
-        (parent) => parent.familyId === familyId && parent.family_role === role
-      )
+  const contactOf = (person) => ({
+    name: nameOf(person),
+    phone: person.phone || null,
+  });
+
+  const parentOf = (familyId, role) =>
+    parents.find(
+      (parent) => parent.familyId === familyId && parent.family_role === role
     );
 
   return {
-    smallGroups: groups.map((group) => ({
-      id: group.id,
-      name: group.name,
-      overseers: overseers
-        .filter((overseer) => overseer.groupId === group.id)
-        .map(nameOf),
-    })),
+    smallGroups: groups.map((group) => {
+      const mine = overseers.filter((o) => o.groupId === group.id);
+
+      return {
+        id: group.id,
+        name: group.name,
+        memberCount: num(group.memberCount),
+        familyCount: num(group.familyCount),
+        overseers: mine.map(nameOf),
+        overseerContacts: mine.map(contactOf),
+      };
+    }),
     families: families.map((family) => ({
       id: family.id,
       name: family.name,
       smallGroupName: family.smallGroupName,
       myRole: family.family_role,
-      father: parentName(family.id, "Father"),
-      mother: parentName(family.id, "Mother"),
+      memberCount: num(family.memberCount),
+      father: nameOf(parentOf(family.id, "Father")),
+      mother: nameOf(parentOf(family.id, "Mother")),
+      fatherPhone: parentOf(family.id, "Father")?.phone || null,
+      motherPhone: parentOf(family.id, "Mother")?.phone || null,
     })),
     ministries: ministries.map((ministry) => ({
       id: ministry.id,
       name: ministry.name,
       role: ministry.assignment_role,
+      description: ministry.description || "",
+      assignedAt: ministry.assigned_at,
+      memberCount: num(ministry.memberCount),
+      leaders: ministryLeaders
+        .filter((leader) => leader.ministryId === ministry.id)
+        .map(contactOf),
     })),
   };
+}
+
+// Announcements that reached this person's dashboard (not "email only" ones).
+async function getMyAnnouncements(userId, nowStr) {
+  const [rows] = await db.execute(
+    `
+      SELECT
+        a.id,
+        a.subject,
+        a.message,
+        a.priority,
+        a.category,
+        a.pinned,
+        a.action_label,
+        a.action_url,
+        a.created_at,
+        u.first_name,
+        u.last_name,
+        ar.read_at
+      FROM announcement_recipients ar
+      INNER JOIN announcements a ON a.id = ar.announcement_id
+      INNER JOIN users u ON u.id = a.created_by
+      WHERE ar.user_id = ?
+        AND a.deleted_at IS NULL
+        AND a.delivery <> 'email'
+        AND a.status NOT IN ('scheduled', 'cancelled')
+        AND (a.expires_at IS NULL OR a.expires_at > ?)
+      ORDER BY a.pinned DESC, a.id DESC
+      LIMIT 20
+    `,
+    [userId, nowStr]
+  );
+
+  return rows;
+}
+
+async function markAnnouncementRead(userId, announcementId) {
+  await db.execute(
+    `
+      UPDATE announcement_recipients
+      SET read_at = NOW()
+      WHERE announcement_id = ? AND user_id = ? AND read_at IS NULL
+    `,
+    [announcementId, userId]
+  );
+}
+// The membership details shown on the profile's Fellowship tab.
+const getProfileMember = async (userId) => {
+  const [rows] = await db.execute(
+    `
+      SELECT
+        m.member_number,
+        m.status,
+        m.created_at,
+        m.student_id,
+        m.academic_status,
+        m.entry_year,
+        m.graduation_year,
+        f.id AS fellowship_id,
+        f.name AS campus_name,
+        d.name AS department_name
+      FROM members m
+      LEFT JOIN fellowships f ON f.id = m.fellowship_id
+      LEFT JOIN departments d
+        ON d.fellowship_id = m.fellowship_id AND d.id = m.department_id
+      WHERE m.user_id = ?
+      LIMIT 1
+    `,
+    [userId]
+  );
+
+  return rows[0] || null;
+};
+
+/* ---------- "My circle" pages: my groups, families, ministries with people ---------- */
+
+const circlePerson = (row, role, showPhone, myMemberId) => ({
+  id: row.id,
+  name: [row.first_name, row.last_name].filter(Boolean).join(" "),
+  profileImage: row.profile_image || null,
+  role,
+  extra: row.extra || null,
+  phone: showPhone ? row.phone || null : null,
+  isMe: Number(row.id) === Number(myMemberId),
+});
+
+const ACTIVE_PERSON = `m.status = 'Active' AND (u.is_active IS NULL OR u.is_active = 1)`;
+
+async function getMySmallGroupCircles(memberId) {
+  const [groups] = await db.execute(
+    `
+      SELECT sg.id, sg.name
+      FROM small_group_members sgm
+      INNER JOIN small_groups sg ON sg.id = sgm.small_group_id
+      WHERE sgm.member_id = ? AND sg.status = 'Active'
+      ORDER BY sg.name ASC
+    `,
+    [memberId]
+  );
+
+  if (groups.length === 0) return [];
+
+  const [rows] = await db.query(
+    `
+      SELECT
+        sgm.small_group_id AS circleId,
+        m.id,
+        u.first_name,
+        u.last_name,
+        u.profile_image,
+        COALESCE(m.phone, u.phone) AS phone,
+        EXISTS (
+          SELECT 1 FROM small_group_leaders l
+          WHERE l.small_group_id = sgm.small_group_id
+            AND l.member_id = m.id AND l.status = 'Active'
+        ) AS isLeader,
+        (
+          SELECT fa.name
+          FROM family_members fm
+          INNER JOIN families fa
+            ON fa.id = fm.family_id
+           AND fa.small_group_id = sgm.small_group_id
+           AND fa.status = 'Active'
+          WHERE fm.member_id = m.id
+          LIMIT 1
+        ) AS extra
+      FROM small_group_members sgm
+      INNER JOIN members m ON m.id = sgm.member_id
+      INNER JOIN users u ON u.id = m.user_id
+      WHERE sgm.small_group_id IN (?) AND ${ACTIVE_PERSON}
+      ORDER BY isLeader DESC, u.first_name ASC, u.last_name ASC
+    `,
+    [groups.map((group) => group.id)]
+  );
+
+  return groups.map((group) => {
+    const members = rows
+      .filter((row) => row.circleId === group.id)
+      .map((row) =>
+        circlePerson(
+          row,
+          Number(row.isLeader) ? "Overseer" : "Member",
+          Boolean(Number(row.isLeader)),
+          memberId
+        )
+      );
+
+    return {
+      id: group.id,
+      name: group.name,
+      subtitle: null,
+      memberCount: members.length,
+      members,
+    };
+  });
+}
+
+async function getMyFamilyCircles(memberId) {
+  const [families] = await db.execute(
+    `
+      SELECT fa.id, fa.name, sg.name AS smallGroupName
+      FROM family_members fm
+      INNER JOIN families fa ON fa.id = fm.family_id AND fa.status = 'Active'
+      INNER JOIN small_groups sg ON sg.id = fa.small_group_id
+      WHERE fm.member_id = ?
+      ORDER BY fa.name ASC
+    `,
+    [memberId]
+  );
+
+  if (families.length === 0) return [];
+
+  const [rows] = await db.query(
+    `
+      SELECT
+        fm.family_id AS circleId,
+        fm.family_role AS role,
+        m.id,
+        u.first_name,
+        u.last_name,
+        u.profile_image,
+        COALESCE(m.phone, u.phone) AS phone
+      FROM family_members fm
+      INNER JOIN members m ON m.id = fm.member_id
+      INNER JOIN users u ON u.id = m.user_id
+      WHERE fm.family_id IN (?) AND ${ACTIVE_PERSON}
+      ORDER BY FIELD(fm.family_role, 'Mother', 'Father') DESC,
+               u.first_name ASC, u.last_name ASC
+    `,
+    [families.map((family) => family.id)]
+  );
+
+  return families.map((family) => {
+    const members = rows
+      .filter((row) => row.circleId === family.id)
+      .map((row) =>
+        circlePerson(
+          row,
+          row.role,
+          row.role === "Father" || row.role === "Mother",
+          memberId
+        )
+      );
+
+    return {
+      id: family.id,
+      name: family.name,
+      subtitle: family.smallGroupName,
+      memberCount: members.length,
+      members,
+    };
+  });
+}
+
+async function getMyMinistryCircles(memberId) {
+  const [ministries] = await db.execute(
+    `
+      SELECT mi.id, mi.name, mi.description
+      FROM ministry_members mm
+      INNER JOIN ministries mi ON mi.id = mm.ministry_id AND mi.status = 'Active'
+      WHERE mm.member_id = ? AND mm.status = 'Active'
+      ORDER BY mi.name ASC
+    `,
+    [memberId]
+  );
+
+  if (ministries.length === 0) return [];
+
+  const [rows] = await db.query(
+    `
+      SELECT
+        mm.ministry_id AS circleId,
+        mm.assignment_role AS role,
+        m.id,
+        u.first_name,
+        u.last_name,
+        u.profile_image,
+        COALESCE(m.phone, u.phone) AS phone
+      FROM ministry_members mm
+      INNER JOIN members m ON m.id = mm.member_id
+      INNER JOIN users u ON u.id = m.user_id
+      WHERE mm.ministry_id IN (?) AND mm.status = 'Active' AND ${ACTIVE_PERSON}
+      ORDER BY (mm.assignment_role = 'Ministry Leader') DESC,
+               u.first_name ASC, u.last_name ASC
+    `,
+    [ministries.map((ministry) => ministry.id)]
+  );
+
+  return ministries.map((ministry) => {
+    const members = rows
+      .filter((row) => row.circleId === ministry.id)
+      .map((row) =>
+        circlePerson(
+          row,
+          row.role === "Ministry Leader" ? "Leader" : "Member",
+          row.role === "Ministry Leader",
+          memberId
+        )
+      );
+
+    return {
+      id: ministry.id,
+      name: ministry.name,
+      subtitle: ministry.description || null,
+      memberCount: members.length,
+      members,
+    };
+  });
 }
 
 module.exports = {
@@ -584,4 +924,10 @@ module.exports = {
   getOwnMember,
   getMyFellowship,
   getSmallGroupsLed,
+  getProfileMember,
+  getMyAnnouncements,
+  markAnnouncementRead,
+  getMySmallGroupCircles,
+  getMyFamilyCircles,
+  getMyMinistryCircles,
 };
