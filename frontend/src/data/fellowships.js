@@ -1,9 +1,9 @@
-
 const leaders = (members) => {
-  return members.map(({ role, name, phone }) => ({
+  return members.map(({ role, name, phone, image }) => ({
     role,
     name,
     phone,
+    image,
   }));
 };
 
@@ -38,26 +38,31 @@ export const fellowships = [
         name: "Bereket Hailu",
         role: "Chairman",
         phone: "+251 94 582 3539",
+        image: "/images/leaders/Beki_H.jpg",
       },
       {
         name: "Tekalgn Bogale",
         role: "Vice Chairman",
         phone: "099 291 2263",
+        image: "/images/leaders/Teku.jpg",
       },
       {
         name: "Alazar Adane",
         role: "Secretary",
         phone: "093 269 5737",
+        image: "/images/leaders/alazar-adane.jpg",
       },
       {
         name: "Yodahe Hailemichael",
         role: "Team Coordinator",
         phone: "0919045795",
+        image: "/images/leaders/yodi_H.jpg",
       },
       {
         name: "Yididiya Tlahun",
         role: "Treasurer",
         phone: "093 581 1993",
+        image: "/images/leaders/yidu_T.jpg",
       },
     ]),
   },
@@ -82,36 +87,43 @@ export const fellowships = [
         name: "Tariku Lemesa",
         role: "Chairman",
         phone: "0945325534",
+        image: "/images/leaders/tariku-lemesa.jpg",
       },
       {
         name: "Tsegaab Daniel",
         role: "Vice Chairman",
         phone: "0994287150",
+        image: "/images/leaders/tsegaab-daniel.jpg",
       },
       {
         name: "Mideksa Habtamu",
         role: "Secretary",
         phone: "0928960961",
+        image: "/images/leaders/mideksa-habtamu.jpg",
       },
       {
         name: "Nita Tsegaye",
         role: "Public Relations Officer",
         phone: "0976192681",
+        image: "/images/leaders/nita-tsegaye.jpg",
       },
       {
         name: "Lemi Emru",
         role: "Treasurer",
         phone: "0963317585",
+        image: "/images/leaders/lemi-emru.jpg",
       },
       {
         name: "Merkin Medhin",
         role: "Small Group Coordinator",
         phone: "0921369069",
+        image: "/images/leaders/merkin-medhin.jpg",
       },
       {
         name: "Lemecha Tesema",
         role: "Small Group Coordinator",
         phone: "0919738834",
+        image: "/images/leaders/lemecha-tesema.jpg",
       },
     ]),
   },
@@ -136,31 +148,37 @@ export const fellowships = [
         name: "Melkamu Mengesha",
         role: "Chairman",
         phone: "0904430838",
+        image: "/images/leaders/melka.jpg",
       },
       {
         name: "Abgiya Getachew",
         role: "Vice Chairman",
         phone: "0941753468",
+        image: "/images/leaders/Abigu.jpg",
       },
       {
         name: "Maru Ermias",
         role: "Secretary",
         phone: "+251 786 893 008",
+        image: "/images/leaders/maru-ermias.jpg",
       },
       {
         name: "Nat Wordshu",
         role: "Auditor",
         phone: "+251 994 020 066",
+        image: "/images/leaders/Nati.jpg",
       },
       {
         name: "Debora Tamiru",
         role: "Treasurer",
         phone: "0991044920",
+        image: "/images/leaders/debora-tamiru.jpg",
       },
       {
         name: "Zelalem Shibru",
         role: "General Coordinator",
         phone: "+251 924 662 072",
+        image: "/images/leaders/zelalem-shibru.jpg",
       },
     ]),
   },
@@ -185,36 +203,43 @@ export const fellowships = [
         name: "Natnael Desta",
         role: "Chairperson",
         phone: "",
+        image: "/images/leaders/natnael-desta.jpg",
       },
       {
         name: "Rediet Amare",
         role: "Vice Chairperson",
         phone: "",
+        image: "/images/leaders/rediet-amare.jpg",
       },
       {
         name: "Fitsum Lakew",
         role: "Secretary",
         phone: "",
+        image: "/images/leaders/fitsum-lakew.jpg",
       },
       {
         name: "Mihret Yosef",
         role: "Treasurer",
         phone: "",
+        image: "/images/leaders/mihret-yosef.jpg",
       },
       {
         name: "Elias Berhanu",
         role: "Auditor",
         phone: "",
+        image: "/images/leaders/elias-berhanu.jpg",
       },
       {
         name: "Tigist Alem",
         role: "Team Coordinator",
         phone: "",
+        image: "/images/leaders/tigist-alem.jpg",
       },
       {
         name: "Kaleb Shiferaw",
         role: "Team Coordinator",
         phone: "",
+        image: "/images/leaders/kaleb-shiferaw.jpg",
       },
     ]),
   },
@@ -243,36 +268,43 @@ export const fellowships = [
         name: "Tsegaab Daniel",
         role: "Chairman",
         phone: "0994287150",
+        image: "/images/leaders/Tigesh.jpg",
       },
       {
         name: "Melkamu Mengesha",
         role: "Vice Chairman",
         phone: "0904430838",
+        image: "/images/leaders/Melka.jpg",
       },
       {
         name: "Bereket Hailu",
         role: "Secretary",
         phone: "0945823539",
+        image: "/images/leaders/Beki_H.jpg",
       },
       {
         name: "Tariku Lemesa",
         role: "General Manager (GM) Coordinator",
         phone: "0945325534",
+        image: "/images/leaders/tariku-lemesa.jpg",
       },
       {
         name: "Yididya Tilahun",
         role: "Treasurer",
         phone: "0935811993",
+        image: "/images/leaders/Yidu_T.jpg",
       },
       {
         name: "Natnael Wordshu",
         role: "Public Relations Officer",
         phone: "0994020066",
+        image: "/images/leaders/Nati.jpg",
       },
       {
         name: "Hana",
         role: "Member",
         phone: "0964643967",
+        image: "/images/leaders/hana.jpg",
       },
     ]),
   },
@@ -284,16 +316,19 @@ export const fullTimeStaff = [
     name: "Mihret Kasu",
     role: "Full-Time Staff",
     phone: "0946965644",
+    image: "/images/leaders/Mhiret_k.jpg",
   },
   {
     name: "Mihret Mesfen",
     role: "Full-Time Staff",
     phone: "0979368408",
+    image: "/images/leaders/Mhiret_M.jpg",
   },
   {
     name: "Nardos Tafese",
     role: "Full-Time Staff",
     phone: "+251 98 807 0642",
+    image: "/images/leaders/nardos-tafese.jpg",
   },
 ];
 
@@ -301,6 +336,7 @@ export const regionalCoordinator = {
   name: "Dawit Tadele",
   role: "Regional Coordinator",
   phone: "0982736436",
+  image: "/images/leaders/dawit-tadele.jpg",
 };
 
 export const getFellowship = (slug) =>

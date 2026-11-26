@@ -16,8 +16,8 @@ const giving = {
       name: "Main Campus",
       description: "Supports the Main Campus fellowship and its ministries.",
       bank: "Commercial Bank of Ethiopia (CBE)",
-      accountName: "Bereket Hailu and Yididya Tilahun",
-      accountNumber: "", // Paste the real Main Campus account number here
+      accountName: "Bereket Hailu &Yodahe Hailemichael",
+      accountNumber: "1000816449646", // Paste the real Main Campus account number here
     },
     {
       id: "health",

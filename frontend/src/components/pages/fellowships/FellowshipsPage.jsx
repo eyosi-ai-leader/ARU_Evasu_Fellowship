@@ -4,7 +4,8 @@ import { ArrowRight, CalendarDays, MapPin } from "lucide-react";
 
 import Reveal from "@/components/shared/Reveal/Reveal";
 import SectionContainer from "@/components/shared/SectionContainer/SectionContainer";
-import { fellowships, getInitials } from "../../../data/fellowships";
+import LeaderAvatar from "@/components/shared/LeaderAvatar/LeaderAvatar";
+import { fellowships } from "../../../data/fellowships";
 
 // Change this line to use a different hero photo
 const HERO_IMAGE = "/images/hero/GC_3.jpg";
@@ -45,9 +46,7 @@ function FellowshipCard({ fellowship }) {
 
         <div className="mt-6 flex items-center justify-between gap-3 border-t border-line pt-5">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-ember text-sm font-semibold text-white">
-              {getInitials(chair.name)}
-            </span>
+            <LeaderAvatar name={chair.name} image={chair.image} variant="small" />
             <span className="min-w-0 text-sm leading-tight">
               <span className="block truncate font-semibold text-ink">
                 {chair.name}

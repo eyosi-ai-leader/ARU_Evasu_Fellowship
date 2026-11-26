@@ -16,16 +16,16 @@ import Button from "@/components/shared/Button";
 import Reveal from "@/components/shared/Reveal/Reveal";
 import SectionContainer from "@/components/shared/SectionContainer/SectionContainer";
 import SectionHeader from "@/components/shared/SectionHeader/SectionHeader";
+import LeaderAvatar from "@/components/shared/LeaderAvatar/LeaderAvatar";
 import {
   fellowships,
   fullTimeStaff,
-  getInitials,
   regionalCoordinator,
 } from "../../../data/fellowships";
 
 const telOf = (phone) => phone.replace(/\s+/g, "");
 
-function PersonCard({ name, role, phone, featured = false }) {
+function PersonCard({ name, role, phone, image, featured = false }) {
   return (
     <div
       className={clsx(
@@ -33,16 +33,11 @@ function PersonCard({ name, role, phone, featured = false }) {
         featured ? "bg-primary text-white ring-primary" : "bg-white ring-line"
       )}
     >
-      <span
-        className={clsx(
-          "flex shrink-0 items-center justify-center rounded-2xl font-display font-semibold text-white",
-          featured
-            ? "h-16 w-16 bg-white/15 text-2xl"
-            : "h-14 w-14 bg-gradient-to-br from-primary to-ember text-xl"
-        )}
-      >
-        {getInitials(name)}
-      </span>
+      <LeaderAvatar
+        name={name}
+        image={image}
+        variant={featured ? "featured" : "default"}
+      />
 
       <p
         className={clsx(
@@ -209,7 +204,7 @@ export default function FellowshipDetailPage({ fellowship }) {
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {leaders.map((leader, index) => (
             <Reveal
-              key={leader.role}
+              key={leader.role + leader.name}
               delay={(index % 4) * 0.06}
               y={20}
               className={index === 0 ? "sm:col-span-2" : ""}

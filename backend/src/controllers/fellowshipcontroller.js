@@ -1,4 +1,4 @@
-const fellowshipModel = require("../models/fellowshipmodel");
+const fellowshipModel = require("../models/fellowshipModel");
 
 const {
   successResponse,
