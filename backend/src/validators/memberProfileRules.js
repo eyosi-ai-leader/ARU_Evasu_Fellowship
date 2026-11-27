@@ -35,10 +35,10 @@ const optionalRole = (field, label) =>
 const profileRules = ({ partial = false } = {}) => {
   const currentYear = new Date().getFullYear();
 
-  // The Ethiopian year is the Gregorian year minus 7 from Meskerem
-  // (September) and minus 8 before it. Allow the later one.
-  const maxEntryYear = currentYear - 7;
+  // Entry years are Gregorian (G.C.), for example 2023. A student can
+  // have started this year at the latest.
   const minEntryYear = 1990;
+  const maxEntryYear = currentYear;
 
   return [
     partial
@@ -65,7 +65,7 @@ const profileRules = ({ partial = false } = {}) => {
       .isIn(ACADEMIC_STATUSES)
       .withMessage("Academic status must be Student or Graduate"),
 
-    // The year they started at the university, in E.C. (for example 2016).
+    // The year they started at the university, in G.C. (for example 2023).
     body("entryYear").custom((value, { req }) => {
       const status = req.body.academicStatus || (partial ? "" : "Student");
 
@@ -85,7 +85,7 @@ const profileRules = ({ partial = false } = {}) => {
         year > maxEntryYear
       ) {
         throw new Error(
-          `Entry year must be an Ethiopian year between ${minEntryYear} and ${maxEntryYear}`
+          `Entry year must be a year between ${minEntryYear} and ${maxEntryYear}`
         );
       }
 
