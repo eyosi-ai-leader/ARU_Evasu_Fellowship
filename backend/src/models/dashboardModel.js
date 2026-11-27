@@ -123,30 +123,26 @@ async function getStructureCounts(campusIds) {
 async function getRoleDistribution(campusIds, unfiltered) {
   const [rows] = unfiltered
     ? await db.query(`
-        SELECT r.id AS roleId, r.name AS roleName, COUNT(u.id) AS total
-        FROM roles r
-        LEFT JOIN users u ON u.role_id = r.id
-        GROUP BY r.id, r.name
-        ORDER BY r.id ASC
-      `)
-    : await db.query(
-        `
-          SELECT r.id AS roleId, r.name AS roleName, COUNT(DISTINCT u.id) AS total
-          FROM roles r
-          LEFT JOIN users u
-            ON u.role_id = r.id
-           AND (
-             EXISTS (
-               SELECT 1 FROM members m
-               WHERE m.user_id = u.id AND m.fellowship_id IN (?)
-             )
-             OR EXISTS (
-               SELECT 1 FROM user_fellowship_access a
-               WHERE a.user_id = u.id AND a.fellowship_id IN (?)
-             )
-           )
-          GROUP BY r.id, r.name
-          ORDER BY r.id ASC
+       SELECT
+  r.id AS roleId,
+  r.name AS roleName,
+  COUNT(
+    DISTINCT CASE
+      WHEN m.user_id IS NOT NULL OR a.user_id IS NOT NULL
+      THEN u.id
+    END
+  ) AS total
+FROM roles r
+LEFT JOIN users u
+  ON u.role_id = r.id
+LEFT JOIN members m
+  ON m.user_id = u.id
+  AND m.fellowship_id IN (1, 2, 3)
+LEFT JOIN user_fellowship_access a
+  ON a.user_id = u.id
+  AND a.fellowship_id IN (1, 2, 3)
+GROUP BY r.id, r.name
+ORDER BY r.id ASC
         `,
         [campusIds, campusIds]
       );
