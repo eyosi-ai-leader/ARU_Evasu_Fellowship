@@ -1,6 +1,12 @@
 
 const mysql = require("mysql2/promise");
+const fs = require("fs");
+const path = require("path");
 const env = require("./env");
+
+const caCertificate = fs.readFileSync(
+  path.join(__dirname, "../../certs/isrgrootx1.pem")
+);
 
 const pool = mysql.createPool({
   host: env.DB_HOST,
@@ -9,9 +15,9 @@ const pool = mysql.createPool({
   password: env.DB_PASSWORD,
   database: env.DB_NAME,
 
-  // Required for TiDB Cloud Starter
   ssl: {
     minVersion: "TLSv1.2",
+    ca: caCertificate,
   },
 
   waitForConnections: true,
