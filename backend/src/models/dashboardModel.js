@@ -121,31 +121,39 @@ async function getStructureCounts(campusIds) {
  * those campuses, plus Fellowship Admins and Staff assigned to them.
  */
 async function getRoleDistribution(campusIds, unfiltered) {
-  const [rows] = unfiltered
-    ? await db.query(`
-       SELECT
-  r.id AS roleId,
-  r.name AS roleName,
-  COUNT(
-    DISTINCT CASE
-      WHEN m.user_id IS NOT NULL OR a.user_id IS NOT NULL
-      THEN u.id
-    END
-  ) AS total
-FROM roles r
-LEFT JOIN users u
-  ON u.role_id = r.id
-LEFT JOIN members m
-  ON m.user_id = u.id
-  AND m.fellowship_id IN (1, 2, 3)
-LEFT JOIN user_fellowship_access a
-  ON a.user_id = u.id
-  AND a.fellowship_id IN (1, 2, 3)
-GROUP BY r.id, r.name
-ORDER BY r.id ASC
-        `,
-        [campusIds, campusIds]
-      );
+  let sql;
+  let params = [];
+
+  if (unfiltered) {
+    sql = `
+      SELECT r.id AS roleId, r.name AS roleName,
+             COUNT(u.id) AS total
+      FROM roles r
+      LEFT JOIN users u ON u.role_id = r.id
+      GROUP BY r.id, r.name
+      ORDER BY r.id ASC
+    `;
+  } else {
+    sql = `
+      SELECT
+        r.id AS roleId,
+        r.name AS roleName,
+        COUNT(DISTINCT CASE
+          WHEN m.user_id IS NOT NULL OR a.user_id IS NOT NULL THEN u.id
+        END) AS total
+      FROM roles r
+      LEFT JOIN users u ON u.role_id = r.id
+      LEFT JOIN members m
+        ON m.user_id = u.id AND m.fellowship_id IN (?)
+      LEFT JOIN user_fellowship_access a
+        ON a.user_id = u.id AND a.fellowship_id IN (?)
+      GROUP BY r.id, r.name
+      ORDER BY r.id ASC
+    `;
+    params = [campusIds, campusIds];
+  }
+
+  const [rows] = await db.query(sql, params);
 
   return rows.map((row) => ({
     roleId: row.roleId,
