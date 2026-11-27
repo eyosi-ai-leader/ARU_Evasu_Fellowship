@@ -1,20 +1,32 @@
-// Email service.
-// Sends email over HTTPS (Brevo API) because Railway blocks outbound SMTP
-// on the free plan.
+const nodemailer = require("nodemailer");
 
-const BREVO_URL = "https://api.brevo.com/v3/smtp/email";
+let transporter = null;
 
-function toEmailObject(value) {
-  if (!value) return null;
-  if (typeof value === "string") return { email: value };
-  const email = value.address || value.email;
-  if (!email) return null;
-  return value.name ? { name: value.name, email } : { email };
-}
+function getTransporter() {
+  if (transporter) return transporter;
 
-function toEmailList(value) {
-  const list = Array.isArray(value) ? value : [value];
-  return list.map(toEmailObject).filter(Boolean);
+  const { EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASSWORD } = process.env;
+  if (!EMAIL_HOST || !EMAIL_USER || !EMAIL_PASSWORD) return null;
+
+  const port = Number(EMAIL_PORT) || 465;
+
+  transporter = nodemailer.createTransport({
+    host: EMAIL_HOST,
+    port,
+    secure: port === 465,
+    auth: { user: EMAIL_USER, pass: EMAIL_PASSWORD },
+
+    // Reuse one connection instead of logging in for every email.
+    pool: true,
+    maxConnections: 1,
+    maxMessages: 100,
+
+    connectionTimeout: 20000,
+    greetingTimeout: 20000,
+    socketTimeout: 30000,
+  });
+
+  return transporter;
 }
 
 function escapeHtml(value = "") {
@@ -31,10 +43,9 @@ function escapeHtml(value = "") {
  * welcome, password-reset and announcement emails.
  */
 async function sendEmail({ to, subject, text, html, replyTo }) {
-  const apiKey = process.env.BREVO_API_KEY;
-  const fromEmail = process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_USER;
+  const mailer = getTransporter();
 
-  if (!apiKey || !fromEmail) {
+  if (!mailer) {
     throw new Error("Email is not configured.");
   }
 
@@ -42,51 +53,17 @@ async function sendEmail({ to, subject, text, html, replyTo }) {
     throw new Error("Email recipient and subject are required.");
   }
 
-  const recipients = toEmailList(to);
-  if (recipients.length === 0) {
-    throw new Error("Email recipient and subject are required.");
-  }
-
-  const payload = {
-    sender: {
+  return mailer.sendMail({
+    from: {
       name: process.env.EMAIL_FROM_NAME || "Church Website",
-      email: fromEmail,
+      address: process.env.EMAIL_USER,
     },
-    to: recipients,
+    to,
     subject,
-  };
-
-  if (html) payload.htmlContent = html;
-  if (text) payload.textContent = text;
-  if (!html && !text) payload.textContent = subject;
-
-  const reply = toEmailObject(replyTo);
-  if (reply) payload.replyTo = reply;
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 20000);
-
-  try {
-    const res = await fetch(BREVO_URL, {
-      method: "POST",
-      headers: {
-        "api-key": apiKey,
-        "Content-Type": "application/json",
-        accept: "application/json",
-      },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    });
-
-    if (!res.ok) {
-      const detail = await res.text();
-      throw new Error(`Brevo error ${res.status}: ${detail}`);
-    }
-
-    return res.json();
-  } finally {
-    clearTimeout(timer);
-  }
+    text,
+    html,
+    ...(replyTo ? { replyTo } : {}),
+  });
 }
 
 async function sendPrayerRequestNotification(request) {
