@@ -1,7 +1,19 @@
 "use client";
 
-import { getEntryYearOptions } from "@/lib/studentBatch";
 import { Field, ReadOnlyBox, Section, fieldClass } from "./FormParts";
+
+// Gregorian entry years, newest first.
+// Students: this year back to 7 years ago. Graduates: the last 30 years.
+function getEntryYears(isStudent) {
+  const thisYear = new Date().getFullYear();
+  const count = isStudent ? 8 : 31;
+
+  return Array.from({ length: count }, (_, index) => {
+    const year = thisYear - index;
+
+    return { value: String(year), label: String(year) };
+  });
+}
 
 /*
  * Campus, department, student information and home.
@@ -23,7 +35,7 @@ export default function MemberFellowshipInfo({
   family = "",
 }) {
   const isStudent = form.academicStatus === "Student";
-  const years = getEntryYearOptions(isStudent);
+  const years = getEntryYears(isStudent);
 
   // A saved entry year outside the list must still be shown.
   if (
@@ -32,7 +44,7 @@ export default function MemberFellowshipInfo({
   ) {
     years.push({
       value: String(form.entryYear),
-      label: `${form.entryYear} E.C.`,
+      label: String(form.entryYear),
     });
   }
 
@@ -155,7 +167,7 @@ export default function MemberFellowshipInfo({
 
         <Field
           id="entryYear"
-          label="Entry year (E.C.)"
+          label="Entry year"
           required={isStudent}
           error={errors.entryYear}
           help="The year they started at the university. The batch, year of study and expected graduation are worked out from it."

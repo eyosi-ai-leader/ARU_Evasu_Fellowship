@@ -1,8 +1,3 @@
-import {
-  ecDateProblem,
-  ecValueToIso,
-  isoToEcValue,
-} from "@/lib/ethiopianCalendar";
 import { OTHER_OPTION, getCities } from "@/lib/ethiopiaLocations";
 import {
   CHURCH_MINISTRIES,
@@ -23,13 +18,37 @@ export { MINISTRY_ROLES };
 
 const MINISTRY_PREFIXES = ["highSchoolMinistry", "churchMinistry"];
 
+/**
+ * Checks an optional Gregorian date typed as YYYY-MM-DD.
+ * Returns an error message, or "" when the date is empty or fine.
+ */
+function gcDateProblem(value, label) {
+  if (!value) return "";
+
+  const date = new Date(`${value}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return `${label} is not a valid date.`;
+  }
+
+  if (date.getFullYear() < 1900) {
+    return `${label} is not a valid date.`;
+  }
+
+  if (date > new Date()) {
+    return `${label} cannot be in the future.`;
+  }
+
+  return "";
+}
+
 export const emptyMemberForm = {
   // Personal
   firstName: "",
   middleName: "",
   lastName: "",
   gender: "",
-  dateOfBirth: "", // E.C. "year-month-day"
+  dateOfBirth: "", // G.C. "YYYY-MM-DD"
 
   // Contact
   email: "",
@@ -41,7 +60,7 @@ export const emptyMemberForm = {
   departmentId: "",
   studentId: "",
   academicStatus: "Student",
-  entryYear: "", // E.C. year they started at the university
+  entryYear: "", // G.C. year they started at the university
   alumniContactConsent: false,
 
   // Emergency contact
@@ -57,7 +76,7 @@ export const emptyMemberForm = {
 
   // Spiritual background
   previousChurch: "",
-  baptismDate: "", // E.C. "year-month-day"
+  baptismDate: "", // G.C. "YYYY-MM-DD"
   newChristian: "no",
   highSchoolMinistryName: "",
   highSchoolMinistryOther: "",
@@ -124,12 +143,6 @@ export function toDateOnly(value) {
   }).format(date);
 }
 
-const toEcDate = (value) => {
-  const dateOnly = toDateOnly(value);
-
-  return dateOnly ? isoToEcValue(dateOnly) : "";
-};
-
 const text = (value) =>
   value === null || value === undefined ? "" : String(value);
 
@@ -175,7 +188,7 @@ export function memberToForm(member) {
     middleName: text(member.middle_name),
     lastName: text(member.last_name),
     gender: text(member.gender),
-    dateOfBirth: toEcDate(member.date_of_birth),
+    dateOfBirth: toDateOnly(member.date_of_birth),
 
     email: text(member.email),
     phone: text(member.user_phone || member.phone),
@@ -198,7 +211,7 @@ export function memberToForm(member) {
     address: text(member.address),
 
     previousChurch: text(member.previous_church),
-    baptismDate: toEcDate(member.baptism_date),
+    baptismDate: toDateOnly(member.baptism_date),
     newChristian: member.new_christian ? "yes" : "no",
     highSchoolMinistryName: highSchool.name,
     highSchoolMinistryOther: highSchool.other,
@@ -290,11 +303,11 @@ export function validateMemberForm(
     errors.entryYear = "Please select the year they started (entry year).";
   }
 
-  const dobProblem = ecDateProblem(form.dateOfBirth, "Date of birth");
+  const dobProblem = gcDateProblem(form.dateOfBirth, "Date of birth");
 
   if (dobProblem) errors.dateOfBirth = dobProblem;
 
-  const baptismProblem = ecDateProblem(form.baptismDate, "Baptism date");
+  const baptismProblem = gcDateProblem(form.baptismDate, "Baptism date");
 
   if (baptismProblem) errors.baptismDate = baptismProblem;
 
@@ -320,8 +333,8 @@ export function validateMemberForm(
 /**
  * Form values -> FormData for POST /members (create) or PUT /members/:id (edit).
  *
- * Dates go out as normal (G.C.) dates. The entry year goes out as the E.C.
- * year, which is what the database keeps in entry_year.
+ * Dates and the entry year are Gregorian (G.C.) and are sent exactly as
+ * chosen, the same way the public registration form sends them.
  *
  * On create, empty fields are left out. On edit, an empty text field is sent
  * empty so the old value is cleared.
@@ -352,13 +365,10 @@ export function buildMemberFormData(form, { mode }) {
     data.append("gender", form.gender);
   }
 
-  const dateOfBirth = ecValueToIso(form.dateOfBirth);
+  // Dates are Gregorian (YYYY-MM-DD) and are sent exactly as chosen.
+  if (form.dateOfBirth) data.append("dateOfBirth", form.dateOfBirth);
 
-  if (dateOfBirth) data.append("dateOfBirth", dateOfBirth);
-
-  const baptismDate = ecValueToIso(form.baptismDate);
-
-  if (baptismDate) data.append("baptismDate", baptismDate);
+  if (form.baptismDate) data.append("baptismDate", form.baptismDate);
 
   data.append("roleId", String(form.roleId));
   data.append("status", form.status || "Active");

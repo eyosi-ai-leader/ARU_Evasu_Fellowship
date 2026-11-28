@@ -1,6 +1,6 @@
 "use client";
 
-import EcDateField from "@/components/shared/EcDate/EcDateField";
+import MemberGregorianDateField from "./MemberGregorianDateField";
 import { OTHER_OPTION } from "@/lib/ethiopiaLocations";
 import {
   CHURCH_MINISTRIES,
@@ -128,7 +128,7 @@ export default function MemberSpiritualInfo({ form, errors = {}, onChange }) {
           />
         </Field>
 
-        <EcDateField
+        <MemberGregorianDateField
           id="baptismDate"
           name="baptismDate"
           label="Baptism date"

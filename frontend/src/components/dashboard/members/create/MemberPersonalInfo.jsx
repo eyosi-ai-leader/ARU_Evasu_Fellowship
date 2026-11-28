@@ -1,6 +1,6 @@
 "use client";
 
-import EcDateField from "@/components/shared/EcDate/EcDateField";
+import MemberGregorianDateField from "./MemberGregorianDateField";
 import { Field, Section, fieldClass } from "./FormParts";
 
 export default function MemberPersonalInfo({
@@ -76,7 +76,7 @@ export default function MemberPersonalInfo({
           </select>
         </Field>
 
-        <EcDateField
+        <MemberGregorianDateField
           id="dateOfBirth"
           name="dateOfBirth"
           label="Date of birth"
