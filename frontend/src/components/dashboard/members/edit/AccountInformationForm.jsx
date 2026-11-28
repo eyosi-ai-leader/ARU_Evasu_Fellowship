@@ -2,9 +2,7 @@
 
 import { AlertTriangle, Loader2, Mail } from "lucide-react";
 
-import { formatEthiopianDate } from "@/lib/ethiopianCalendar";
-
-// "15 Meskerem 2019 E.C."  (a Date is used so the local day is shown)
+// "15 Sep 2026"
 function formatDate(value) {
   if (!value) return "—";
 
@@ -12,10 +10,14 @@ function formatDate(value) {
 
   if (Number.isNaN(date.getTime())) return "—";
 
-  return formatEthiopianDate(date) || "—";
+  return date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
-// "15 Meskerem 2019 E.C., 3:20 PM"
+// "15 Sep 2026, 3:20 PM"
 function formatDateTime(value) {
   if (!value) return "";
 
@@ -28,7 +30,7 @@ function formatDateTime(value) {
     minute: "2-digit",
   });
 
-  return `${formatEthiopianDate(date)}, ${time}`;
+  return `${formatDate(value)}, ${time}`;
 }
 
 function getAccess(member) {
