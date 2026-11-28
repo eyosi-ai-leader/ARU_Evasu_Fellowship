@@ -29,7 +29,7 @@ const announcementEmail = ({
   actionUrl = "",
 }) => {
   // The caller still sends this as "churchName"; it is the fellowship name.
-  const fellowshipName = churchName || "Arsi University Evasu Fellowship";
+  const fellowshipName = churchName || "Arsi University EvaSUE Fellowship";
 
   const banner = BANNERS[priority] || null;
   const safeSubject = singleLine(subject);

@@ -15,7 +15,7 @@ const invitationEmail = ({
   reminder = false,
 }) => {
   const fellowshipName =
-    process.env.CHURCH_NAME || "Arsi University Evasu Fellowship";
+    process.env.CHURCH_NAME || "Arsi University EvaSUE Fellowship";
   const name = escapeHtml(firstName || "friend");
 
   const subject = reminder

@@ -623,7 +623,7 @@ export default function RegisterForm() {
             </h2>
 
             <p className="mt-4 text-sm leading-6 text-white/70">
-              Join the Arsi University Evasu Fellowship and stay connected
+              Join the Arsi University EvaSUE Fellowship and stay connected
               with announcements, your ministries and your community.
             </p>
 

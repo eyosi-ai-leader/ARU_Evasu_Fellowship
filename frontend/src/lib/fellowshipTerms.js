@@ -6,7 +6,7 @@ export const TERMS_SECTIONS = [
     id: "about",
     title: "About the Fellowship",
     paragraphs: [
-      "The Arsi University Evasu Fellowship is a fellowship of students and graduates who are dedicated to following and witnessing Jesus Christ as Lord and Savior. It gathers around three purposes: evangelism, discipleship and mission.",
+      "The Arsi University EvaSUE Fellowship is a fellowship of students and graduates who are dedicated to following and witnessing Jesus Christ as Lord and Savior. It gathers around three purposes: evangelism, discipleship and mission.",
       "This website and member system exist to serve that family: to share announcements, connect members with their ministries and campus community, and help leaders care for those in their charge.",
     ],
   },

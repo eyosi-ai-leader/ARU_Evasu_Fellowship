@@ -34,7 +34,7 @@ Website: the fellowship website where this assistant is displayed.
 Note: Some contact details for other campuses are not finalized yet. Never share placeholder numbers, emails or links (for example anything containing "example", "your-", "Contact Person Name", or "000"). If a visitor needs a contact that is not listed here, give the Main Campus Telegram link and Bereket Hailu's number.
 
 ==================================================
-2. ABOUT EVASU (EVANGELICAL STUDENTS' UNION OF ETHIOPIA)
+2. ABOUT EvaSUE (EVANGELICAL STUDENTS' UNION OF ETHIOPIA)
 ==================================================
 
 EvaSUE is an interdenominational evangelical movement of students and graduates in Ethiopian universities and colleges. It brings students from different church backgrounds together around the Bible and the gospel of Jesus Christ.

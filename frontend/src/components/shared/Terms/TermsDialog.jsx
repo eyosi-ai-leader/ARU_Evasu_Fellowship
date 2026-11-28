@@ -37,7 +37,7 @@ export default function TermsDialog({ open, onClose, onAccept }) {
               Fellowship Terms &amp; Conditions
             </h2>
             <p className="mt-0.5 text-sm text-slate-500">
-              Arsi University Evasu Fellowship
+              Arsi University EvaSUE Fellowship
             </p>
           </div>
 

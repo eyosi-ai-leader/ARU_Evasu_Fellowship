@@ -56,7 +56,7 @@ const aboutPage = {
     eyebrow: "Who we are",
     title: "A fellowship of students and graduates centered on Jesus Christ",
     paragraphs: [
-      "Arsi University Evasu Fellowship is a community of students and graduates who follow Jesus Christ as Lord and Savior. We are part of EvaSUE, the Evangelical Students' and Graduates' Union of Ethiopia.",
+      "Arsi University EvaSUE Fellowship is a community of students and graduates who follow Jesus Christ as Lord and Savior. We are part of EvaSUE, the Evangelical Students' and Graduates' Union of Ethiopia.",
       "EvaSUE began in 1963 with a small group of students at Addis Ababa University who gave themselves to Bible study, prayer, worship and sharing their faith with friends. Today it includes student and graduate fellowships across Ethiopia and abroad.",
       "At Arsi University that same story continues in our Main, Health, Agriculture and Bekoji campus fellowships, all joined together as the General Fellowship.",
     ],

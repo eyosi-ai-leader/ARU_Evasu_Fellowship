@@ -23,7 +23,7 @@ export default function TermsPage() {
           Fellowship Terms &amp; Conditions
         </h1>
         <p className="mt-2 text-sm text-body">
-          Arsi University Evasu Fellowship
+          Arsi University EvaSUE Fellowship
         </p>
 
         <div className="mt-8 rounded-3xl bg-white p-6 shadow-card ring-1 ring-line sm:p-8">

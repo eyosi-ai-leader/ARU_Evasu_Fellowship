@@ -170,7 +170,7 @@ export default function VerifyEmailForm() {
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="aru_evasu@fellowship.com"
+              placeholder="aru_EvaSUE@fellowship.com"
               autoComplete="email"
               required
               className="w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-11 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10"

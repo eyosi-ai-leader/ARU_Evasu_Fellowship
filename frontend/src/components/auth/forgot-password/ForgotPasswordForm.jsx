@@ -350,7 +350,7 @@ export default function ForgotPasswordForm() {
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="aru_evasu@fellowship.com"
+              placeholder="aru_EvaSUE@fellowship.com"
               autoComplete="email"
               required
               className={`${inputClass} pl-11 pr-4`}

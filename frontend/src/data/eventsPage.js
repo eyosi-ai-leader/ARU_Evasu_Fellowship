@@ -40,7 +40,7 @@ export const eventsPage = {
     },
     {
       type: "ad",
-      title: "Arsi University Evasu Fellowship Official Website",
+      title: "Arsi University EvaSUE Fellowship Official Website",
       text: "Visit our official website for more information about our fellowships, events, and community activities.",
       href: "/contact",
       cta: "Contact us",

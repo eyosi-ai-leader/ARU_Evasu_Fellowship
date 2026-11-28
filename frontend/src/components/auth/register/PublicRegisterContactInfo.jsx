@@ -24,7 +24,7 @@ export default function PublicRegisterContactInfo({
             name="email"
             value={formData.email}
             onChange={onChange}
-            placeholder="aru_evasu@fellowship.com"
+            placeholder="aru_EvaSUE@fellowship.com"
             autoComplete="email"
             error={errors.email}
           />

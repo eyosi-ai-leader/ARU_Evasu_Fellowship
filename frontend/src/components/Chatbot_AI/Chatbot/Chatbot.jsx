@@ -121,7 +121,7 @@ const Chatbot = () => {
             <Chatboticon />
 
             <h2 className="logo-text">
-              ARU Evasu Fellow Assistant
+              ARU EvaSUE Fellow Assistant
             </h2>
           </div>
 

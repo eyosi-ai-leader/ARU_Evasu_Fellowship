@@ -1,1 +1,1 @@
-# ARU_Evasu_Fellowship
+# ARU_EvaSUE_Fellowship

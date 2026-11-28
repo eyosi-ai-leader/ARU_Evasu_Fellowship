@@ -1,7 +1,7 @@
 export const BRAND = {
-  name: "Arsi University Evasu Fellowship",
+  name: "Arsi University EvaSUE Fellowship",
   university: "Arsi University",
-  shortName: "Evasu Fellowship",
+  shortName: "EvaSUE Fellowship",
   parentOrg: "Evangelical Students' and Graduates' Union of Ethiopia (EvaSUE)",
   tagline:
     "Students and graduates growing together in faith, love and service.",

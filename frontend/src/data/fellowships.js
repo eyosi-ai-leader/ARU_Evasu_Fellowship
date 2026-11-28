@@ -30,7 +30,7 @@ export const fellowships = [
     contact: {
       name: "Bereket Hailu",
       phone: "+251 94 582 3539",
-      email: "main@arsievasu.example",
+      email: "main@arsiEvaSUE.example",
       telegram: "https://t.me/Arsiufellow",
     },
     leaders: leaders([
@@ -79,7 +79,7 @@ export const fellowships = [
     contact: {
       name: "Tariku Lemesa",
       phone: "+251 945325534",
-      email: "health@arsievasu.example",
+      email: "health@arsiEvaSUE.example",
       telegram: "https://t.me/your-health-campus",
     },
     leaders: leaders([
@@ -140,7 +140,7 @@ export const fellowships = [
     contact: {
       name: "Melkamu Mengesha",
       phone: "+251 904430838",
-      email: "agriculture@arsievasu.example",
+      email: "agriculture@arsiEvaSUE.example",
       telegram: "https://t.me/arsiuniversityy",
     },
     leaders: leaders([
@@ -195,7 +195,7 @@ export const fellowships = [
     contact: {
       name: "Contact Person Name",
       phone: "+251 900 000 104",
-      email: "bekoji@arsievasu.example",
+      email: "bekoji@arsiEvaSUE.example",
       telegram: "https://t.me/your-bekoji-campus",
     },
     leaders: leaders([

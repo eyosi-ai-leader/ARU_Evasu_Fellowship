@@ -79,7 +79,7 @@ async function getAccessToken() {
 
 function createRawEmail({ to, subject, text, html, replyTo }) {
   const senderName = encodeHeader(
-    process.env.EMAIL_FROM_NAME || "ARU EVASU Fellowship"
+    process.env.EMAIL_FROM_NAME || "ARU EvaSUE Fellowship"
   );
 
   const recipient = safeHeader(

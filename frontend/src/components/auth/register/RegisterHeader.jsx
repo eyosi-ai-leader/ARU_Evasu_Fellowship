@@ -5,7 +5,7 @@ export default function RegisterHeader() {
     <div className="mb-8 text-center">
       <Link href="/" className="inline-block">
         <div className="font-display text-2xl font-semibold tracking-tight text-ink">
-          ARSI UNIVERSITY EVASU FELLOWSHIP
+          ARSI UNIVERSITY EvaSUE FELLOWSHIP
         </div>
       </Link>
 

@@ -9,7 +9,7 @@ function escapeHtml(value = "") {
 
 const welcomeEmail = ({ firstName, loginUrl }) => {
   const fellowshipName =
-    process.env.CHURCH_NAME || "Arsi University Evasu Fellowship";
+    process.env.CHURCH_NAME || "Arsi University EvaSUE Fellowship";
   const name = escapeHtml(firstName || "friend");
 
   const subject = `Welcome to ${fellowshipName}`;
